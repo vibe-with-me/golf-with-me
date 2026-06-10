@@ -25,6 +25,10 @@ worker-configuration.d.ts
 test-results
 playwright-report
 
+# Expo
+.expo
+expo-env.d.ts
+
 # OS
 .DS_Store
 

@@ -1,6 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "react", "oxc"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "react",
+    "oxc"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -16,5 +21,15 @@
     "**/routeTree.gen.ts",
     "**/worker-configuration.d.ts",
     "packages/db/src/types/supabase.ts"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "apps/mobile/**"
+      ],
+      "rules": {
+        "react/style-prop-object": "off"
+      }
+    }
   ]
 }
