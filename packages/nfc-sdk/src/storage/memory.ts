@@ -77,13 +77,14 @@ export class InMemoryStorageAdapter implements StorageAdapter {
   }
 
   async listScans(filter: ListScansFilter): Promise<Scan[]> {
-    let scans = this.scans.filter(
-      (scan) =>
-        (filter.tag_id === undefined || scan.tag_id === filter.tag_id) &&
-        (filter.since === undefined || scan.scanned_at >= filter.since) &&
-        (filter.until === undefined || scan.scanned_at <= filter.until),
-    );
-    scans = scans.sort((a, b) => b.scanned_at.localeCompare(a.scanned_at));
+    let scans = this.scans
+      .filter(
+        (scan) =>
+          (filter.tag_id === undefined || scan.tag_id === filter.tag_id) &&
+          (filter.since === undefined || scan.scanned_at >= filter.since) &&
+          (filter.until === undefined || scan.scanned_at <= filter.until),
+      )
+      .toSorted((a, b) => b.scanned_at.localeCompare(a.scanned_at));
     if (filter.limit !== undefined) {
       scans = scans.slice(0, filter.limit);
     }

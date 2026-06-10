@@ -9,6 +9,12 @@
   ],
   "packageManager": "bun@1.3.10",
   "scripts": {
-    "test": "echo \"no tests yet\""
+    "lint": "oxlint --deny-warnings",
+    "typecheck": "bun run --filter '*' typecheck",
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test"
+  },
+  "devDependencies": {
+    "oxlint": "^1.69.0"
   }
 }

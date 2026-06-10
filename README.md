@@ -1,5 +1,7 @@
 # withme-starter
 
+[![CI](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml)
+
 Open-source NFC-to-destination redirect toolkit + starter app.
 
 ## Status
