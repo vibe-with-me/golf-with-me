@@ -1,4 +1,23 @@
-// @withme/contract — single source of truth for the API.
-// Deliverable step 2 fills this in: ORPC contract definitions + Zod schemas,
-// the typed destination discriminated union, and the `public` + `app` routers.
-export const CONTRACT_NAME = '@withme/contract';
+import type { InferContractRouterInputs, InferContractRouterOutputs } from '@orpc/contract';
+import { appContract } from './contract/app.ts';
+import { publicContract } from './contract/public.ts';
+
+export * from './schemas/connection.ts';
+export * from './schemas/destination.ts';
+export * from './schemas/profile.ts';
+export * from './schemas/tag.ts';
+export { ResolveOutputSchema, publicContract } from './contract/public.ts';
+export type { ResolveOutput } from './contract/public.ts';
+export { appContract } from './contract/app.ts';
+
+/**
+ * The whole API surface. `public` is tag-scoped (the SDK wraps it);
+ * `app` is session-scoped (authed clients only). Served by apps/api.
+ */
+export const contract = {
+  public: publicContract,
+  app: appContract,
+};
+
+export type ContractInputs = InferContractRouterInputs<typeof contract>;
+export type ContractOutputs = InferContractRouterOutputs<typeof contract>;
