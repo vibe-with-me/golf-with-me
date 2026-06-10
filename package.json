@@ -14,7 +14,11 @@
     "typecheck": "turbo run typecheck",
     "build": "turbo run build",
     "test": "turbo run test",
-    "deploy": "turbo run deploy"
+    "deploy": "turbo run deploy",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > packages/db/src/types/supabase.ts"
   },
   "devDependencies": {
     "oxlint": "^1.69.0",

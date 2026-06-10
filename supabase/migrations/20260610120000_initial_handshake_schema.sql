@@ -243,6 +243,12 @@ create policy profiles_select on public.profiles
     tenant_id = private.current_tenant_id()
     and (
       id = (select auth.uid())
+      -- the blocker always sees whom they blocked (their own list UI),
+      -- even under a mutual block
+      or exists (
+        select 1 from public.blocks b
+        where b.blocker_id = (select auth.uid()) and b.blocked_id = profiles.id
+      )
       or (
         not private.is_blocked((select auth.uid()), id)
         and (
@@ -257,10 +263,6 @@ create policy profiles_select on public.profiles
               and r.recipient_id = (select auth.uid())
               and r.status = 'pending'
               and r.expires_at > now()
-          )
-          or exists (
-            select 1 from public.blocks b
-            where b.blocker_id = (select auth.uid()) and b.blocked_id = profiles.id
           )
         )
       )

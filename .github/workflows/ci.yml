@@ -34,5 +34,12 @@ jobs:
       - name: Build
         run: bun run build
 
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase (for RLS tests)
+        run: supabase start -x studio,inbucket
+
       - name: Test
         run: bun run test
