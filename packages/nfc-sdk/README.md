@@ -1,0 +1,70 @@
+# @withme/nfc
+
+NFC-to-destination redirect infrastructure as a reusable TypeScript library: register tag UIDs, resolve them to destination URLs, and log scans with privacy-preserving IP hashing. Storage is bring-your-own via a small `StorageAdapter` interface (a Supabase adapter and an in-memory adapter ship in the box), the core is framework-agnostic, and a Hono router adapter is included for the common `GET /t/:uid` redirect endpoint. This SDK is **single-tenant by design**: one instance serves one logical owner, and multi-tenancy is intentionally out of scope.
+
+## Install
+
+```sh
+bun add @withme/nfc
+```
+
+The two storage/framework integrations rely on optional peer dependencies — install only what you use:
+
+```sh
+bun add @supabase/supabase-js   # for the Supabase storage adapter
+bun add hono                    # for the Hono router adapter
+```
+
+## Quickstart
+
+```ts
+import { Hono } from 'hono';
+import { createClient } from '@supabase/supabase-js';
+import { NfcSdk } from '@withme/nfc';
+import { SupabaseStorageAdapter } from '@withme/nfc/storage/supabase';
+import { nfcRouter } from '@withme/nfc/adapters/hono';
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+
+const sdk = new NfcSdk({
+  storage: new SupabaseStorageAdapter(supabase),
+  ipHashSalt: process.env.IP_HASH_SALT!,
+});
+
+const app = new Hono();
+app.route('/', nfcRouter(sdk)); // serves GET /t/:uid
+
+export default app;
+```
+
+Tapping a tag hits `/t/:uid`; the router resolves the UID and 302-redirects to the tag's `destination_url`, logging the scan in the background. Unclaimed UIDs get a 404 page, deactivated tags a 410 page (both overridable via `nfcRouter` options).
+
+## Bring your own storage
+
+Implement the `StorageAdapter` interface to back the SDK with any datastore:
+
+```ts
+interface StorageAdapter {
+  getTagByUid(uid: string): Promise<Tag | null>;
+  createTag(input: CreateTagInput): Promise<Tag>;
+  updateTag(uid: string, patch: UpdateTagInput): Promise<Tag>;
+  deactivateTag(uid: string): Promise<Tag>;
+  listTags(filter?: ListTagsFilter): Promise<Tag[]>;
+  insertScan(scan: ScanInsert): Promise<void>;
+  listScans(filter: ListScansFilter): Promise<Scan[]>;
+}
+```
+
+UIDs are normalized to uppercase by the SDK before they reach the adapter, so adapters can assume uppercase. An `InMemoryStorageAdapter` ships at `@withme/nfc/storage/memory` for tests and examples.
+
+## Schema
+
+The Supabase adapter expects the schema in [`sql/0001_initial.sql`](sql/0001_initial.sql) (`tags` and `scans` tables). Apply it with your migration tool of choice. The adapter takes an already-constructed `SupabaseClient`; the SDK never manages keys or auth.
+
+## Status
+
+v0.x — breaking changes expected between releases.
+
+## License
+
+MIT
