@@ -46,7 +46,20 @@ export async function upsertOwnProfile(
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    // Lost a create race (two first-save tabs): the row exists now, update it.
+    if (error.code === '23505') {
+      const { data: raced, error: retryError } = await db
+        .from('profiles')
+        .update(patch)
+        .eq('id', userId)
+        .select()
+        .single();
+      if (retryError) throw retryError;
+      return raced;
+    }
+    throw error;
+  }
   return data;
 }
 

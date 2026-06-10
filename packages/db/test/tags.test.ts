@@ -88,6 +88,38 @@ describe('owner management', () => {
       .update({ destination: { type: 'teleport' } })
       .eq('uid', uid);
     expect(error?.message).toContain('tags_destination_shape');
+
+    // exact-match: extra keys on a valid type are rejected too
+    const { error: extraKeys } = await alice.client
+      .from('tags')
+      .update({ destination: { type: 'profile', payload: 'x' } })
+      .eq('uid', uid);
+    expect(extraKeys?.message).toContain('tags_destination_shape');
+  });
+
+  it('the owner cannot mutate the immutable uid or reassign ownership', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const uid = await provisionTag();
+    await alice.client.rpc('claim_tag', { p_uid: uid });
+
+    // uid is not an updatable column for clients (squat prevention)
+    const { error: uidError } = await alice.client
+      .from('tags')
+      .update({ uid: '04FFFFFFFFFF96' })
+      .eq('uid', uid);
+    expect(uidError).not.toBeNull();
+
+    // neither is claimed_by
+    const { error: ownerError } = await alice.client
+      .from('tags')
+      .update({ claimed_by: bob.id })
+      .eq('uid', uid);
+    expect(ownerError).not.toBeNull();
+
+    const { data } = await admin.from('tags').select('uid, claimed_by').eq('uid', uid).single();
+    expect(data?.uid).toBe(uid);
+    expect(data?.claimed_by).toBe(alice.id);
   });
 });
 
@@ -117,16 +149,28 @@ describe('scan privacy', () => {
   });
 
   it('scan rows contain no location or network identity columns', async () => {
-    const { data } = await admin.from('tag_scans').select('*').limit(1);
-    if (data && data.length > 0) {
-      const columns = Object.keys(data[0]!);
-      expect(columns.toSorted()).toEqual([
-        'id',
-        'scanned_at',
-        'tag_uid',
-        'tenant_id',
-        'user_agent',
-      ]);
+    // seed a scan so this test can never vacuously pass on an empty table
+    const uid = await provisionTag();
+    await anonClient().rpc('log_scan', { p_uid: uid, p_user_agent: 'columns-probe' });
+
+    const { data } = await admin.from('tag_scans').select('*').eq('tag_uid', uid).limit(1);
+    expect(data).not.toBeNull();
+    expect(data!.length).toBeGreaterThan(0);
+    const columns = Object.keys(data![0]!);
+    expect(columns.toSorted()).toEqual(['id', 'scanned_at', 'tag_uid', 'tenant_id', 'user_agent']);
+  });
+
+  it('log_scan throttles a single uid at the database floor (60/min)', async () => {
+    const uid = await provisionTag();
+    const anon = anonClient();
+    for (let i = 0; i < 65; i++) {
+      const { error } = await anon.rpc('log_scan', { p_uid: uid });
+      expect(error).toBeNull(); // always a silent ack, never an error
     }
+    const { count } = await admin
+      .from('tag_scans')
+      .select('*', { count: 'exact', head: true })
+      .eq('tag_uid', uid);
+    expect(count).toBe(60);
   });
 });

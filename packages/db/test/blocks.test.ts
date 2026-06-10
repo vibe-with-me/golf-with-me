@@ -2,6 +2,7 @@
 // exists — ever — and the blocker never sees dropped requests.
 import { beforeAll, describe, expect, it } from 'bun:test';
 import {
+  admin,
   assertStackRunning,
   connectUsers,
   createTestUser,
@@ -66,7 +67,6 @@ describe('block invisibility', () => {
     const { data: inbox } = await bob.client.from('connect_requests').select('*');
     expect(inbox ?? []).toEqual([]);
     // ...and nothing was stored at all (service-role check).
-    const { admin } = await import('../src/test-utils/index.ts');
     const { data: raw } = await admin
       .from('connect_requests')
       .select('*')
@@ -119,6 +119,31 @@ describe('block invisibility', () => {
       .select('display_name')
       .eq('id', bob.id);
     expect(aliceSees?.[0]?.display_name).toBe('Bob');
+  });
+
+  it('a request cannot be accepted once a block lands, with no distinct signal', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    await alice.client.rpc('send_connect_request', { p_recipient: bob.id });
+    const { data: inbox } = await bob.client
+      .from('connect_requests')
+      .select('id')
+      .eq('status', 'pending')
+      .single();
+
+    // Alice blocks Bob after sending; Bob's accept must fail exactly like a
+    // request that never existed (not a different error).
+    await alice.client.from('blocks').insert({ blocker_id: alice.id, blocked_id: bob.id });
+    const { error } = await bob.client.rpc('accept_connect_request', {
+      p_request_id: inbox!.id,
+    });
+    expect(error?.message).toContain('request not found');
+
+    const { data: conns } = await admin
+      .from('connections')
+      .select('*')
+      .eq('user_a', alice.id < bob.id ? alice.id : bob.id);
+    expect(conns ?? []).toEqual([]);
   });
 
   it('only the blocker can remove their block', async () => {

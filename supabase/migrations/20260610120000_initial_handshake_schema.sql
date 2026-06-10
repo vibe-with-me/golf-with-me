@@ -55,11 +55,12 @@ create table public.tags (
   status public.tag_status not null default 'unclaimed',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  -- destination must match the typed union from @withme/contract
-  -- (profile-only in V1; extend the IN list as the union grows)
+  -- destination must match the typed union from @withme/contract exactly —
+  -- no extra keys, no oversized payloads. V1 has one member; future types
+  -- extend this constraint by migration.
   constraint tags_destination_shape check (
     destination is null
-    or (jsonb_typeof(destination) = 'object' and destination->>'type' in ('profile'))
+    or destination = '{"type": "profile"}'::jsonb
   ),
   constraint tags_state_consistent check (
     (status <> 'unclaimed' or (claimed_by is null and destination is null))
@@ -124,6 +125,11 @@ create table private.connect_request_attempts (
 create index connect_request_attempts_requester_idx
   on private.connect_request_attempts (requester_id, attempted_at desc);
 
+-- Defense in depth: deny-all RLS so the ledger stays invisible to client
+-- roles even if the private schema were ever exposed. Definer functions
+-- (owned by postgres) are unaffected.
+alter table private.connect_request_attempts enable row level security;
+
 -- ================================================================= indexes ==
 
 create index tags_claimed_by_idx on public.tags (claimed_by);
@@ -153,6 +159,20 @@ $$;
 
 grant execute on function private.is_blocked(uuid, uuid) to anon, authenticated;
 
+-- Serializes all relationship mutations (send/accept/block) for a user pair
+-- within their transactions, closing block-vs-send and block-vs-accept races
+-- that could otherwise leave a request or connection coexisting with a block.
+create function private.lock_pair(a uuid, b uuid)
+returns void
+language sql
+as $$
+  select pg_advisory_xact_lock(
+    hashtextextended(least(a, b)::text || ':' || greatest(a, b)::text, 0)
+  )
+$$;
+
+grant execute on function private.lock_pair(uuid, uuid) to authenticated;
+
 create function private.set_updated_at()
 returns trigger
 language plpgsql
@@ -181,6 +201,7 @@ security definer
 set search_path = ''
 as $$
 begin
+  perform private.lock_pair(new.blocker_id, new.blocked_id);
   delete from public.connections
    where user_a = least(new.blocker_id, new.blocked_id)
      and user_b = greatest(new.blocker_id, new.blocked_id);
@@ -286,6 +307,12 @@ create policy profiles_delete on public.profiles
 -- Owners manage their claimed tags (disable/re-enable, change destination).
 -- Claiming is atomic via claim_tag(); provisioning new tags is an operator
 -- action (service role / seed). No anon access — resolution is RPC-only.
+-- Column-level grants pin owner updates to (destination, status): the uid is
+-- immutable (a writable PK would let an owner squat on future tag batches),
+-- and claimed_by/tenant_id can never be reassigned by a client.
+
+revoke update on public.tags from authenticated;
+grant update (destination, status) on public.tags to authenticated;
 
 create policy tags_select_own on public.tags
   for select to authenticated
@@ -347,6 +374,12 @@ create policy blocks_delete on public.blocks
 -- way in. A viewer blocked by the tag owner gets 'disabled' —
 -- indistinguishable from a deactivated tag. Unknown UIDs resolve as
 -- 'unclaimed' so the resolver page never breaks.
+--
+-- Known residual signal (deliberate trade-off): someone holding the physical
+-- tag can compare a signed-in resolve ('disabled') with an anonymous one
+-- ('claimed') and infer a block. Hiding the profile from a blocked viewer and
+-- hiding the block from someone with the tag in hand are mutually exclusive;
+-- V1 chooses profile invisibility, which is the stronger safety property.
 create function public.resolve_tag(p_uid text)
 returns jsonb
 language plpgsql
@@ -392,6 +425,8 @@ end
 $$;
 
 -- Log a tap. Unknown UID is a silent no-op — the resolver must be unbreakable.
+-- A per-UID floor throttle (60/min) bounds direct anonymous PostgREST abuse;
+-- the API Worker applies its own edge rate limit in front of this.
 create function public.log_scan(p_uid text, p_user_agent text default null)
 returns void
 language plpgsql
@@ -399,11 +434,21 @@ volatile
 security definer
 set search_path = ''
 as $$
+declare
+  v_uid text := upper(trim(p_uid));
 begin
+  if (
+    select count(*)
+      from public.tag_scans
+     where tag_uid = v_uid and scanned_at > now() - interval '1 minute'
+  ) >= 60 then
+    return;
+  end if;
+
   insert into public.tag_scans (tag_uid, tenant_id, user_agent)
   select t.uid, t.tenant_id, nullif(left(p_user_agent, 512), '')
     from public.tags t
-   where t.uid = upper(trim(p_uid));
+   where t.uid = v_uid;
 end
 $$;
 
@@ -490,6 +535,9 @@ begin
     return;
   end if;
 
+  -- serialize against concurrent blocks/accepts for this pair
+  perform private.lock_pair(v_user, p_recipient);
+
   -- lazily expire a stale pending request so re-sending works
   update public.connect_requests
      set status = 'expired'
@@ -528,6 +576,7 @@ set search_path = ''
 as $$
 declare
   v_user uuid := (select auth.uid());
+  v_requester uuid;
   v_req public.connect_requests%rowtype;
   v_conn public.connections%rowtype;
   v_profile public.profiles%rowtype;
@@ -536,11 +585,24 @@ begin
     raise exception 'authentication required' using errcode = '42501';
   end if;
 
+  -- Take the pair lock BEFORE the row lock (same order as send/block) so a
+  -- block landing concurrently cannot interleave with this accept.
+  select requester_id into v_requester
+    from public.connect_requests
+   where id = p_request_id and recipient_id = v_user and status = 'pending';
+  if not found then
+    raise exception 'request not found' using errcode = 'P0003';
+  end if;
+  perform private.lock_pair(v_user, v_requester);
+
   select * into v_req
     from public.connect_requests
    where id = p_request_id and recipient_id = v_user and status = 'pending'
    for update;
-  if not found then
+  if not found
+     or private.is_blocked(v_user, v_req.requester_id)
+     or private.is_blocked(v_req.requester_id, v_user) then
+    -- deleted or blocked while we waited: identical to never-existed
     raise exception 'request not found' using errcode = 'P0003';
   end if;
 

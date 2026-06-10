@@ -3,6 +3,19 @@
 // Idempotent: re-running resets the demo users and tags. Local stack only.
 import { admin, anonClient } from '@withme/db/test-utils';
 
+// This seed DELETES the demo users and tags it owns. Refuse anything that
+// isn't the local stack unless explicitly overridden.
+const seedTarget = new URL(process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321');
+if (
+  !['127.0.0.1', 'localhost'].includes(seedTarget.hostname) &&
+  process.env.SEED_ALLOW_REMOTE !== '1'
+) {
+  console.error(
+    `Refusing to seed non-local Supabase at ${seedTarget.origin}. Set SEED_ALLOW_REMOTE=1 to override.`,
+  );
+  process.exit(1);
+}
+
 const DEMO_PASSWORD = 'withme-demo-1';
 const TAGS = {
   unclaimed: '04AAAAAAAAAAAA',
@@ -63,7 +76,11 @@ if (disableError) throw disableError;
 
 // A couple of scans on the live tag.
 for (const ua of ['Seed/iPhone Mobile Safari', 'Seed/Android Chrome Mobile']) {
-  await anonClient().rpc('log_scan', { p_uid: TAGS.claimed, p_user_agent: ua });
+  const { error: scanError } = await anonClient().rpc('log_scan', {
+    p_uid: TAGS.claimed,
+    p_user_agent: ua,
+  });
+  if (scanError) throw scanError;
 }
 
 // Lin has tapped Ada's tag and asked to connect.
