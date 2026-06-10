@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
 import { ProfileCard } from '../components/ProfileCard.tsx';
@@ -60,6 +60,7 @@ function ResolvePage() {
 }
 
 function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
+  const navigate = useNavigate();
   const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'other'>('loading');
   const [send, setSend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
 
@@ -107,6 +108,13 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
       onClick={async () => {
         setSend('sending');
         try {
+          // Consent is mutual: the other side sees YOUR card, so a profile
+          // must exist before a request can go out.
+          const { profile } = await api.app.profile.get();
+          if (!profile) {
+            navigate({ to: '/me', search: { returnTo: `/t/${uid}` } });
+            return;
+          }
           await api.app.requests.send({ recipient_id: profileId });
           setSend('sent');
         } catch {

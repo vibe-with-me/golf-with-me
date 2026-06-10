@@ -1,11 +1,15 @@
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { api } from '../lib/api.ts';
-import { requireSession } from '../lib/auth-guard.ts';
+import { requireSession, safeReturnTo } from '../lib/auth-guard.ts';
 import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/me')({
   ssr: false,
+  validateSearch: (search): { returnTo?: string } => {
+    const returnTo = safeReturnTo(search.returnTo);
+    return returnTo ? { returnTo } : {};
+  },
   beforeLoad: () => requireSession('/me'),
   loader: () => api.app.profile.get(),
   component: MePage,
@@ -13,6 +17,7 @@ export const Route = createFileRoute('/me')({
 
 function MePage() {
   const { profile } = Route.useLoaderData();
+  const { returnTo } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
@@ -31,6 +36,10 @@ function MePage() {
         bio: bio.trim() === '' ? null : bio.trim(),
         avatar_url: avatarUrl.trim() === '' ? null : avatarUrl.trim(),
       });
+      if (returnTo) {
+        navigate({ to: returnTo });
+        return;
+      }
       await router.invalidate();
       setStatus('Saved.');
     } catch {

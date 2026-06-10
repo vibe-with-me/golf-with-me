@@ -21,6 +21,10 @@ worker-configuration.d.ts
 # Turborepo
 .turbo
 
+# Playwright
+test-results
+playwright-report
+
 # OS
 .DS_Store
 

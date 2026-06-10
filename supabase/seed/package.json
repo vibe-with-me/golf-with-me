@@ -1,0 +1,16 @@
+{
+  "name": "@withme/seed",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@withme/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "~5.9.3"
+  }
+}

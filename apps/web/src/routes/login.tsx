@@ -5,7 +5,10 @@ import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/login')({
   ssr: false,
-  validateSearch: (search) => ({ returnTo: safeReturnTo(search.returnTo) }),
+  validateSearch: (search): { returnTo?: string } => {
+    const returnTo = safeReturnTo(search.returnTo);
+    return returnTo ? { returnTo } : {};
+  },
   component: LoginPage,
 });
 

@@ -5,7 +5,8 @@
   "license": "MIT",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "supabase/seed"
   ],
   "packageManager": "bun@1.3.10",
   "scripts": {
@@ -18,6 +19,7 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
+    "db:seed": "bun run supabase/seed/index.ts",
     "db:types": "supabase gen types typescript --local > packages/db/src/types/supabase.ts"
   },
   "devDependencies": {

@@ -6,10 +6,11 @@ import { getSupabase } from '../lib/supabase.ts';
 /** OAuth landing: exchanges the PKCE code for a session, then returns. */
 export const Route = createFileRoute('/auth/callback')({
   ssr: false,
-  validateSearch: (search) => ({
-    returnTo: safeReturnTo(search.returnTo),
-    error_description:
-      typeof search.error_description === 'string' ? search.error_description : undefined,
+  validateSearch: (search): { returnTo?: string; error_description?: string } => ({
+    ...(safeReturnTo(search.returnTo) ? { returnTo: safeReturnTo(search.returnTo) } : {}),
+    ...(typeof search.error_description === 'string'
+      ? { error_description: search.error_description }
+      : {}),
   }),
   component: AuthCallbackPage,
 });
