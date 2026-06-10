@@ -2,18 +2,147 @@
 
 [![CI](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml)
 
-Open-source NFC-to-destination redirect toolkit + starter app.
+Open-source NFC tap-to-connect reference implementation: two strangers tap a
+tag and remain connected — and nothing more. No ranking, no recommendations,
+no aggregation, no monetization hooks. This repo is the handshake.
 
-## Status
+## The stack (opinionated by design)
 
-This project is v0.x and pre-1.0. Breaking changes are expected between releases. There is no support SLA. Issues and PRs are welcome, but the project is maintained on a best-effort basis.
+This is the production stack of a shipped product, open-sourced as-is:
+**TanStack Start · Hono · ORPC · Cloudflare Workers · Supabase · Bun.**
+End-to-end type safety flows from one contract package through the API, the
+web app, and the SDK. The opinions are the point — framework-substitution
+requests (Next.js ports, Express adapters, alternate databases) are out of
+scope and will be closed. Fork freely; the opinions stay.
 
-## Structure
+## How it works
 
-This is a Bun workspaces monorepo:
+```
+NTAG213 tag ──encodes──▶ https://<your-domain>/t/{UID}
+                              │
+                  apps/web (Workers) SSR's "the card"
+                              │ typed ORPC client
+                  apps/api (Workers) Hono + ORPC
+                              │ caller's JWT, never service-role
+                  Supabase (Postgres + RLS + Auth)
+```
 
-- `packages/` — publishable packages, starting with `@withme/nfc`, the redirect SDK.
-- `apps/` — runnable applications, starting with a starter app that consumes the SDK.
+The **UID is permanent; the destination is mutable server-side.** That
+indirection is the core pattern: you encode a tag once, lock it, and what it
+points at remains yours to change forever.
+
+- `packages/contract` — the single source of truth: ORPC contracts + Zod
+  schemas, including the typed destination union (`{ type: 'profile' }` today;
+  `link | menu | vcard` can join without schema change). Two routers:
+  `public` (resolve / claim / logScan — the SDK surface) and `app`
+  (connect, block, profile — session-scoped).
+- `apps/api` — the one backend every client talks to. Verifies Supabase JWTs
+  (ES256 via JWKS), runs every query under the **caller's** RLS identity, and
+  rate-limits per tag UID at the edge.
+- `apps/web` — a thin TanStack Start client. Loaders call the API through the
+  typed contract client; the web app owns no business logic and no data
+  access. `/t/$uid` is the product: SSR'd, fast, unbreakable.
+- `apps/mobile` — placeholder; an Expo client will consume the same contract.
+- `packages/db` — Supabase client, generated types, query helpers, and the
+  RLS test suite (consumed by `apps/api` only).
+- `packages/nfc-sdk` — `@withme/nfc`, the standalone redirect SDK. Its
+  `client` entry (`resolve` / `claim` / `logScan`) wraps this API's typed
+  contract.
+- `supabase/` — migrations, RLS policies, seed.
+
+## Safety semantics (enforced in the database, not the UI)
+
+- **Blocks are absolute and invisible.** A blocked user can't view the
+  blocker's profile, can't connect, and receives no signal — dropped requests
+  ack identically to delivered ones, and even the rate limiter accounts
+  attempts in a private ledger so it can't be used as an oracle.
+- **No enumeration.** Profiles are reachable only via a tag scan (knowing the
+  unguessable UID is the capability) or an existing connection. No browse, no
+  search, no directory, no sequential IDs.
+- **Mutual consent.** Connections exist only when a request is accepted.
+  Requests expire after 7 days; either party can remove a connection
+  unilaterally, without notification.
+- **Privacy-default scans.** `tag_scans` stores a user-agent string and a
+  timestamp. No GPS, no IP, no fingerprinting — the columns don't exist.
+- **Deletion cascades.** Deleting an account removes connections, requests,
+  and blocks, resets claimed tags to unclaimed, and erases their scan history.
+
+All of the above is RLS + security-definer functions, covered by 37 policy
+tests (`packages/db/test`) that run against Supabase local. The tests are the
+spec.
+
+## Quickstart
+
+### Local, zero cloud accounts
+
+Prereqs: [Bun](https://bun.sh), [Supabase CLI](https://supabase.com/docs/guides/cli),
+Docker.
+
+```sh
+bun install
+bun run db:start        # Supabase local on ports 553xx
+bun run db:seed         # demo users + tags
+cp apps/api/.dev.vars.example apps/api/.dev.vars
+cp apps/web/.env.example apps/web/.env
+bun run dev             # api on :8786, web on :3000
+```
+
+Then open `http://localhost:3000/t/04BBBBBBBBBBBB` (Ada's claimed tag),
+`/t/04AAAAAAAAAAAA` (the claim flow), or sign in as
+`ada@demo.withme.local` / `withme-demo-1` to see her pending request.
+
+Tests: `bun run test` (unit + RLS), `bun run --cwd apps/web test:e2e`
+(Playwright smoke: resolve → claim → connect), `bun run --cwd apps/api e2e`
+(API e2e against the local stack).
+
+### Deploy (one platform: Cloudflare + Supabase)
+
+1. Fork, then create a [Supabase project](https://supabase.com) and link it:
+   `supabase link --project-ref <ref>` then `supabase db push`.
+2. In the Supabase dashboard: set your site URL and
+   `https://<your-web-domain>/auth/callback` as a redirect URL; enable the
+   Google provider if you want OAuth.
+3. Set Worker config: in `apps/api`, `SUPABASE_URL`,
+   `SUPABASE_PUBLISHABLE_KEY`, and `CORS_ORIGIN` (your web origin); in
+   `apps/web`, the `VITE_*` values from `.env.example` for the build.
+4. `bun run deploy` — both Workers (API and web) deploy via wrangler to one
+   Cloudflare account, free tier friendly. Single-platform deploy is a
+   feature: there is exactly one place to look when something breaks.
+5. Encode a tag (below), tap it, claim it. Target: under 30 minutes.
+
+## Encoding NFC tags
+
+Tags encode one **permanent URL**: `https://<your-domain>/t/{UID}`, where
+`{UID}` is the tag's immutable 7-byte NTAG213 UID (14 hex chars). Use any NFC
+writer app (e.g. NXP TagWriter) to write the URL as an NDEF URI record, then
+**lock the tag to read-only**. The heavy lookup happens in the API Worker —
+the tag itself is just a pointer that never changes. Destinations stay
+mutable server-side: claim, re-point, disable, or reset without touching the
+physical tag again.
+
+## Principled non-goals
+
+Matching, discovery, recommendation, feeds, and event aggregation are
+excluded **as off-thesis, not as withheld features**. Software that decides
+who you should meet is a different product with different incentives. This
+repo's entire job is to make the moment after a physical tap work — the
+handshake — and to stay out of the way after that.
+
+## Commercial boundary
+
+Stated plainly, on day one: **the handshake layer is free and open,
+permanently.** Tag fulfillment (printed, encoded, locked hardware) and
+managed hosting are commercial, permanently. The boundary will not creep.
+
+## Contributing notes
+
+- Issues and PRs welcome; maintained on a best-effort basis, no support SLA.
+- v0.x — breaking changes expected.
+- `apps/api` runs on Cloudflare Workers: **Workers-compatible dependencies
+  only**. Logging is [LogTape](https://logtape.org) — if you're arriving from
+  Node/Express, note that Pino depends on Node streams and will not run here.
+- Lint is `oxlint --deny-warnings`; CI runs lint, typecheck, build, and the
+  RLS suite against Supabase local.
 
 ## License
 
