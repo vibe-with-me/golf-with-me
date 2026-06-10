@@ -9,38 +9,141 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TUidRouteImport } from './routes/t.$uid'
+import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectionsRoute = ConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TUidRoute = TUidRouteImport.update({
+  id: '/t/$uid',
+  path: '/t/$uid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClaimUidRoute = ClaimUidRouteImport.update({
+  id: '/claim/$uid',
+  path: '/claim/$uid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/claim/$uid': typeof ClaimUidRoute
+  '/t/$uid': typeof TUidRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/claim/$uid': typeof ClaimUidRoute
+  '/t/$uid': typeof TUidRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/claim/$uid': typeof ClaimUidRoute
+  '/t/$uid': typeof TUidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/connections'
+    | '/login'
+    | '/me'
+    | '/auth/callback'
+    | '/claim/$uid'
+    | '/t/$uid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/connections'
+    | '/login'
+    | '/me'
+    | '/auth/callback'
+    | '/claim/$uid'
+    | '/t/$uid'
+  id:
+    | '__root__'
+    | '/'
+    | '/connections'
+    | '/login'
+    | '/me'
+    | '/auth/callback'
+    | '/claim/$uid'
+    | '/t/$uid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConnectionsRoute: typeof ConnectionsRoute
+  LoginRoute: typeof LoginRoute
+  MeRoute: typeof MeRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  ClaimUidRoute: typeof ClaimUidRoute
+  TUidRoute: typeof TUidRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connections': {
+      id: '/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof ConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +151,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/t/$uid': {
+      id: '/t/$uid'
+      path: '/t/$uid'
+      fullPath: '/t/$uid'
+      preLoaderRoute: typeof TUidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/claim/$uid': {
+      id: '/claim/$uid'
+      path: '/claim/$uid'
+      fullPath: '/claim/$uid'
+      preLoaderRoute: typeof ClaimUidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConnectionsRoute: ConnectionsRoute,
+  LoginRoute: LoginRoute,
+  MeRoute: MeRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  ClaimUidRoute: ClaimUidRoute,
+  TUidRoute: TUidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

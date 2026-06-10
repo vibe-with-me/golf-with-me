@@ -1,0 +1,330 @@
+/* Self-hosted variable fonts (OFL). No font CDNs. */
+@font-face {
+  font-family: 'Space Grotesk Variable';
+  src: url('../fonts/space-grotesk-var-latin.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  src: url('../fonts/inter-var-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- layout ------------------------------------------------------------- */
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  gap: var(--space-5);
+}
+
+.page--top {
+  justify-content: flex-start;
+  padding-top: var(--space-7);
+}
+
+.stack {
+  width: 100%;
+  max-width: var(--card-max-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.nav {
+  width: 100%;
+  max-width: var(--card-max-width);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.nav a {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  min-height: var(--tap-target);
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav a:hover {
+  color: var(--color-ink);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+/* --- the card ------------------------------------------------------------ */
+
+.card {
+  width: 100%;
+  max-width: var(--card-max-width);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+/* the one animation: a brief, physical settle on resolve */
+.card--settle {
+  animation: settle var(--motion-settle-duration) var(--motion-settle-ease) both;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card--settle {
+    animation: none;
+  }
+}
+
+.avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.card h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.card .bio {
+  color: var(--color-ink-muted);
+  margin: 0;
+}
+
+.card .hint {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  min-height: 52px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  width: 100%;
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* the accent's only home */
+.btn--connect {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: 1.125rem;
+}
+
+.btn--quiet {
+  background: none;
+  border: none;
+  color: var(--color-ink-muted);
+  min-height: var(--tap-target);
+  width: auto;
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+.btn--quiet:hover {
+  color: var(--color-ink);
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.btn-row .btn {
+  flex: 1;
+}
+
+/* --- forms ---------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+  width: 100%;
+}
+
+.field label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.field input,
+.field textarea {
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  min-height: var(--tap-target);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.form-error {
+  color: var(--color-ink);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* --- lists (connections / requests / blocks) ------------------------------ */
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: var(--space-4) 0 0;
+}
+
+.row {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row .avatar {
+  width: 44px;
+  height: 44px;
+  font-size: var(--text-md);
+  flex-shrink: 0;
+}
+
+.row-body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.row-body .name {
+  font-weight: 600;
+  display: block;
+}
+
+.row-body .sub {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.empty {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-4);
+}

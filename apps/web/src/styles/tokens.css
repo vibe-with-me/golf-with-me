@@ -1,0 +1,69 @@
+/*
+ * Design tokens — the single source of every color, radius, font, and spacing
+ * value in the app. Same dormant-seam logic as tenant_id: V2 theming becomes
+ * a token swap, not a redesign. Components must reference var(--*) only.
+ *
+ * Palette: near-monochrome warm neutrals with EXACTLY ONE vivid accent,
+ * used only for the primary Connect action.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* surfaces & ink */
+  --color-bg: #f6f3ee;
+  --color-surface: #fffdf9;
+  --color-border: rgba(28, 25, 22, 0.09);
+  --color-ink: #1c1916;
+  --color-ink-muted: #6f6a62;
+
+  /* the accent. Connect, and nothing else. (4.8:1 with --color-accent-ink) */
+  --color-accent: #c2410c;
+  --color-accent-ink: #ffffff;
+
+  /* type */
+  --font-display: 'Space Grotesk Variable', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --font-body: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
+  --text-sm: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-title: 2rem;
+
+  /* geometry — rounded, card-like, echoing the physical tag */
+  --radius-card: 24px;
+  --radius-control: 14px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --tap-target: 44px;
+  --card-max-width: 26rem;
+
+  /* elevation */
+  --shadow-card:
+    0 1px 2px rgba(28, 25, 22, 0.04),
+    0 16px 40px -16px rgba(28, 25, 22, 0.16);
+
+  /* the motion budget: one. The card's settle on resolve. */
+  --motion-settle-duration: 360ms;
+  --motion-settle-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #161412;
+    --color-surface: #211e1b;
+    --color-border: rgba(240, 236, 229, 0.1);
+    --color-ink: #f0ece5;
+    --color-ink-muted: #a39c91;
+    --color-accent: #ff6a3d;
+    --color-accent-ink: #211008;
+    --shadow-card:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 16px 40px -16px rgba(0, 0, 0, 0.6);
+  }
+}

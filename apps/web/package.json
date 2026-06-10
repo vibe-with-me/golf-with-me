@@ -13,6 +13,8 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@orpc/client": "^1.13.6",
+    "@supabase/supabase-js": "^2.103.0",
     "@tanstack/react-router": "^1.170.2",
     "@tanstack/react-start": "^1.168.25",
     "@withme/contract": "workspace:*",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.37.0",
+    "@orpc/contract": "^1.13.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.2",

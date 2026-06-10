@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -6,9 +6,22 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   return (
-    <main>
-      <h1>withme-starter</h1>
-      <p>NFC tap-to-connect reference implementation. Routes arrive in deliverable step 6.</p>
+    <main className="page">
+      <div className="card">
+        <h1 className="wordmark">withme</h1>
+        <p className="bio">Tap a tag. Meet a person. Stay connected.</p>
+        <p className="hint">
+          This is the starter app — tags resolve at <code>/t/&lt;uid&gt;</code>.
+        </p>
+        <nav className="btn-row">
+          <Link className="btn" to="/me">
+            My profile
+          </Link>
+          <Link className="btn" to="/connections">
+            Connections
+          </Link>
+        </nav>
+      </div>
     </main>
   );
 }
