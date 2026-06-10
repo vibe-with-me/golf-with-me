@@ -1,0 +1,32 @@
+import type { Logger } from '@logtape/logtape';
+import { ORPCError } from '@orpc/server';
+
+interface DbError {
+  code?: string;
+  message?: string;
+}
+
+/**
+ * Maps SQLSTATE codes raised by the database RPCs (the safety-semantic layer)
+ * to ORPC errors. Database messages never pass through verbatim — what the
+ * client sees is fixed here.
+ */
+export function throwFromDbError(error: DbError, logger: Logger): never {
+  switch (error.code) {
+    case 'P0001':
+      throw new ORPCError('BAD_REQUEST', { message: 'Invalid request' });
+    case 'P0002':
+      throw new ORPCError('CONFLICT', { message: 'Tag is not claimable' });
+    case 'P0003':
+      throw new ORPCError('NOT_FOUND', { message: 'Not found' });
+    case 'P0004':
+      throw new ORPCError('TOO_MANY_REQUESTS', { message: 'Rate limit exceeded' });
+    case 'P0005':
+      throw new ORPCError('CONFLICT', { message: 'Request expired' });
+    case '42501':
+      throw new ORPCError('UNAUTHORIZED', { message: 'Authentication required' });
+    default:
+      logger.error('unexpected database error', { code: error.code, message: error.message });
+      throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
+  }
+}

@@ -1,5 +1,12 @@
 import { configureSync, getConsoleSink, getLogger } from '@logtape/logtape';
+import { RPCHandler } from '@orpc/server/fetch';
+import { createDbClient } from '@withme/db';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import type { HonoEnv } from './env.ts';
+import type { ApiContext } from './lib/orpc.ts';
+import { supabaseAuth } from './middleware/jwt.ts';
+import { publicRouter } from './routers/public.ts';
 
 // LogTape, not Pino: Pino depends on Node streams and is Workers-incompatible.
 configureSync({
@@ -10,16 +17,51 @@ configureSync({
   ],
 });
 
-const logger = getLogger(['api']);
+const logger = getLogger(['api', 'http']);
 
-const app = new Hono();
+// The app router lands here in deliverable step 6.
+const rpcHandler = new RPCHandler({ public: publicRouter });
 
-app.get('/health', (c) => {
-  logger.debug('health check');
-  return c.json({ ok: true });
+const app = new Hono<HonoEnv>();
+
+app.use('*', async (c, next) => {
+  c.set('requestId', c.req.header('x-request-id') ?? crypto.randomUUID());
+  await next();
 });
 
-// The ORPC routers (`public` and `app`) from @withme/contract are mounted here
-// in deliverable steps 5–6.
+app.use('*', (c, next) =>
+  cors({
+    origin: c.env.CORS_ORIGIN,
+    allowHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+    maxAge: 86_400,
+  })(c, next),
+);
+
+app.use('*', supabaseAuth());
+
+app.get('/health', (c) => c.json({ ok: true }));
+
+app.use('/rpc/*', async (c, next) => {
+  const context: ApiContext = {
+    env: c.env,
+    userId: c.get('userId'),
+    requestId: c.get('requestId'),
+    logger: logger.with({ requestId: c.get('requestId') }),
+    db: createDbClient({
+      url: c.env.SUPABASE_URL,
+      key: c.env.SUPABASE_PUBLISHABLE_KEY,
+      accessToken: c.get('accessToken') ?? undefined,
+    }),
+  };
+
+  const { matched, response } = await rpcHandler.handle(c.req.raw, {
+    prefix: '/rpc',
+    context,
+  });
+  if (matched) {
+    return c.newResponse(response.body, response);
+  }
+  await next();
+});
 
 export default app;

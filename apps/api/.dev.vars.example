@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored). These are the local-stack shared defaults
+# printed by `bun run db:start` — not secrets.
+SUPABASE_URL=http://127.0.0.1:55321
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH

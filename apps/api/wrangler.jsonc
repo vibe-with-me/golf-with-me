@@ -7,12 +7,23 @@
   "observability": {
     "enabled": true
   },
+  // 8786 (not wrangler's 8787 default) so this coexists with another local
+  // Workers project, matching the 55xxx Supabase port choice.
   "dev": {
-    "port": 8787
+    "port": 8786
   },
   "vars": {
-    "APP_ENV": "development"
-  }
-  // Secrets (set via `wrangler secret put` or .dev.vars locally; never in this file):
-  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY — wired up in the API implementation step.
+    "APP_ENV": "development",
+    "CORS_ORIGIN": "http://localhost:3000"
+  },
+  "ratelimits": [
+    {
+      "name": "SCAN_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 30, "period": 60 }
+    }
+  ]
+  // Per-deployment config (set as vars for your Worker, or .dev.vars locally —
+  // see .dev.vars.example): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY.
+  // The service-role key is never configured here, by design.
 }

@@ -6,18 +6,23 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "e2e": "bun run e2e/handshake.e2e.ts",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@logtape/logtape": "^2.0.4",
+    "@orpc/server": "^1.13.9",
     "@withme/contract": "workspace:*",
     "@withme/db": "workspace:*",
-    "hono": "^4.12.0"
+    "hono": "^4.12.0",
+    "jose": "^6.2.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",
+    "@types/bun": "^1.3.14",
+    "@withme/nfc": "workspace:*",
     "typescript": "~5.9.3",
     "wrangler": "^4.93.0"
   }
