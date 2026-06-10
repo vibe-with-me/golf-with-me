@@ -1,8 +1,19 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "react", "oxc"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/coverage/**"]
+  "rules": {
+    "react/react-in-jsx-scope": "off"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/coverage/**",
+    "**/.wrangler/**",
+    "**/routeTree.gen.ts",
+    "**/worker-configuration.d.ts"
+  ]
 }

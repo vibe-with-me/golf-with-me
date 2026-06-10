@@ -9,12 +9,15 @@
   ],
   "packageManager": "bun@1.3.10",
   "scripts": {
+    "dev": "turbo run dev",
     "lint": "oxlint --deny-warnings",
-    "typecheck": "bun run --filter '*' typecheck",
-    "build": "bun run --filter '*' build",
-    "test": "bun run --filter '*' test"
+    "typecheck": "turbo run typecheck",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "deploy": "turbo run deploy"
   },
   "devDependencies": {
-    "oxlint": "^1.69.0"
+    "oxlint": "^1.69.0",
+    "turbo": "^2.5.0"
   }
 }

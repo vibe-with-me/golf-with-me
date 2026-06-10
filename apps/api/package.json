@@ -1,0 +1,24 @@
+{
+  "name": "@withme/api",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@logtape/logtape": "^2.0.4",
+    "@withme/contract": "workspace:*",
+    "@withme/db": "workspace:*",
+    "hono": "^4.12.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "typescript": "~5.9.3",
+    "wrangler": "^4.93.0"
+  }
+}

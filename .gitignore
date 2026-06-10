@@ -14,6 +14,11 @@ coverage
 
 # Cloudflare Workers local state
 .wrangler
+.dev.vars
+worker-configuration.d.ts
+
+# Turborepo
+.turbo
 
 # OS
 .DS_Store
