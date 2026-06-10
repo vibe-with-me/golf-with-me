@@ -1,10 +1,42 @@
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
-import type { ContractRouterClient } from '@orpc/contract';
-import type { ContractOutputs, Destination, publicContract } from '@withme/contract';
 
-type PublicOutputs = ContractOutputs['public'];
-type PublicRpcClient = ContractRouterClient<typeof publicContract>;
+// These mirror @withme/contract's public-router types. They are declared
+// structurally here (rather than imported) so the published .d.ts is fully
+// self-contained — the contract package is a private workspace package. A
+// compile-time parity test in test/client-types.test.ts keeps them in sync.
+
+/** The typed destination union. V1 has one member; more arrive over time. */
+export type Destination = { type: 'profile' };
+
+/** The public card a resolved tag exposes. */
+export interface PublicProfileCard {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
+export type TagStatus = 'unclaimed' | 'claimed' | 'disabled';
+
+export type ApiResolveResult =
+  | { status: 'unclaimed'; uid: string }
+  | { status: 'claimed'; uid: string; destination: Destination; profile: PublicProfileCard }
+  | { status: 'disabled'; uid: string };
+
+export interface ApiClaimResult {
+  tag: {
+    uid: string;
+    status: TagStatus;
+    destination: Destination | null;
+  };
+}
+
+interface PublicRpcClient {
+  resolve(input: { uid: string }): Promise<ApiResolveResult>;
+  claim(input: { uid: string; destination?: Destination }): Promise<ApiClaimResult>;
+  logScan(input: { uid: string; user_agent?: string }): Promise<{ ok: true }>;
+}
 
 export interface NfcClientOptions {
   /** Base URL of a withme-starter API Worker, e.g. `https://api.example.com`. */
@@ -32,25 +64,18 @@ export class NfcClient {
       },
       fetch: options.fetch,
     });
-    this.#client = createORPCClient<PublicRpcClient>(link);
+    this.#client = createORPCClient(link) as unknown as PublicRpcClient;
   }
 
-  resolve(uid: string): Promise<PublicOutputs['resolve']> {
+  resolve(uid: string): Promise<ApiResolveResult> {
     return this.#client.resolve({ uid });
   }
 
-  claim(
-    uid: string,
-    destination: Destination = { type: 'profile' },
-  ): Promise<PublicOutputs['claim']> {
+  claim(uid: string, destination: Destination = { type: 'profile' }): Promise<ApiClaimResult> {
     return this.#client.claim({ uid, destination });
   }
 
-  logScan(uid: string, userAgent?: string): Promise<PublicOutputs['logScan']> {
+  logScan(uid: string, userAgent?: string): Promise<{ ok: true }> {
     return this.#client.logScan({ uid, user_agent: userAgent });
   }
 }
-
-export type { Destination };
-export type ResolveResult = PublicOutputs['resolve'];
-export type ClaimResult = PublicOutputs['claim'];

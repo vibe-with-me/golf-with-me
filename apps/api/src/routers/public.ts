@@ -1,15 +1,31 @@
 import { ORPCError } from '@orpc/server';
 import type { ResolveOutput } from '@withme/contract';
 import { throwFromDbError } from '../lib/errors.ts';
+import type { ApiContext } from '../lib/orpc.ts';
 import { publicProcedure, requireUser } from '../lib/orpc.ts';
 
-const resolve = publicProcedure.resolve.handler(async ({ input, context }) => {
-  // Per-UID limiter: a tag's URL is public once printed — cap what one UID
-  // can trigger. (The transient key never touches storage.)
-  const { success } = await context.env.SCAN_RATE_LIMITER.limit({ key: `resolve:${input.uid}` });
+/**
+ * Edge rate limit keyed by UID + caller IP: a printed tag URL cannot be used
+ * to exhaust its own budget by a third party, and one client cannot hammer a
+ * tag. The IP is transient (rate-limit key only) — it is never stored,
+ * matching the no-IP-at-rest rule. A missing binding fails open with a loud
+ * log: the resolver staying unbreakable beats rate limiting in a
+ * misconfigured deploy.
+ */
+async function enforceLimit(context: ApiContext, key: string): Promise<void> {
+  const limiter = context.env.SCAN_RATE_LIMITER;
+  if (!limiter) {
+    context.logger.error('SCAN_RATE_LIMITER binding missing — rate limiting disabled');
+    return;
+  }
+  const { success } = await limiter.limit({ key });
   if (!success) {
     throw new ORPCError('TOO_MANY_REQUESTS', { message: 'Slow down' });
   }
+}
+
+const resolve = publicProcedure.resolve.handler(async ({ input, context }) => {
+  await enforceLimit(context, `resolve:${input.uid}:${context.clientIp}`);
 
   const { data, error } = await context.db.rpc('resolve_tag', { p_uid: input.uid });
   if (error) throwFromDbError(error, context.logger);
@@ -17,7 +33,9 @@ const resolve = publicProcedure.resolve.handler(async ({ input, context }) => {
 });
 
 const claim = publicProcedure.claim.handler(async ({ input, context }) => {
-  requireUser(context);
+  const userId = requireUser(context);
+  await enforceLimit(context, `claim:${userId}`);
+
   const { data, error } = await context.db.rpc('claim_tag', {
     p_uid: input.uid,
     p_destination: input.destination,
@@ -29,10 +47,7 @@ const claim = publicProcedure.claim.handler(async ({ input, context }) => {
 });
 
 const logScan = publicProcedure.logScan.handler(async ({ input, context }) => {
-  const { success } = await context.env.SCAN_RATE_LIMITER.limit({ key: `scan:${input.uid}` });
-  if (!success) {
-    throw new ORPCError('TOO_MANY_REQUESTS', { message: 'Slow down' });
-  }
+  await enforceLimit(context, `scan:${input.uid}:${context.clientIp}`);
 
   const { error } = await context.db.rpc('log_scan', {
     p_uid: input.uid,

@@ -7,12 +7,15 @@ let client: SupabaseClient | null = null;
  * everything goes through apps/api via the typed contract client.
  */
 export function getSupabase(): SupabaseClient {
-  client ??= createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    // PKCE with an explicit exchange in /auth/callback (no auto-detection).
-    { auth: { flowType: 'pkce', detectSessionInUrl: false } },
-  );
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      'VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set — copy apps/web/.env.example to .env',
+    );
+  }
+  // PKCE with an explicit exchange in /auth/callback (no auto-detection).
+  client ??= createClient(url, key, { auth: { flowType: 'pkce', detectSessionInUrl: false } });
   return client;
 }
 

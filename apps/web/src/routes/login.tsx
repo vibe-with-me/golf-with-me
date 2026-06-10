@@ -5,6 +5,7 @@ import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/login')({
   ssr: false,
+  head: () => ({ meta: [{ title: 'Sign in — withme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
@@ -22,19 +23,25 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const destination = returnTo ?? '/me';
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     const auth = getSupabase().auth;
-    const { error: authError } =
+    const { data, error: authError } =
       mode === 'signin'
         ? await auth.signInWithPassword({ email, password })
         : await auth.signUp({ email, password });
     setBusy(false);
     if (authError) {
       setError(authError.message);
+      return;
+    }
+    // Signup with email confirmations enabled returns no session yet.
+    if (mode === 'signup' && !data.session) {
+      setAwaitingConfirmation(true);
       return;
     }
     navigate({ to: destination });
@@ -49,6 +56,19 @@ function LoginPage() {
       },
     });
     if (authError) setError(authError.message);
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <main className="page">
+        <div className="card">
+          <h1>Check your email</h1>
+          <p className="bio" role="status">
+            We sent a confirmation link to {email}. Come back here after clicking it.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -78,7 +98,11 @@ function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error ? <p className="form-error">{error}</p> : null}
+        {error ? (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        ) : null}
         <button className="btn" type="submit" disabled={busy}>
           {busy ? 'One moment…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
         </button>

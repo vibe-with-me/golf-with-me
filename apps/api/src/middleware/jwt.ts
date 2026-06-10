@@ -35,8 +35,14 @@ export function supabaseAuth(): MiddlewareHandler<HonoEnv> {
 
     const token = authorization.slice('bearer '.length).trim();
     try {
-      const { payload } = await jwtVerify(token, jwksFor(c.env.SUPABASE_URL));
-      if (typeof payload.sub !== 'string') {
+      // Pin issuer, audience, and algorithms — signature validity alone is
+      // not enough (e.g. anonymous-sign-in tokens, future token types).
+      const { payload } = await jwtVerify(token, jwksFor(c.env.SUPABASE_URL), {
+        issuer: `${c.env.SUPABASE_URL}/auth/v1`,
+        audience: 'authenticated',
+        algorithms: ['ES256', 'RS256'],
+      });
+      if (typeof payload.sub !== 'string' || payload.is_anonymous === true) {
         return c.json({ error: 'invalid token' }, 401);
       }
       c.set('userId', payload.sub);

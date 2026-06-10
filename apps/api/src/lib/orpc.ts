@@ -10,6 +10,8 @@ export interface ApiContext {
   db: Db;
   userId: string | null;
   requestId: string;
+  /** Rate-limit key dimension only. Never stored, never logged. */
+  clientIp: string;
   logger: Logger;
 }
 

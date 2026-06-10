@@ -25,13 +25,20 @@ const rpcHandler = new RPCHandler({ public: publicRouter, app: appRouter });
 const app = new Hono<HonoEnv>();
 
 app.use('*', async (c, next) => {
-  c.set('requestId', c.req.header('x-request-id') ?? crypto.randomUUID());
+  // Honor a well-formed inbound id for correlation; regenerate anything else.
+  const inbound = c.req.header('x-request-id');
+  c.set(
+    'requestId',
+    inbound && /^[\w.-]{1,64}$/.test(inbound) ? inbound : crypto.randomUUID(),
+  );
   await next();
 });
 
 app.use('*', (c, next) =>
   cors({
-    origin: c.env.CORS_ORIGIN,
+    // Comma-separated list supported; unset env falls back to local dev
+    // rather than crashing every request.
+    origin: (c.env.CORS_ORIGIN ?? 'http://localhost:3000').split(',').map((o) => o.trim()),
     allowHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
     maxAge: 86_400,
   })(c, next),
@@ -46,6 +53,7 @@ app.use('/rpc/*', async (c, next) => {
     env: c.env,
     userId: c.get('userId'),
     requestId: c.get('requestId'),
+    clientIp: c.req.header('cf-connecting-ip') ?? 'unknown',
     logger: logger.with({ requestId: c.get('requestId') }),
     db: createDbClient({
       url: c.env.SUPABASE_URL,

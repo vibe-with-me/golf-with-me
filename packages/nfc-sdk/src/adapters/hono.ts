@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { NfcSdk } from '../sdk.js';
 import type { Tag } from '../types.js';
 import { detectScanMethod } from '../utils/scan-detection.js';
-import { normalizeUid } from '../utils/uid.js';
+import { isValidUid, normalizeUid } from '../utils/uid.js';
 
 export interface NfcRouterOptions {
   redirectStatus?: 301 | 302;
@@ -28,6 +28,10 @@ export function nfcRouter(sdk: NfcSdk, options: NfcRouterOptions = {}): Hono {
 
   app.get('/t/:uid', async (c) => {
     const uid = normalizeUid(c.req.param('uid'));
+    // Malformed UIDs never reach storage or the custom page callbacks.
+    if (!isValidUid(uid)) {
+      return c.html(defaultPage('Tag not recognized', 'This is not a valid tag.'), 404);
+    }
     const result = await sdk.resolve(uid);
 
     if (result.status === 'unclaimed') {
@@ -50,10 +54,12 @@ export function nfcRouter(sdk: NfcSdk, options: NfcRouterOptions = {}): Hono {
         tag_id: result.tag.id,
         scan_method: detectScanMethod({ referer: c.req.header('referer'), userAgent }),
         user_agent: userAgent,
+        // cf-connecting-ip first: x-forwarded-for is client-spoofable on
+        // deployments that aren't behind a trusted proxy.
         ip:
-          c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
           c.req.header('cf-connecting-ip') ??
           c.req.header('x-real-ip') ??
+          c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
           null,
         country: c.req.header('cf-ipcountry') ?? c.req.header('x-vercel-ip-country') ?? null,
         city: c.req.header('x-vercel-ip-city') ?? null,

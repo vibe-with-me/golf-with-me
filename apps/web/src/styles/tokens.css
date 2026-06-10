@@ -14,6 +14,8 @@
   --color-bg: #f6f3ee;
   --color-surface: #fffdf9;
   --color-border: rgba(28, 25, 22, 0.09);
+  /* input boundaries need >=3:1 against the surface (WCAG 1.4.11) */
+  --color-border-input: rgba(28, 25, 22, 0.46);
   --color-ink: #1c1916;
   --color-ink-muted: #6f6a62;
 
@@ -58,6 +60,7 @@
     --color-bg: #161412;
     --color-surface: #211e1b;
     --color-border: rgba(240, 236, 229, 0.1);
+    --color-border-input: rgba(240, 236, 229, 0.5);
     --color-ink: #f0ece5;
     --color-ink-muted: #a39c91;
     --color-accent: #ff6a3d;

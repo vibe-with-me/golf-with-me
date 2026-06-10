@@ -16,9 +16,11 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.10
 
@@ -34,12 +36,17 @@ jobs:
       - name: Build
         run: bun run build
 
-      - uses: supabase/setup-cli@v1
+      - name: Check publish artifacts (@withme/nfc)
+        run: |
+          bunx publint packages/nfc-sdk
+          bunx @arethetypeswrong/cli --pack packages/nfc-sdk --profile node16
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
         with:
-          version: latest
+          version: 2.84.2
 
       - name: Start Supabase (for RLS tests)
-        run: supabase start -x studio,inbucket
+        run: supabase start -x studio,mailpit
 
       - name: Test
         run: bun run test

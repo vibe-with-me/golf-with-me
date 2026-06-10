@@ -6,6 +6,7 @@ import { requireSession } from '../lib/auth-guard.ts';
 /** Auth-gated claim flow: authenticate -> confirm -> claim binds tag to profile. */
 export const Route = createFileRoute('/claim/$uid')({
   ssr: false,
+  head: () => ({ meta: [{ title: 'Claim tag — withme' }] }),
   beforeLoad: ({ params }) => requireSession(`/claim/${params.uid}`),
   loader: () => api.app.profile.get(),
   component: ClaimPage,
@@ -70,7 +71,11 @@ function ClaimPage() {
               onChange={(e) => setDisplayName(e.target.value)}
             />
           </div>
-          {error ? <p className="form-error">{error}</p> : null}
+          {error ? (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          ) : null}
           <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
             Continue
           </button>
@@ -86,7 +91,11 @@ function ClaimPage() {
         <p className="bio">
           Tag <code>{uid}</code> will point to your profile. You can disable it any time.
         </p>
-        {error ? <p className="form-error">{error}</p> : null}
+        {error ? (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          ) : null}
         <button className="btn btn--connect" type="button" onClick={claim} disabled={busy}>
           {busy ? 'Claiming…' : 'Claim tag'}
         </button>

@@ -13,6 +13,8 @@ export function Avatar({ profile, size }: { profile: CardProfile; size?: 'row' }
         className="avatar"
         src={profile.avatar_url}
         alt=""
+        // the avatar host must not learn which tag page the viewer is on
+        referrerPolicy="no-referrer"
         width={size === 'row' ? 44 : 76}
         height={size === 'row' ? 44 : 76}
       />

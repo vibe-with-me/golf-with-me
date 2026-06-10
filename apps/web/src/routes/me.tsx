@@ -6,6 +6,7 @@ import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/me')({
   ssr: false,
+  head: () => ({ meta: [{ title: 'Your profile — withme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
@@ -94,7 +95,11 @@ function MePage() {
             onChange={(e) => setAvatarUrl(e.target.value)}
           />
         </div>
-        {status ? <p className="hint">{status}</p> : null}
+        {status ? (
+          <p className="hint" role="status">
+            {status}
+          </p>
+        ) : null}
         <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
           {busy ? 'Saving…' : 'Save'}
         </button>

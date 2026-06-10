@@ -34,7 +34,8 @@ export function throwFromDbError(error: DbError, logger: Logger): never {
     case 'PGRST116':
       throw new ORPCError('NOT_FOUND', { message: 'Not found' });
     default:
-      logger.error('unexpected database error', { code: error.code, message: error.message });
+      // Code only: constraint-violation messages can embed submitted values.
+      logger.error('unexpected database error', { code: error.code });
       throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
   }
 }

@@ -9,9 +9,17 @@ export async function requireSession(returnTo: string): Promise<void> {
   }
 }
 
-/** Only same-origin paths may be used as post-auth redirect targets. */
+/**
+ * Only same-origin paths may be used as post-auth redirect targets.
+ * Backslashes and control chars are rejected too: browsers normalize
+ * '\' to '/' during URL resolution, so '/\evil.com' would escape.
+ */
 export function safeReturnTo(value: unknown): string | undefined {
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+  return typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    // oxlint-disable-next-line no-control-regex -- rejecting control chars is the point
+    !/[\\\u0000-\u001f]/.test(value)
     ? value
     : undefined;
 }

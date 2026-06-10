@@ -44,9 +44,14 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     if (!tag) {
       throw new Error(`Tag with nfc_uid ${uid} not found`);
     }
+    // Drop explicit-undefined keys: JSON serialization drops them in the
+    // Supabase adapter, so both adapters must behave identically.
+    const cleanPatch = Object.fromEntries(
+      Object.entries(patch).filter(([, value]) => value !== undefined),
+    );
     const updated: Tag = {
       ...tag,
-      ...structuredClone(patch),
+      ...structuredClone(cleanPatch),
       updated_at: new Date().toISOString(),
     };
     this.tags.set(uid, updated);
