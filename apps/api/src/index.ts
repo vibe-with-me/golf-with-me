@@ -6,6 +6,7 @@ import { cors } from 'hono/cors';
 import type { HonoEnv } from './env.ts';
 import type { ApiContext } from './lib/orpc.ts';
 import { supabaseAuth } from './middleware/jwt.ts';
+import { appRouter } from './routers/app.ts';
 import { publicRouter } from './routers/public.ts';
 
 // LogTape, not Pino: Pino depends on Node streams and is Workers-incompatible.
@@ -19,8 +20,7 @@ configureSync({
 
 const logger = getLogger(['api', 'http']);
 
-// The app router lands here in deliverable step 6.
-const rpcHandler = new RPCHandler({ public: publicRouter });
+const rpcHandler = new RPCHandler({ public: publicRouter, app: appRouter });
 
 const app = new Hono<HonoEnv>();
 

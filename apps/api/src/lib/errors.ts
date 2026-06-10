@@ -25,6 +25,12 @@ export function throwFromDbError(error: DbError, logger: Logger): never {
       throw new ORPCError('CONFLICT', { message: 'Request expired' });
     case '42501':
       throw new ORPCError('UNAUTHORIZED', { message: 'Authentication required' });
+    case '23505':
+      throw new ORPCError('CONFLICT', { message: 'Already exists' });
+    case '23514':
+      throw new ORPCError('BAD_REQUEST', { message: 'Invalid request' });
+    case 'PGRST116':
+      throw new ORPCError('NOT_FOUND', { message: 'Not found' });
     default:
       logger.error('unexpected database error', { code: error.code, message: error.message });
       throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
