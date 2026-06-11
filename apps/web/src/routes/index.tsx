@@ -13,6 +13,12 @@ function Home() {
         <p className="hint">
           This is the starter app — tags resolve at <code>/t/&lt;uid&gt;</code>.
         </p>
+        {import.meta.env.VITE_DEMO_CREDENTIALS ? (
+          <p className="hint">
+            Try it: tap <a href="/t/04BBBBBBBBBBBB">a live demo tag</a>, or sign in as{' '}
+            <code>{import.meta.env.VITE_DEMO_CREDENTIALS}</code>.
+          </p>
+        ) : null}
         <nav className="btn-row">
           <Link className="btn" to="/me">
             My profile

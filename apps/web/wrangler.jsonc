@@ -6,5 +6,8 @@
   "main": "src/server.ts",
   "observability": {
     "enabled": true
-  }
+  },
+  // Server-side loader calls reach the API worker directly: Cloudflare
+  // blocks same-account worker-to-worker fetches over workers.dev URLs.
+  "services": [{ "binding": "API", "service": "withme-api" }]
 }

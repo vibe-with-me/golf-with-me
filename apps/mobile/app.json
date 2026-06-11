@@ -17,7 +17,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#f6f3ee",
         "foregroundImage": "./assets/android-icon-foreground.png"
-      }
+      },
+      "permissions": [
+        "android.permission.NFC",
+        "android.permission.NFC"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -39,6 +43,19 @@
           "includeNdefEntitlement": false
         }
       ]
-    ]
+    ],
+    "owner": "vibe-with-me",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cf56d2f1-eaec-406b-be9c-972519a6be84"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cf56d2f1-eaec-406b-be9c-972519a6be84"
+    }
   }
 }
