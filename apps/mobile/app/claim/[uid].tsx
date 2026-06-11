@@ -10,18 +10,25 @@ export default function ClaimScreen() {
   const t = useTokens();
   const { uid } = useLocalSearchParams<{ uid: string }>();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadProfile = () => {
+    setLoadFailed(false);
     api.app.profile
       .get()
       .then(({ profile }: { profile: Profile | null }) => setHasProfile(profile !== null))
-      .catch(() => setHasProfile(false));
-  }, []);
+      // a failed load must not render the name form: saving it would
+      // overwrite an existing profile's display name
+      .catch(() => setLoadFailed(true));
+  };
+  // oxlint-disable-next-line exhaustive-deps
+  useEffect(loadProfile, []);
 
   async function createProfile() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -35,11 +42,13 @@ export default function ClaimScreen() {
   }
 
   async function claim() {
+    if (busy) return;
+    const normalizedUid = (uid ?? '').trim().toUpperCase();
     setBusy(true);
     setError(null);
     try {
-      await api.public.claim({ uid: (uid ?? '').trim().toUpperCase() });
-      router.replace({ pathname: '/t/[uid]', params: { uid: (uid ?? '').toUpperCase() } });
+      await api.public.claim({ uid: normalizedUid });
+      router.replace({ pathname: '/t/[uid]', params: { uid: normalizedUid } });
     } catch (claimError) {
       const code = (claimError as { code?: string }).code;
       setError(
@@ -52,6 +61,18 @@ export default function ClaimScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (loadFailed) {
+    return (
+      <KeyboardAvoidingView style={[styles.page, { backgroundColor: t.bg }]}>
+        <Card>
+          <Title>Couldn't check your profile</Title>
+          <ErrorText>Check your connection and try again.</ErrorText>
+          <Button label="Retry" onPress={loadProfile} />
+        </Card>
+      </KeyboardAvoidingView>
+    );
   }
 
   if (hasProfile === null) return null;

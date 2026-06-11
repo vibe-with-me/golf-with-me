@@ -17,6 +17,7 @@ export default function ConnectionsScreen() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,8 @@ export default function ConnectionsScreen() {
       setBlocks(b.blocks);
     } catch {
       setError('Could not load. Pull to retry.');
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -109,7 +112,7 @@ export default function ConnectionsScreen() {
       ) : null}
 
       <Text style={[styles.sectionTitle, { color: t.ink }]}>Connections</Text>
-      {connections.length === 0 ? (
+      {!loaded ? null : connections.length === 0 ? (
         <Muted>No connections yet. Tap someone's tag to start.</Muted>
       ) : (
         connections.map((connection) =>

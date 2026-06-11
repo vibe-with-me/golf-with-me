@@ -2,15 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Button, Card, ErrorText, Field, Muted, Title } from '../components/ui';
+import { safeRedirect } from '../lib/safe-redirect';
 import { supabase } from '../lib/supabase';
 import { space, useTokens } from '../lib/tokens';
-
-/** Same-app paths only — mirrors the web's safeReturnTo guard. */
-function safeRedirect(value: unknown): string | undefined {
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
-    ? value
-    : undefined;
-}
 
 export default function LoginScreen() {
   const t = useTokens();

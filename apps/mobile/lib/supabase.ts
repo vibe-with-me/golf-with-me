@@ -1,6 +1,6 @@
 import { createClient, processLock, type SupabaseClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
 import { AppState, Platform } from 'react-native';
+import { sessionStorage } from './session-storage';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -10,23 +10,9 @@ if (!url || !key) {
   );
 }
 
-// Tokens live in the device keychain/keystore, never in plain storage, and
-// never migrate to another device via backups.
-const secureStorage = {
-  getItem: (k: string) => SecureStore.getItemAsync(k),
-  setItem: async (k: string, value: string) => {
-    await SecureStore.setItemAsync(k, value, {
-      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-    });
-  },
-  removeItem: async (k: string) => {
-    await SecureStore.deleteItemAsync(k);
-  },
-};
-
 export const supabase: SupabaseClient = createClient(url, key, {
   auth: {
-    storage: Platform.OS === 'web' ? undefined : secureStorage,
+    storage: Platform.OS === 'web' ? undefined : sessionStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

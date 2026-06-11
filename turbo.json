@@ -20,6 +20,10 @@
     "deploy": {
       "dependsOn": ["build"],
       "cache": false
+    },
+    "@withme/web#deploy": {
+      "dependsOn": ["build", "@withme/api#deploy"],
+      "cache": false
     }
   }
 }

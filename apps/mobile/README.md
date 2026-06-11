@@ -27,13 +27,39 @@ Go the scan screen falls back to manual UID entry and deep links. Tags encode
 `https://<domain>/t/{UID}`; universal-link / app-link association is a
 deployment step left to the consumer.
 
+## Publishing with EAS Update
+
+The committed `app.json` carries this repo's Expo project (`owner`,
+`extra.eas.projectId`, `updates.url`). **Forks: run `npx eas-cli init` once**
+to replace those with your own project, then publish a shareable Expo Go
+build with your deployed endpoints baked in:
+
+```sh
+EXPO_PUBLIC_API_URL=https://<your-api> \
+EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_… \
+npx eas-cli update --branch demo --environment production
+```
+
+`runtimeVersion` uses the `sdkVersion` policy so Expo Go can load published
+updates by QR — that is the point of the demo. The trade-off: all builds on
+one SDK share a runtime, which is unsafe once you ship development builds
+with native modules (this app already includes `react-native-nfc-manager`).
+**Switch to `"policy": "fingerprint"` before distributing dev builds.**
+
 ## Notes
 
-- Auth: Supabase, tokens in the device keychain via `expo-secure-store`.
+- Auth: Supabase. Sessions exceed expo-secure-store's 2 KB value limit, so
+  the AES key lives in the keychain and the encrypted session blob in
+  AsyncStorage (`lib/session-storage.ts` — the pattern from Supabase's Expo
+  guide). Device-bound, excluded from backups.
 - Styling: plain `StyleSheet` against `lib/tokens.ts`, mirroring the web app's
   `tokens.css` (same palette, fonts, one-accent rule) — convertible to
   NativeWind by a forker who prefers it.
 - This is a Bun-workspaces monorepo: Metro relies on Bun's hoisting (no custom
   `metro.config.js`). A single copy of each `expo-*` package is required —
-  duplicate copies break native-module autolinking. The root `expo` override
-  in the repo's `package.json` keeps it deduped.
+  duplicate copies break native-module autolinking. The root overrides in the
+  repo's `package.json` keep `expo` deduped and pin `react`/`react-dom` to
+  the exact version React Native requires; **bump the overrides and this
+  package's pins together** (a web-only React upgrade now goes through the
+  root override too).

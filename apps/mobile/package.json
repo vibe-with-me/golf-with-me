@@ -14,11 +14,14 @@
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@orpc/client": "^1.13.6",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.103.0",
     "@withme/contract": "workspace:*",
+    "aes-js": "^3.1.2",
     "expo": "56.0.9",
     "expo-asset": "~56.0.16",
     "expo-constants": "~56.0.17",
+    "expo-crypto": "~56.0.4",
     "expo-font": "~56.0.5",
     "expo-haptics": "~56.0.3",
     "expo-linking": "~56.0.13",
@@ -35,9 +38,9 @@
   },
   "devDependencies": {
     "@orpc/contract": "^1.13.6",
+    "@types/aes-js": "^3.1.4",
     "@types/react": "~19.2.2",
     "agent-device": "0.17.2",
-    "eas-cli": "^20.1.0",
     "typescript": "~6.0.3"
   }
 }

@@ -13,6 +13,7 @@ function Home() {
         <p className="hint">
           This is the starter app — tags resolve at <code>/t/&lt;uid&gt;</code>.
         </p>
+        {/* The tag link matches the seed script's claimed demo tag. */}
         {import.meta.env.VITE_DEMO_CREDENTIALS ? (
           <p className="hint">
             Try it: tap <a href="/t/04BBBBBBBBBBBB">a live demo tag</a>, or sign in as{' '}

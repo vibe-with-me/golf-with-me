@@ -17,11 +17,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#f6f3ee",
         "foregroundImage": "./assets/android-icon-foreground.png"
-      },
-      "permissions": [
-        "android.permission.NFC",
-        "android.permission.NFC"
-      ]
+      }
     },
     "plugins": [
       "expo-router",

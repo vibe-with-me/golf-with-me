@@ -1,7 +1,7 @@
 import type { ResolveOutput } from '@withme/contract';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Card, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -28,10 +28,21 @@ export default function ResolveScreen() {
         .logScan({ uid: normalized, user_agent: `withme-mobile/${Platform.OS}` })
         .catch(() => undefined),
     ])
-      .then(([resolved]) => {
+      .then(async ([resolved]) => {
         if (cancelled) return;
         if (resolved.status === 'unclaimed') {
-          router.replace({ pathname: '/claim/[uid]', params: { uid: resolved.uid } });
+          // claim/[uid] is auth-gated: a signed-out user routed there would
+          // bounce to login WITHOUT the uid. Carry it through explicitly.
+          const { data } = await supabase.auth.getSession();
+          if (cancelled) return;
+          if (data.session) {
+            router.replace({ pathname: '/claim/[uid]', params: { uid: resolved.uid } });
+          } else {
+            router.replace({
+              pathname: '/login',
+              params: { redirect: `/claim/${resolved.uid}` },
+            });
+          }
           return;
         }
         setResult(resolved);
@@ -83,6 +94,7 @@ export default function ResolveScreen() {
 function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'other'>('loading');
   const [send, setSend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  const inFlight = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -116,11 +128,15 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
           router.push({ pathname: '/login', params: { redirect: `/t/${uid}` } });
           return;
         }
+        // ref guard: two taps in one frame both pass the disabled check
+        if (inFlight.current) return;
+        inFlight.current = true;
         setSend('sending');
         try {
           // Consent is mutual: your card must exist before you can ask.
           const { profile } = await api.app.profile.get();
           if (!profile) {
+            setSend('idle'); // this screen stays mounted under the push
             router.push({ pathname: '/me', params: { redirect: `/t/${uid}` } });
             return;
           }
@@ -129,6 +145,8 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
           setSend('sent');
         } catch {
           setSend('failed');
+        } finally {
+          inFlight.current = false;
         }
       }}
     />

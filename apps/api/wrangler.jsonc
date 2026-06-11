@@ -12,9 +12,11 @@
   "dev": {
     "port": 8786
   },
+  // CORS_ORIGIN deliberately absent here: the code defaults to
+  // http://localhost:3000 for local dev, and deployments set it as a secret
+  // (wrangler secret put) so `wrangler deploy` can never clobber it.
   "vars": {
-    "APP_ENV": "development",
-    "CORS_ORIGIN": "http://localhost:3000"
+    "APP_ENV": "development"
   },
   "ratelimits": [
     {

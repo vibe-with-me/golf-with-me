@@ -7,6 +7,7 @@
 
 interface NfcModule {
   isSupported(): Promise<boolean>;
+  isEnabled(): Promise<boolean>;
   start(): Promise<void>;
   requestTechnology(tech: unknown): Promise<unknown>;
   getTag(): Promise<{ id?: string } | null>;
@@ -32,10 +33,19 @@ export async function isNfcAvailable(): Promise<boolean> {
   const nfc = loadNfc();
   if (!nfc) return false;
   try {
-    return await nfc.manager.isSupported();
+    if (!(await nfc.manager.isSupported())) return false;
+    // Android reports supported hardware with the radio toggled off.
+    return await nfc.manager.isEnabled();
   } catch {
     return false;
   }
+}
+
+/** Releases any pending technology request (e.g. leaving the scan screen mid-read). */
+export async function cancelRead(): Promise<void> {
+  const nfc = loadNfc();
+  if (!nfc) return;
+  await nfc.manager.cancelTechnologyRequest().catch(() => undefined);
 }
 
 /** Reads one tag and returns its UID as uppercase hex, or null on cancel/failure. */

@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -18,13 +19,19 @@ export function Card({ children, settle = false }: { children: ReactNode; settle
 
   useEffect(() => {
     if (!settle) return;
+    let cancelled = false;
     AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled) return;
       if (reduced) {
         progress.setValue(1);
         return;
       }
       Animated.timing(progress, { toValue: 1, duration: 360, useNativeDriver: true }).start();
     });
+    return () => {
+      cancelled = true;
+      progress.stopAnimation();
+    };
   }, [settle, progress]);
 
   return (
@@ -146,7 +153,7 @@ export function Avatar({
   const t = useTokens();
   if (url) {
     return (
-      <Animated.Image
+      <Image
         source={{ uri: url }}
         style={[styles.avatar, { width: size, height: size, borderColor: t.border }]}
       />
@@ -161,7 +168,7 @@ export function Avatar({
       ]}
     >
       <Text style={[styles.avatarInitial, { color: t.inkMuted, fontSize: size * 0.42 }]}>
-        {name.charAt(0).toUpperCase()}
+        {(name.trim().charAt(0) || '?').toUpperCase()}
       </Text>
     </View>
   );

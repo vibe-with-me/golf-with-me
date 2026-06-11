@@ -12,10 +12,13 @@ export function useSession(): SessionState {
   const [state, setState] = useState<SessionState>({ session: null, loading: true });
 
   useEffect(() => {
+    let settledByEvent = false;
     supabase.auth.getSession().then(({ data }) => {
-      setState({ session: data.session, loading: false });
+      // an auth event may have fired first; never clobber it with stale data
+      if (!settledByEvent) setState({ session: data.session, loading: false });
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      settledByEvent = true;
       setState({ session, loading: false });
     });
     return () => subscription.subscription.unsubscribe();

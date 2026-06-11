@@ -102,13 +102,28 @@ Tests: `bun run test` (unit + RLS), `bun run --cwd apps/web test:e2e`
 2. In the Supabase dashboard: set your site URL and
    `https://<your-web-domain>/auth/callback` as a redirect URL; enable the
    Google provider if you want OAuth.
-3. Set Worker config: in `apps/api`, `SUPABASE_URL`,
-   `SUPABASE_PUBLISHABLE_KEY`, and `CORS_ORIGIN` (your web origin); in
-   `apps/web`, the `VITE_*` values from `.env.example` for the build.
-4. `bun run deploy` — both Workers (API and web) deploy via wrangler to one
-   Cloudflare account, free tier friendly. Single-platform deploy is a
-   feature: there is exactly one place to look when something breaks.
-5. Encode a tag (below), tap it, claim it. Target: under 30 minutes.
+3. API config — set as Worker **secrets** so deploys can never clobber them
+   (run in `apps/api`, after `wrangler login`):
+
+   ```sh
+   wrangler secret put SUPABASE_URL              # https://<ref>.supabase.co
+   wrangler secret put SUPABASE_PUBLISHABLE_KEY  # sb_publishable_…
+   wrangler secret put CORS_ORIGIN               # your web origin
+   ```
+
+4. Web build config — create `apps/web/.env.production` (gitignored) with the
+   `VITE_*` values from `.env.example` pointed at your deployed API and
+   Supabase project. Vite bakes these in at build time.
+5. `bun run deploy` — both Workers deploy via wrangler to one Cloudflare
+   account, free tier friendly. The API deploys first (the web Worker's
+   loaders reach it through a [service binding](apps/web/wrangler.jsonc);
+   turborepo enforces the order). Single-platform deploy is a feature: there
+   is exactly one place to look when something breaks.
+6. Encode a tag (below), tap it, claim it. Target: under 30 minutes.
+
+Note: `vite preview` of the production build needs the API worker running
+locally for the service binding to connect; for local work use `bun run dev`,
+which talks to the API over plain localhost fetch instead.
 
 ## Encoding NFC tags
 

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { Button, Card, Field, Muted, Title } from '../components/ui';
-import { isNfcAvailable, readTagUid } from '../lib/nfc';
+import { cancelRead, isNfcAvailable, readTagUid } from '../lib/nfc';
 import { space, useTokens } from '../lib/tokens';
 
 /**
@@ -24,7 +24,13 @@ export default function ScanScreen() {
   const [reading, setReading] = useState(false);
 
   useEffect(() => {
-    isNfcAvailable().then(setNfcReady);
+    isNfcAvailable()
+      .then(setNfcReady)
+      .catch(() => setNfcReady(false));
+    // leaving the screen mid-read must release the NFC session
+    return () => {
+      cancelRead();
+    };
   }, []);
 
   return (
@@ -41,9 +47,12 @@ export default function ScanScreen() {
             disabled={reading}
             onPress={async () => {
               setReading(true);
-              const tagUid = await readTagUid();
-              setReading(false);
-              if (tagUid) open(tagUid);
+              try {
+                const tagUid = await readTagUid();
+                if (tagUid) open(tagUid);
+              } finally {
+                setReading(false);
+              }
             }}
           />
         ) : (
