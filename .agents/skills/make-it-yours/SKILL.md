@@ -147,7 +147,8 @@ sentences (the `nfcPermission` string, README prose):
   surface in the seed's console output, the README, and the
   `VITE_DEMO_CREDENTIALS` landing-page hint. Rebrand them or keep them —
   but whatever the seed creates is what the README and
-  `VITE_DEMO_CREDENTIALS` must say.
+  `VITE_DEMO_CREDENTIALS` must say (that hint has an example line in
+  `apps/web/.env.example` too — the step 7 sweep greps it).
 - `README.md` and `apps/mobile/README.md`, if you keep them — but not by
   blind substitution: the root README's `withme` occurrences include the
   title, the upstream repo URL in the CI badge (needs your **fork's
@@ -171,6 +172,10 @@ grep -rni withme apps/web/src apps/mobile/app apps/mobile/components \
 returns nothing (if you deliberately kept the seed identity or an
 upstream attribution link, those are the only acceptable matches), and
 `grep -n nfcPermission apps/mobile/app.json` shows your new copy.
+If your new brand itself contains the string `withme` (e.g.
+`golfwithme`), this and every later brand sweep needs an extra filter
+for your own strings — `| grep -viE 'golfwithme|golf with me'` — the
+checkpoints are about OLD-brand residue, not the substring.
 `app.json` is deliberately NOT in the bulk grep here — its remaining
 `withme` values (name/slug/scheme/bundle ids) are step 4's job; the
 final sweep in step 7 catches everything.
