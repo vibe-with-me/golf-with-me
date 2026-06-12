@@ -1,0 +1,159 @@
+---
+name: go-live
+description: Use when deploying a withme-starter app (or fork) to production — hosted Supabase, Cloudflare Workers for api and web, and an EAS Update for mobile. Covers first deploys and redeploys.
+---
+
+# go-live — deploy the stack, with the potholes pre-marked
+
+Distilled from two real production deploys (the starter demo and a
+vertical fork). Every step below was executed against live infrastructure;
+every warning marks a pothole that was actually hit. Order matters: DB →
+API worker → web worker → mobile.
+
+Prerequisites: a Supabase account (`supabase login` — the CLI token, NOT
+an MCP token: MCP Supabase tokens are scoped to one org and cannot see or
+create others), a Cloudflare account (`wrangler whoami` to confirm), and
+for mobile an Expo account (`eas-cli` logged in). Costs: a Supabase
+project is $0 on a free-plan org (two projects, **pauses after ~1 week
+idle** — fine for demos, wrong for production) or ~$10/mo on a paid org
+(always-on). Prefer a separate org per product: billing isolation and
+access blast-radius. Get the owner's explicit OK before anything that
+bills or writes to a production database.
+
+## 1. Hosted database
+
+```sh
+supabase orgs create "<Org Name>"            # new org = free plan
+DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
+echo "$DB_PASS" > .supabase-demo-db-password && chmod 600 .supabase-demo-db-password
+supabase projects create <name> --org-id <org-id> --region us-east-1 --db-password "$DB_PASS"
+```
+
+Project provisioning takes 1–2 minutes; `supabase projects list` shows
+it. Then from the repo root:
+
+```sh
+supabase link --project-ref <ref> -p "$(cat .supabase-demo-db-password)"
+supabase db push -p "$(cat .supabase-demo-db-password)"
+```
+
+**Checkpoint:** `db push` lists every migration and ends `Finished
+supabase db push`.
+
+Fetch keys into a gitignored env file — never put the service key on a
+command line (it lands in shell history and transcripts):
+
+```sh
+supabase projects api-keys --project-ref <ref> -o json | python3 -c "
+import json, sys
+keys = {k['name']: k['api_key'] for k in json.load(sys.stdin)}
+anon = next((v for v in keys.values() if str(v).startswith('sb_publishable_')), keys.get('anon', ''))
+with open('.env.demo-seed', 'w') as f:
+    f.write('SUPABASE_URL=https://<ref>.supabase.co\n')
+    f.write(f\"SUPABASE_SERVICE_ROLE_KEY={keys['service_role']}\n\")
+    f.write(f'SUPABASE_ANON_KEY={anon}\n')
+" && chmod 600 .env.demo-seed
+```
+
+Seed (a production write — owner's OK first):
+
+```sh
+set -a && source .env.demo-seed && set +a && SEED_ALLOW_REMOTE=1 bun run db:seed
+```
+
+Auth note: hosted signups hit email confirmation, and the default
+Supabase SMTP only delivers to org members — seeded demo credentials are
+the path for anyone else unless you configure SMTP or flip confirmations
+off in the dashboard.
+
+## 2. API worker (first — the web worker's service binding needs it)
+
+```sh
+cd apps/api && bunx wrangler deploy
+```
+
+Cloudflare's API intermittently returns 502/504/524; retry up to 4 times
+with ~30s backoff — the failure is theirs, not your config. Success
+prints the workers.dev URL. Then config goes in as SECRETS via stdin
+(vars in wrangler.jsonc would be clobbered on every deploy):
+
+```sh
+set -a && source ../../.env.demo-seed && set +a
+printf '%s' "$SUPABASE_URL"      | bunx wrangler secret put SUPABASE_URL
+printf '%s' "$SUPABASE_ANON_KEY" | bunx wrangler secret put SUPABASE_PUBLISHABLE_KEY
+printf '%s' 'https://<web-worker>.workers.dev' | bunx wrangler secret put CORS_ORIGIN
+```
+
+**Checkpoint:** `curl https://<api-worker>.workers.dev/health` returns
+`{"ok":true}`, and a resolve through the SDK (a throwaway script using
+`NfcClient`) returns the seeded tag — don't hand-roll the oRPC wire
+format with curl; it will 400 and mislead you.
+
+## 3. Web worker
+
+Write `apps/web/.env.production` (gitignored; nothing here is secret):
+
+```
+VITE_API_URL=https://<api-worker>.workers.dev
+VITE_SUPABASE_URL=https://<ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+VITE_DEMO_CREDENTIALS=<demo email> / <demo password>
+```
+
+```sh
+cd apps/web && bun run build && bunx wrangler deploy   # same retry rule
+```
+
+**Checkpoint** (verify bodies with python, not grep chained after curl):
+the landing page 200s with the wordmark; `/t/<seeded-uid>` 200s with the
+seeded card — this one proves the worker-to-worker service binding,
+which only exists if `services[0].service` in `apps/web/wrangler.jsonc`
+matches the api worker name exactly. Also verify the authed path once
+(sign in as the demo user via supabase-js, call the app router) — it
+exercises the JWKS leg, the classic silent failure.
+
+## 4. Mobile (EAS Update)
+
+1. Ensure `expo.owner` in `app.json` is the right account/org BEFORE
+   init, or the project lands under the wrong owner:
+   `bunx eas-cli init --non-interactive --force`, then
+   `bunx eas-cli update:configure --non-interactive`.
+2. Write `apps/mobile/.env.production` with the `EXPO_PUBLIC_*` mirrors
+   of step 3's values.
+3. Publish — `--environment` is REQUIRED in non-interactive mode:
+
+```sh
+bunx eas-cli update --branch demo --environment production \
+  --message "<what changed>" --non-interactive
+```
+
+**Checkpoint — do not trust a byte-grep of the published bundle.**
+Hermes bytecode chunks long strings, so searching the `.hbc` for your
+URLs false-negatives. Verify inlining with a plain-JS export:
+
+```sh
+NODE_ENV=production bunx expo export --platform ios --no-bytecode \
+  --output-dir /tmp/verify-export
+# then assert the prod URLs are present and localhost is absent in the .js
+```
+
+`.env.production` beats `.env` in production exports (verified), so a
+local `.env` sitting next to it is harmless.
+
+## Redeploys
+
+DB: new migrations via `supabase db push`; reseed only with the owner's
+OK. Web: `bun run build && bunx wrangler deploy`. Mobile: a fresh
+`eas update`. API: `bunx wrangler deploy` (secrets persist).
+
+## Gotcha index
+
+| Symptom | Cause |
+|---|---|
+| MCP Supabase tools can't see the new org | MCP tokens are org-scoped; use the CLI |
+| `wrangler deploy` 502/504/524 | Cloudflare API blip — retry with backoff |
+| Web resolver errors only in production SSR | Service binding name ≠ api worker name |
+| Signups never confirm | Default SMTP delivers to org members only |
+| `eas update` fails non-interactively | Missing `--environment` |
+| Published app seems to point at localhost | You byte-grepped Hermes bytecode — use `--no-bytecode` to verify |
+| Demo DB unreachable weeks later | Free-tier project paused — wake it in the dashboard |
