@@ -172,11 +172,12 @@ export type Destination = { type: 'profile' } | { type: 'link'; url: string };
 
 The compile-time parity test
 (`packages/nfc-sdk/test/client-types.test.ts`) compares this against
-the contract with exact type equality — if you skip this step,
-typecheck and the SDK test suite fail, by design.
+the contract with exact type equality — if you skip this step, the
+package's typecheck fails, by design.
 
-**Checkpoint:** `cd packages/nfc-sdk && bun run test` — all pass,
-including `client types mirror the contract`.
+**Checkpoint:** `cd packages/nfc-sdk && bun run typecheck` — clean.
+(It must be the typecheck: the parity assertions are type-level, so the
+vitest run erases them and passes even when the types have drifted.)
 
 ## 7. Web resolver
 

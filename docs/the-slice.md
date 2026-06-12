@@ -25,7 +25,7 @@ unknown variants must fail to parse.
 `supabase/migrations/` (`<UTC-timestamp>_<name>.sql`). The initial schema
 (`20260610120000_initial_handshake_schema.sql`) is the pattern book:
 
-- every table carries `tenant_id uuid not null default
+- every public table carries `tenant_id uuid not null default
   private.current_tenant_id()`, and every policy predicates on it;
 - `enable row level security` on every table, policies written per-command
   and per-role — no `for all to public`;
@@ -41,9 +41,11 @@ unknown variants must fail to parse.
   grant to exactly `anon` / `authenticated` as intended.
 
 **3. RLS tests.** `packages/db/test/*.test.ts` (bun test against the live
-local stack — `assertStackRunning` guards it). Tests act through real
-per-user JWT clients (`createTestUser`) and `anonClient()`; the service-role
-`admin` client appears only to assert what was *stored*, never to act.
+local stack — `assertStackRunning` guards it). The behavior under test
+acts through real per-user JWT clients (`createTestUser`) and
+`anonClient()`; the service-role `admin` client is for setup
+(provisioning tags), storage assertions, and auth-admin operations with
+no client path — never for exercising the boundary being tested.
 Cover the negative space: what a stranger, a non-owner, a blocked user, and
 anon must NOT see. `enumeration.test.ts` and `blocks.test.ts` are the model.
 
@@ -64,7 +66,8 @@ error page. All styling references `var(--*)` tokens from
 `src/styles/tokens.css`; no hardcoded colors, fonts, radii, or spacing.
 
 **6. Mobile screen.** Expo Router screens in `apps/mobile/app/` mirror the
-web routes one-to-one (`t/[uid].tsx` ↔ `t.$uid.tsx`). Screens compose the
+web routes wherever the surface is shared (`t/[uid].tsx` ↔ `t.$uid.tsx`;
+a few screens are platform-specific, like `scan.tsx`). Screens compose the
 card primitives from `components/ui.tsx` (`Card`, `Title`, `Muted`,
 `Button`, `Avatar`) and read colors through `useTokens()` from
 `lib/tokens.ts` — the mobile mirror of `tokens.css`. Auth gating happens
@@ -119,7 +122,7 @@ A slice is done when, from the repo root (local stack up via
 
 ```sh
 bun run lint        # oxlint --deny-warnings: zero findings
-bun run typecheck   # all 8 workspace typechecks pass
+bun run typecheck   # every workspace typecheck passes
 bun run test        # contract + db (RLS) + nfc-sdk suites, all green
 ```
 

@@ -53,9 +53,12 @@ The same palette lives twice and the two files MUST stay value-identical:
   `@media (prefers-color-scheme: dark)` blocks.
 - `apps/mobile/lib/tokens.ts` — the `light` and `dark` `Tokens` objects.
 
-Edit both in one sitting. Every key in `tokens.css` has a counterpart in
-`tokens.ts` (`--color-bg` ↔ `bg`, `--color-ink-muted` ↔ `inkMuted`, …);
-copy the same literal values into both.
+Edit both in one sitting. Every *color* key is strictly 1:1
+(`--color-bg` ↔ `bg`, `--color-ink-muted` ↔ `inkMuted`, …) — copy the
+same literal values into both. The non-color tokens (type scale, radii,
+spacing, fonts) also exist in both files but in platform-shaped form
+(`radius`/`space`/`fonts` consts on mobile); keep them in agreement if
+you change them.
 
 Two more places echo `--color-bg` and must be updated to the new light
 and dark background values or the native splash will flash the old brand:
@@ -73,10 +76,17 @@ system. Keep the WCAG notes in `tokens.css` honest: accent/accent-ink
 1.4.11), in both light and dark — recompute the ratios cited in the
 comments with a contrast checker; don't leave stale numbers.
 
-**Checkpoint:** `grep -rn '#c2410c\|#ff6a3d' apps/` returns nothing (old
-accent fully evicted, both files moved), and for each remaining old
-neutral you replaced, a grep for its hex returns nothing under `apps/`.
-Run `bun run lint && bun run typecheck` — both green.
+**Checkpoint:**
+
+```sh
+grep -rn --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
+  '#c2410c\|#ff6a3d' apps/
+```
+
+returns nothing (old accent fully evicted from both files; the
+exclusions matter — stale build output under `dist/` still contains the
+old values and would false-fail this). Repeat for each old neutral you
+replaced. Then `bun run lint && bun run typecheck` — both green.
 
 ## 2. Fonts — self-hosted, no CDNs
 
@@ -109,9 +119,12 @@ Mobile (`apps/mobile`):
 3. Update the `fonts` map in `apps/mobile/lib/tokens.ts` to the exact
    exported style names (e.g. `Manrope_600SemiBold`).
 
-**Checkpoint:** `bun run typecheck` — green (wrong font-style names fail
-mobile tsc). `ls apps/web/src/fonts/` lists exactly the files referenced
-by `app.css`.
+**Checkpoint:** `bun run typecheck` — green (a wrong import name in
+`_layout.tsx` fails mobile tsc; the `fonts` map in `lib/tokens.ts` is
+plain strings tsc can NOT validate — compare its values against the
+`useFonts` keys by eye, a typo there silently falls back at runtime).
+`ls apps/web/src/fonts/` lists exactly the files referenced by
+`app.css`.
 
 ## 3. Wordmark and copy
 
@@ -137,8 +150,8 @@ sentences (the `nfcPermission` string, README prose):
   `VITE_DEMO_CREDENTIALS` must say.
 - `README.md` and `apps/mobile/README.md`, if you keep them — but not by
   blind substitution: the root README's `withme` occurrences include the
-  upstream repo URL (CI badge, clone commands) which need your **fork's
-  URL**, `@withme/*` package names which stay, and the demo-credentials
+  title, the upstream repo URL in the CI badge (needs your **fork's
+  URL**), `@withme/*` package names which stay, and the demo-credentials
   line which must match the seed (previous bullet).
   `apps/mobile/README.md`'s occurrences are all `@withme/*` names — no
   change there.
@@ -152,12 +165,15 @@ smoke test selects by those strings — update
 
 ```sh
 grep -rni withme apps/web/src apps/mobile/app apps/mobile/components \
-  apps/mobile/app.json supabase/seed README.md apps/mobile/README.md \
-  | grep -v '@withme/'
+  supabase/seed README.md apps/mobile/README.md | grep -v '@withme/'
 ```
 
 returns nothing (if you deliberately kept the seed identity or an
-upstream attribution link, those are the only acceptable matches).
+upstream attribution link, those are the only acceptable matches), and
+`grep -n nfcPermission apps/mobile/app.json` shows your new copy.
+`app.json` is deliberately NOT in the bulk grep here — its remaining
+`withme` values (name/slug/scheme/bundle ids) are step 4's job; the
+final sweep in step 7 catches everything.
 
 ## 4. App identity (mobile)
 
@@ -219,7 +235,19 @@ Then run the full verification gate from `docs/the-slice.md`:
 bun run lint && bun run typecheck && bun run test
 ```
 
-all green, and boot the web app (`cd apps/web && bun run dev`) — the
-landing page shows your wordmark in your fonts, and the resolver card
-(`/t/04BBBBBBBBBBBB` after `bun run db:seed`) settles with your accent
-on the Connect button only.
+all green, plus the final brand sweep — with the identity steps done,
+this now covers everything step 3's checkpoint deferred:
+
+```sh
+grep -rni --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
+  withme apps/ supabase/seed README.md | grep -v '@withme/'
+```
+
+returns nothing (same acceptable-matches caveat as step 3).
+
+Finally the visual check, which needs BOTH dev servers: in one shell
+`cd apps/api && bun run dev` (the web loaders call the API Worker on
+port 8786 — without it the resolver page errors), in another
+`cd apps/web && bun run dev`. The landing page shows your wordmark in
+your fonts, and the resolver card (`/t/04BBBBBBBBBBBB` after
+`bun run db:seed`) settles with your accent on the Connect button only.
