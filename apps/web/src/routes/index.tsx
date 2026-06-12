@@ -28,6 +28,17 @@ function Home() {
             Connections
           </Link>
         </nav>
+        {/* Fulfillment pointer — dormant until the store URL is configured. */}
+        {import.meta.env.VITE_GET_TAGS_URL ? (
+          <a
+            className="btn btn--quiet"
+            href={import.meta.env.VITE_GET_TAGS_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Get tags
+          </a>
+        ) : null}
       </div>
     </main>
   );

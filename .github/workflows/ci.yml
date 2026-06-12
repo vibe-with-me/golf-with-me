@@ -50,3 +50,15 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - name: Bootstrap env files (smoke)
+        run: |
+          cp apps/web/.env.example apps/web/.env
+          cp apps/api/.dev.vars.example apps/api/.dev.vars
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Web smoke (resolve -> claim -> connect)
+        run: bun run test:e2e
+        working-directory: apps/web

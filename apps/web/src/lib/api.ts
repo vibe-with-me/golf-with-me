@@ -23,8 +23,14 @@ if (!apiUrl) {
  */
 let workersEnvPromise: Promise<Record<string, unknown> | null> | undefined;
 
+// The specifier must stay opaque to the bundler: vite 8's client-environment
+// import analysis rejects a literal 'cloudflare:workers' (only the ssr
+// environment knows that scheme), killing dev hydration. A variable specifier
+// plus @vite-ignore keeps it a pure runtime import on every path.
+const CLOUDFLARE_WORKERS_MODULE = 'cloudflare:workers';
+
 function workersEnv(): Promise<Record<string, unknown> | null> {
-  workersEnvPromise ??= import(/* @vite-ignore */ 'cloudflare:workers').then(
+  workersEnvPromise ??= import(/* @vite-ignore */ CLOUDFLARE_WORKERS_MODULE).then(
     (mod: { env: Record<string, unknown> }) => mod.env,
     () => null,
   );

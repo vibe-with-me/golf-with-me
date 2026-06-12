@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
 import { ProfileCard } from '../components/ProfileCard.tsx';
@@ -21,11 +21,17 @@ const currentUserAgent = createIsomorphicFn()
  */
 export const Route = createFileRoute('/t/$uid')({
   loader: async ({ params }) => {
+    // Normalize like mobile does: NFC reads arrive messy, and a malformed
+    // UID must land on the calm not-found card, never a crash screen.
+    const uid = params.uid.trim().toUpperCase();
+    if (!/^[0-9A-F]{14}$/.test(uid)) {
+      throw notFound();
+    }
     const [result] = await Promise.all([
-      api.public.resolve({ uid: params.uid }),
+      api.public.resolve({ uid }),
       // Scan logging must never break or delay-fail the resolve.
       currentUserAgent()
-        .then((ua) => api.public.logScan({ uid: params.uid, user_agent: ua }))
+        .then((ua) => api.public.logScan({ uid, user_agent: ua }))
         .catch(() => undefined),
     ]);
     if (result.status === 'unclaimed') {
@@ -46,6 +52,7 @@ function ResolvePage() {
           <h1>This tag is inactive</h1>
           <p className="bio">There's nothing connected to it right now.</p>
         </div>
+        <WordmarkFooter />
       </main>
     );
   }
@@ -55,7 +62,20 @@ function ResolvePage() {
       <ProfileCard profile={result.profile} settle>
         <ConnectAction profileId={result.profile.id} uid={result.uid} />
       </ProfileCard>
+      <WordmarkFooter />
     </main>
+  );
+}
+
+/**
+ * The anonymous tapper's only brand anchor: this page is summoned by a
+ * stranger's tag, so the product quietly signs its work.
+ */
+function WordmarkFooter() {
+  return (
+    <p className="hint">
+      <Link to="/">withme</Link>
+    </p>
   );
 }
 
@@ -97,7 +117,11 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   }
 
   if (send === 'sent') {
-    return <p className="hint">Request sent. They'll see it when they check in.</p>;
+    return (
+      <p className="hint" role="status">
+        Request sent. They'll see it when they check in.
+      </p>
+    );
   }
 
   return (

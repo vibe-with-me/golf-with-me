@@ -5,6 +5,9 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
+  // First run against a cold dev server can stall on module loading; the
+  // retry hits the now-warm server. Local runs fail fast for honest signal.
+  retries: process.env.CI ? 2 : 0,
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:3010',

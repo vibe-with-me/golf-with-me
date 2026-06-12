@@ -4,7 +4,7 @@
  * a token swap, not a redesign. Components must reference var(--*) only.
  *
  * Palette: near-monochrome warm neutrals with EXACTLY ONE vivid accent,
- * used only for the primary Connect action.
+ * reserved for the handshake pair (Connect and Accept).
  */
 
 :root {
@@ -19,7 +19,8 @@
   --color-ink: #1c1916;
   --color-ink-muted: #6f6a62;
 
-  /* the accent. Connect, and nothing else. (4.8:1 with --color-accent-ink) */
+  /* the accent. The handshake pair — Connect and Accept — and nothing else.
+     (4.8:1 with --color-accent-ink) */
   --color-accent: #c2410c;
   --color-accent-ink: #ffffff;
 

@@ -53,6 +53,9 @@ export default function LoginScreen() {
     >
       <Card>
         <Title>{mode === 'signin' ? 'Sign in' : 'Create account'}</Title>
+        {params.redirect?.startsWith('/t/') || params.redirect?.startsWith('/claim/') ? (
+          <Muted>to connect over the tag you just tapped</Muted>
+        ) : null}
         <Field
           label="Email"
           value={email}

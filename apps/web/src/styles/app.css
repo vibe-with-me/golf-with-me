@@ -311,15 +311,33 @@ a {
 .row-body .sub {
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
-  display: block;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .row-actions {
   display: flex;
   gap: var(--space-1);
+}
+
+/* The consent moment must stay legible one-handed: below phone width the
+ * actions drop under the card text instead of crushing it. */
+@media (max-width: 480px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .row .row-body {
+    flex: 1 1 0;
+  }
+
+  .row .row-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .empty {

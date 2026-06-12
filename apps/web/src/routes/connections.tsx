@@ -71,9 +71,10 @@ function ConnectionsPage() {
                   ) : null}
                 </div>
                 <div className="row-actions">
+                  {/* Accepting completes the handshake — the accent's job. */}
                   <button
                     type="button"
-                    className="btn btn--quiet"
+                    className="btn btn--connect"
                     disabled={busyId(request.id)}
                     onClick={() => act(request.id, () => api.app.requests.accept({ id: request.id }))}
                   >

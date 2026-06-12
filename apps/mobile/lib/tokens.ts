@@ -3,8 +3,8 @@ import { useColorScheme } from 'react-native';
 /**
  * Design tokens — the mobile mirror of apps/web/src/styles/tokens.css.
  * Same dormant-seam logic: V2 theming is a token swap, not a redesign.
- * Near-monochrome warm neutrals with EXACTLY ONE vivid accent, used only
- * for the primary Connect action.
+ * Near-monochrome warm neutrals with EXACTLY ONE vivid accent, reserved
+ * for the handshake pair (Connect and Accept).
  */
 export interface Tokens {
   bg: string;

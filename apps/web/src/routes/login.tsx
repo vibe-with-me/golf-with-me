@@ -33,7 +33,15 @@ function LoginPage() {
     const { data, error: authError } =
       mode === 'signin'
         ? await auth.signInWithPassword({ email, password })
-        : await auth.signUp({ email, password });
+        : await auth.signUp({
+            email,
+            password,
+            options: {
+              // The confirmation link must lead back to where the tap left
+              // off — same contract as the OAuth path.
+              emailRedirectTo: `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(destination)}`,
+            },
+          });
     setBusy(false);
     if (authError) {
       setError(authError.message);
@@ -71,10 +79,17 @@ function LoginPage() {
     );
   }
 
+  // The tapper arrives here mid-handshake; keep the thread visible.
+  const context = returnTo?.startsWith('/t/')
+    ? 'to connect with the person whose tag you tapped'
+    : null;
+
   return (
     <main className="page">
       <form className="card" onSubmit={submit}>
+        <p className="hint">withme</p>
         <h1>{mode === 'signin' ? 'Sign in' : 'Create account'}</h1>
+        {context ? <p className="bio">{context}</p> : null}
         <div className="field">
           <label htmlFor="email">Email</label>
           <input

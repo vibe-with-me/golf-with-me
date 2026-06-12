@@ -56,7 +56,18 @@ export default function ResolveScreen() {
   }, [uid]);
 
   if (result === null) {
-    return <View style={[styles.page, { backgroundColor: t.bg }]} />;
+    // The card arrives before its contents: an empty shell the settle
+    // fills. A blank screen on venue Wi-Fi reads as a broken tag.
+    return (
+      <View style={[styles.page, { backgroundColor: t.bg }]} accessibilityLabel="Loading">
+        <Card>
+          <View
+            style={[styles.avatarShell, { backgroundColor: t.border }]}
+            accessibilityElementsHidden
+          />
+        </Card>
+      </View>
+    );
   }
 
   if (result === 'error' || result.status === 'disabled') {
@@ -158,5 +169,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: space.s5,
+  },
+  avatarShell: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
   },
 });

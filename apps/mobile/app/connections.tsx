@@ -65,7 +65,7 @@ export default function ConnectionsScreen() {
       <View style={styles.rowBody}>
         <Text style={[styles.rowName, { color: t.ink }]}>{profile.display_name}</Text>
         {profile.bio ? (
-          <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
+          <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
             {profile.bio}
           </Text>
         ) : null}
@@ -103,7 +103,15 @@ export default function ConnectionsScreen() {
               request.id,
               request.requester,
               <>
-                {quiet('Accept', request.id, () => api.app.requests.accept({ id: request.id }))}
+                {/* Accepting completes the handshake — the accent's job. */}
+                <Button
+                  label="Accept"
+                  kind="connect"
+                  disabled={busyIds.has(request.id)}
+                  onPress={() =>
+                    act(request.id, () => api.app.requests.accept({ id: request.id }))
+                  }
+                />
                 {quiet('Decline', request.id, () => api.app.requests.decline({ id: request.id }))}
               </>,
             ),
