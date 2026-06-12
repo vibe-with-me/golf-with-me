@@ -1,0 +1,128 @@
+# The slice — how every extension enters this codebase
+
+Every feature this starter grows — by hand or via a skill in `.agents/skills/`
+— ships as one vertical slice, built in the order below. The handshake itself
+is the worked example: each layer cites the real file that plays that role
+today. This is a map, not a tutorial; read the cited files when you build.
+
+The V1 invariant still binds extensions: nothing that ranks, recommends,
+aggregates, or monetizes. Dormant seams (tenant, theming) stay dormant —
+extend through them, never around them.
+
+## The slice, in order
+
+**1. Contract.** Types come first and live in one place:
+`packages/contract`. Zod schemas in `src/schemas/` (one file per concept —
+see `destination.ts`, `tag.ts`, `profile.ts`, `connection.ts`), wired into
+oRPC routers in `src/contract/public.ts` (tag-scoped; anonymous + the SDK
+wraps it) and `src/contract/app.ts` (session-scoped; verified JWT only),
+exported through `src/index.ts`. Everything downstream — API, web, mobile,
+SDK — derives its types from here. Schema behavior is pinned by
+`packages/contract/test/schemas.test.ts`, including *negative* cases:
+unknown variants must fail to parse.
+
+**2. Migration + RLS.** One additive migration per change in
+`supabase/migrations/` (`<UTC-timestamp>_<name>.sql`). The initial schema
+(`20260610120000_initial_handshake_schema.sql`) is the pattern book:
+
+- every table carries `tenant_id uuid not null default
+  private.current_tenant_id()`, and every policy predicates on it;
+- `enable row level security` on every table, policies written per-command
+  and per-role — no `for all to public`;
+- data shape is enforced in the database, not just in zod: see the
+  `tags_destination_shape` CHECK (exact jsonb match — no extra keys) and
+  `tags_state_consistent`;
+- clients get column-level grants, not table-wide ones (`revoke update on
+  public.tags` then `grant update (destination, status)`) — immutable
+  columns stay immutable even through RLS-passing rows;
+- helpers live in the `private` schema; anything `security definer` also
+  sets `search_path = ''`;
+- function grants are explicit: `revoke execute ... from public`, then
+  grant to exactly `anon` / `authenticated` as intended.
+
+**3. RLS tests.** `packages/db/test/*.test.ts` (bun test against the live
+local stack — `assertStackRunning` guards it). Tests act through real
+per-user JWT clients (`createTestUser`) and `anonClient()`; the service-role
+`admin` client appears only to assert what was *stored*, never to act.
+Cover the negative space: what a stranger, a non-owner, a blocked user, and
+anon must NOT see. `enumeration.test.ts` and `blocks.test.ts` are the model.
+
+**4. API handlers.** `apps/api/src/routers/{public,app}.ts` implement the
+contract via `implement(contract)` (`src/lib/orpc.ts`). Handlers are thin:
+`requireUser` where auth is required, then either a typed query from
+`packages/db/src/queries/` or an `rpc()` call, with `throwFromDbError`
+mapping PG error codes to oRPC codes. Every handler runs on `context.db`,
+a per-request client carrying the caller's JWT — the API never bypasses
+RLS. Anonymous endpoints take an edge rate limit keyed on UID + caller IP
+(`public.ts`); the IP is a rate-limit key only, never stored.
+
+**5. Web route.** File routes in `apps/web/src/routes/`. The resolver
+(`t.$uid.tsx`) is the idiom: loader does the data work, the page renders a
+single card (`src/components/ProfileCard.tsx`) on a calm background, and it
+is unbreakable — unknown input resolves somewhere sensible, never to an
+error page. All styling references `var(--*)` tokens from
+`src/styles/tokens.css`; no hardcoded colors, fonts, radii, or spacing.
+
+**6. Mobile screen.** Expo Router screens in `apps/mobile/app/` mirror the
+web routes one-to-one (`t/[uid].tsx` ↔ `t.$uid.tsx`). Screens compose the
+card primitives from `components/ui.tsx` (`Card`, `Title`, `Muted`,
+`Button`, `Avatar`) and read colors through `useTokens()` from
+`lib/tokens.ts` — the mobile mirror of `tokens.css`. Auth gating happens
+once, via `Stack.Protected` in `app/_layout.tsx`, not per-screen.
+
+**7. E2E.** Two harnesses, both against the real local stack:
+`apps/api/e2e/handshake.e2e.ts` drives the published SDK through the API
+Worker into Supabase (including the silent-drop and blocked-viewer
+assertions), and `apps/web/e2e/handshake.spec.ts` is the Playwright smoke —
+two strangers tap one tag and end up connected. Extend whichever one your
+slice touches; a slice nobody can walk end-to-end is not done.
+
+## The safety discipline
+
+These properties hold across every layer. They are why the slice is built
+in this order — each one is enforced at the database and *re-stated* by a
+test, not promised by UI code.
+
+- **Tenant seam on every table.** New tables copy the `tenant_id` column +
+  default verbatim, and every new policy includes `tenant_id =
+  private.current_tenant_id()`. V1 never varies the tenant; the seam exists
+  so multi-tenancy later is a function swap, not a migration storm.
+- **No enumeration.** There is no path to list people you haven't met.
+  Profiles are reachable only via capability (knowing a tag UID —
+  `resolve_tag`) or relationship (connection, live incoming request). No
+  anon select policy on `profiles` exists, deliberately. New features must
+  not create a browse/search/list-strangers surface — that includes
+  indirect oracles (FK errors, distinguishable error codes, rate-limit
+  responses that reveal whether a row exists).
+- **Block-respecting visibility.** Blocks are absolute and invisible:
+  checked via `private.is_blocked()` inside policies and RPCs, never in UI.
+  A blocked viewer gets the same response shape as "nothing there" (a
+  blocked `resolve_tag` returns `disabled`; a blocked send returns the same
+  bare ack as a stored one). Any new read or write path must ask: what does
+  the blocked party see? The answer must be: exactly what a stranger sees.
+- **Security-definer RPCs for multi-step writes.** Anything involving a
+  check-then-write, two tables, or a privacy-sensitive branch is a
+  `security definer` function (`set search_path = ''`, `private.lock_pair`
+  for pair races, explicit grants) — `claim_tag`, `send_connect_request`,
+  and `accept_connect_request` are the models. Plain table policies are for
+  single-row owner CRUD only.
+- **Tests are the spec.** Every safety property above exists twice: once in
+  SQL, once as a test that fails if it regresses. A migration that changes
+  a policy without a test asserting the new boundary is half a change. When
+  behavior is ambiguous, the test files are the authority — read them
+  before the implementation.
+
+## The verification gate
+
+A slice is done when, from the repo root (local stack up via
+`bun run db:start`, then `bun run db:reset && bun run db:seed`):
+
+```sh
+bun run lint        # oxlint --deny-warnings: zero findings
+bun run typecheck   # all 8 workspace typechecks pass
+bun run test        # contract + db (RLS) + nfc-sdk suites, all green
+```
+
+and the e2e harness you extended passes: `cd apps/api && bun run dev`
+(separate shell), then `bun run e2e`; for web flows, `cd apps/web &&
+bun run test:e2e`.
