@@ -34,7 +34,7 @@ function Home() {
             className="btn btn--quiet"
             href={import.meta.env.VITE_GET_TAGS_URL}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
             Get tags
           </a>

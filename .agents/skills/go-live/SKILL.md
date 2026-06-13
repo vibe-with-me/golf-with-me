@@ -93,7 +93,7 @@ format with curl; it will 400 and mislead you.
 
 Write `apps/web/.env.production` (gitignored; nothing here is secret):
 
-```
+```env
 VITE_API_URL=https://<api-worker>.workers.dev
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
