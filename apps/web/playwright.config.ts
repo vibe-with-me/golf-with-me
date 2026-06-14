@@ -5,9 +5,11 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
-  // First run against a cold dev server can stall on module loading; the
-  // retry hits the now-warm server. Local runs fail fast for honest signal.
-  retries: process.env.CI ? 2 : 0,
+  // No in-run retries: a cold dev-server SSR stall sticks to the server
+  // process, so retrying against the same server can't recover. CI retries
+  // at the shell level instead, with a fresh dev server per attempt (see
+  // the "Web smoke" step in .github/workflows/ci.yml).
+  retries: 0,
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:3010',

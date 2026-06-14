@@ -60,5 +60,14 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Web smoke (resolve -> claim -> connect)
-        run: bun run test:e2e
         working-directory: apps/web
+        # Each attempt starts fresh dev servers (Playwright does not reuse in
+        # CI), so a cold-server SSR stall gets a clean process next try.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::smoke attempt $attempt"
+            if bun run test:e2e; then echo "::endgroup::"; exit 0; fi
+            echo "::endgroup::"
+            echo "smoke attempt $attempt failed; retrying with a fresh dev server"
+          done
+          exit 1
