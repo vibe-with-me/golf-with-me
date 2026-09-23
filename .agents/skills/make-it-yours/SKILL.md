@@ -35,6 +35,8 @@ Execution rules for the whole skill:
 - Optional: background/surface/ink neutrals, display + body fonts (must
   be self-hostable — OFL or similarly licensed), reverse-domain id
   (e.g. `com.acme.app`), URL scheme (e.g. `acme`).
+- Optional: a store URL (`VITE_STORE_URL` / `EXPO_PUBLIC_STORE_URL`) —
+  turns on the Merch tab and the landing page's "Get tags" link.
 
 Also do this now (a fresh clone ships only `.example` files, and the
 final boot check needs the real ones):
@@ -58,7 +60,10 @@ Edit both in one sitting. Every *color* key is strictly 1:1
 same literal values into both. The non-color tokens (type scale, radii,
 spacing, fonts) also exist in both files but in platform-shaped form
 (`radius`/`space`/`fonts` consts on mobile); keep them in agreement if
-you change them.
+you change them. The shell tokens (`--shell-nav-height`,
+`--shell-tab-height`, `--shell-max-width` in `tokens.css`;
+`SHELL.headerHeight` in `lib/tokens.ts`) are layout, not brand, and
+normally stay untouched.
 
 Two more places echo `--color-bg` and must be updated to the new light
 and dark background values or the native splash will flash the old brand:
@@ -133,11 +138,11 @@ five (they render it as a mark) and the **display name** inside prose
 sentences (the `nfcPermission` string, README prose):
 
 - `apps/web/src/routes/index.tsx` — the `<h1 className="wordmark">`.
-- `apps/web/src/routes/connections.tsx` and `apps/web/src/routes/me.tsx`
-  — the header wordmark links.
+- `apps/web/src/components/AppShell.tsx` — the header wordmark link.
 - Page titles: `apps/web/src/routes/__root.tsx`, `login.tsx`,
-  `claim.$uid.tsx`, `connections.tsx`, `me.tsx` (each route's `head()`).
-- `apps/mobile/app/home.tsx` — the wordmark `<Text>`.
+  `claim.$uid.tsx`, `_app.connections.tsx`, `_app.profile.tsx`,
+  `_app.merch.tsx` (each route's `head()`).
+- `apps/mobile/components/Header.tsx` — the wordmark `<Text>`.
 - `apps/mobile/app/t/[uid].tsx` — the `user_agent` prefix
   (`withme-mobile/…`).
 - `apps/mobile/app.json` — the `react-native-nfc-manager` plugin's
