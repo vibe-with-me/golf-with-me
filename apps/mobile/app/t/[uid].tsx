@@ -120,7 +120,8 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
     return (
       <>
         <Muted>This is your tag.</Muted>
-        <Button label="Edit profile" onPress={() => router.navigate('/profile')} />
+        {/* Pop back to the tabs (or push them if this was a cold deep link). */}
+        <Button label="Edit profile" onPress={() => router.dismissTo('/profile')} />
       </>
     );
   }
