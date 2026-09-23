@@ -43,6 +43,7 @@ export function AppShell() {
             key={to}
             to={to}
             className="shell-nav__item"
+            /* TanStack sets aria-current itself; this only replaces its default className="active". */
             activeProps={{ 'aria-current': 'page' }}
           >
             <Icon aria-hidden="true" />
