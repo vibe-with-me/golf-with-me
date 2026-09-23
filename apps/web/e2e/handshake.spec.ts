@@ -1,28 +1,7 @@
 // The one smoke test: resolve -> claim -> connect, through real browsers.
 // Two strangers tap the same tag and end up connected.
-import { expect, test, type Page } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321';
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
-
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-function freshUid(): string {
-  let uid = '';
-  for (let i = 0; i < 14; i++) {
-    uid += '0123456789ABCDEF'[Math.floor(Math.random() * 16)];
-  }
-  return uid;
-}
-
-async function signUp(page: Page, email: string): Promise<void> {
-  await page.getByRole('button', { name: /create an account/i }).click();
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('smoke-pass-1!');
-  await page.getByRole('button', { name: 'Sign up' }).click();
-}
+import { expect, test } from '@playwright/test';
+import { admin, freshUid, signUp } from './helpers.ts';
 
 test('two strangers tap a tag and remain connected', async ({ browser }) => {
   const uid = freshUid();
@@ -56,7 +35,7 @@ test('two strangers tap a tag and remain connected', async ({ browser }) => {
 
   await bob.waitForURL(`**/t/${uid}`);
   await bob.getByRole('button', { name: 'Connect' }).click();
-  await bob.waitForURL('**/me**'); // no profile yet -> name first
+  await bob.waitForURL('**/profile**'); // no profile yet -> name first
   await bob.getByLabel('Name').fill('Smoke Bob');
   await bob.getByRole('button', { name: 'Save' }).click();
 
