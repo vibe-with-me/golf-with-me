@@ -56,7 +56,7 @@ function ProfilePage() {
   }
 
   return (
-    <form className="card" onSubmit={save} key={profile?.id ?? 'new'}>
+    <form className="card" onSubmit={save}>
       <h1>{profile ? 'Your profile' : 'Create your profile'}</h1>
       <div className="field">
         <label htmlFor="display_name">Name</label>
