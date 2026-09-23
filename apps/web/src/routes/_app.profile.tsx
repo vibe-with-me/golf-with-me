@@ -35,9 +35,9 @@ function ProfilePage() {
         bio: bio.trim() === '' ? null : bio.trim(),
         avatar_url: avatarUrl.trim() === '' ? null : avatarUrl.trim(),
       });
-      // The layout caches the profile until invalidated; refresh it before
-      // leaving so the shell never keeps a stale "no profile".
-      await router.invalidate();
+      // The layout caches the profile until invalidated; wait for the re-fetch
+      // (sync) before leaving so the shell never keeps a stale "no profile".
+      await router.invalidate({ sync: true });
       if (returnTo) {
         navigate({ href: returnTo });
         return;
@@ -56,7 +56,7 @@ function ProfilePage() {
   }
 
   return (
-    <form className="card" onSubmit={save}>
+    <form className="card" onSubmit={save} key={profile?.id ?? 'new'}>
       <h1>{profile ? 'Your profile' : 'Create your profile'}</h1>
       <div className="field">
         <label htmlFor="display_name">Name</label>
