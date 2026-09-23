@@ -52,9 +52,18 @@ jobs:
         run: bun run test
 
       - name: Install Playwright browsers
+        working-directory: apps/web
         run: bunx playwright install --with-deps chromium
 
       - name: Web smoke (production build in workerd)
         run: |
           cp apps/api/.dev.vars.example apps/api/.dev.vars
           bun run --cwd apps/web test:e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results
+          if-no-files-found: ignore

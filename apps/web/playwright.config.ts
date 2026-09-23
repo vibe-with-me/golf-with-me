@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 // Smoke tests need the Supabase local stack running first: `bun run db:start`.
-// API and web dev servers are started here on dedicated ports.
+// The API worker (wrangler dev) and the built web worker (vite preview) are started here on dedicated ports.
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
@@ -30,7 +30,8 @@ export default defineConfig({
       // browser reaches it over plain HTTP at VITE_API_URL.
       command: 'bunx vite build && bunx vite preview --port 3010 --strictPort',
       url: 'http://localhost:3010',
-      reuseExistingServer: !process.env.CI,
+      // Never reuse: the command builds first, and a leftover preview would serve a stale build.
+      reuseExistingServer: false,
       env: {
         VITE_API_URL: 'http://localhost:8796',
         VITE_SUPABASE_URL: process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321',
