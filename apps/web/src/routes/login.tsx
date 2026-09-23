@@ -22,7 +22,7 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const destination = returnTo ?? '/me';
+  const destination = returnTo ?? '/connections';
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   async function submit(event: React.FormEvent) {
@@ -52,7 +52,7 @@ function LoginPage() {
       setAwaitingConfirmation(true);
       return;
     }
-    navigate({ to: destination });
+    navigate({ href: destination });
   }
 
   async function google() {

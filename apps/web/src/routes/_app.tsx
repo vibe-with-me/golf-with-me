@@ -15,10 +15,12 @@ export const Route = createFileRoute('/_app')({
   // One profile fetch for the whole shell; children read it with
   // `useLoaderData({ from: '/_app' })`. A session without a profile is sent
   // to create one, carrying the intended destination.
+  // The gate fires on shell entry, not on every tab switch; the Profile page
+  // invalidates after saving.
   loader: async ({ location }) => {
     const { profile } = await api.app.profile.get();
     if (!profile && location.pathname !== '/profile') {
-      throw redirect({ to: '/profile', search: { returnTo: location.href } });
+      throw redirect({ to: '/profile', search: { returnTo: location.href }, replace: true });
     }
     return { profile };
   },
