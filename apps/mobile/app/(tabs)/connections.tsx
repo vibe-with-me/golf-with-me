@@ -1,10 +1,9 @@
 import type { ConnectRequest, Connection } from '@withme/contract';
-import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Avatar, Button, ErrorText, Muted } from '../components/ui';
-import { api } from '../lib/api';
-import { fonts, radius, space, useTokens } from '../lib/tokens';
+import { Avatar, Button, ErrorText, Muted } from '../../components/ui';
+import { api } from '../../lib/api';
+import { fonts, radius, space, useTokens } from '../../lib/tokens';
 
 interface BlockRow {
   user: { id: string; display_name: string; avatar_url: string | null; bio: string | null };
@@ -153,8 +152,6 @@ export default function ConnectionsScreen() {
           )}
         </>
       ) : null}
-
-      <Button label="Back" kind="quiet" onPress={() => router.back()} />
     </ScrollView>
   );
 }
@@ -162,7 +159,7 @@ export default function ConnectionsScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: space.s5,
-    paddingTop: space.s7 + space.s4,
+    paddingTop: space.s5,
     gap: space.s3,
   },
   sectionTitle: {

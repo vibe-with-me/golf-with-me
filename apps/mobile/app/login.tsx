@@ -32,7 +32,7 @@ export default function LoginScreen() {
       setAwaitingConfirmation(true);
       return;
     }
-    router.replace((safeRedirect(params.redirect) ?? '/home') as never);
+    router.replace((safeRedirect(params.redirect) ?? '/connections') as never);
   }
 
   if (awaitingConfirmation) {

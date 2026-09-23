@@ -23,7 +23,7 @@ export function Header() {
         },
       ]}
     >
-      <Text style={[styles.wordmark, { color: t.ink }]}>withme</Text>
+      <Text accessibilityRole="header" style={[styles.wordmark, { color: t.ink }]}>withme</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Scan a tag"
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 20,
     letterSpacing: -0.4,
   },
   action: {
