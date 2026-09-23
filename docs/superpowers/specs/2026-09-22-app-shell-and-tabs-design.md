@@ -118,7 +118,7 @@ app/
   (tabs)/gatherings.tsx  (tabs)/connections.tsx  (tabs)/merch.tsx  (tabs)/profile.tsx
 components/
   ui.tsx             existing primitives + EmptyState, ListStates, SectionHeader
-  Header.tsx         wordmark + scan button (NFC icon), used by the tabs layout
+  Header.tsx         wordmark + scan button (Feather has no NFC glyph; a scan-frame icon), used by the tabs layout
 ```
 
 - Detail screens push over the tab bar as stack screens, so the bar stays a
