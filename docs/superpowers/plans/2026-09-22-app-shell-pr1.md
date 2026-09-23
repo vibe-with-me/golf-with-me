@@ -903,7 +903,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 cd apps/mobile && bunx expo install expo-web-browser @expo/vector-icons && cd ../..
 ```
 
-`expo install` picks the SDK 56 versions. Confirm `bun.lock` changed and the root `expo` override still resolves to one copy (`bun pm ls | grep -c ' expo@'` should print `1`).
+`expo install` picks the SDK 56 versions. Confirm `bun.lock` changed and the root `expo` override still resolves to one copy: `bun pm ls --all | grep -oE 'expo@[0-9.]+' | sort -u` must print exactly one version (the plain `bun pm ls` listing does not show `expo` at all). `expo install` also appends `"expo-web-browser"` to `expo.plugins` in `app.json`; commit that alongside.
 
 **Step 2: The shell constant**
 
