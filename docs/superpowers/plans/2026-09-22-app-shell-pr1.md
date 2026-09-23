@@ -696,6 +696,25 @@ export const Route = createFileRoute('/me')({
 - `apps/web/src/routes/auth.callback.tsx`: `navigate({ to: returnTo ?? '/connections', replace: true });`
 - `apps/web/src/routes/t.$uid.tsx`: both `/me` occurrences become `/profile` — the `Edit profile` link (`to="/profile"`) and the profile-gate `navigate({ to: '/profile', search: { returnTo: \`/t/${uid}\` } })`.
 
+**Amendments from the Task 4 code review (apply in this task):**
+
+- `returnTo` values now carry query strings (the layout writes
+  `location.href`, e.g. `/profile?returnTo=%2Fconnections`). TanStack's
+  `navigate({ to })` does not parse a `?` inside `to` and lands on the
+  not-found card. Every place that navigates to a `returnTo` string must use
+  `href` instead: `login.tsx` (`navigate({ href: destination })`),
+  `auth.callback.tsx` (`navigate({ href: returnTo ?? '/connections', replace: true })`),
+  and the returnTo branch of `_app.profile.tsx`'s `save()`
+  (`navigate({ href: returnTo })`).
+- The layout loader re-runs only on shell entry or `router.invalidate()`, so
+  `save()` in `_app.profile.tsx` must `await router.invalidate()` BEFORE
+  navigating in the returnTo branch too (otherwise a new user who saves and
+  returns to `/connections` keeps a cached `profile: null` and the Profile
+  tab later shows the empty create form).
+- `_app.tsx`: the profile-gate redirect gets `replace: true`, and its comment
+  gains one sentence: "The gate fires on shell entry, not on every tab
+  switch; the Profile page invalidates after saving."
+
 **Step 4: Regenerate, typecheck, lint**
 
 ```bash
