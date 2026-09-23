@@ -17,6 +17,7 @@ import { Route as TUidRouteImport } from './routes/t.$uid'
 import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppMerchRouteImport } from './routes/_app.merch'
 import { Route as AppConnectionsRouteImport } from './routes/_app.connections'
 
 const MeRoute = MeRouteImport.update({
@@ -58,6 +59,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMerchRoute = AppMerchRouteImport.update({
+  id: '/merch',
+  path: '/merch',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConnectionsRoute = AppConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
+  '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
+  '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/_app/connections': typeof AppConnectionsRoute
+  '/_app/merch': typeof AppMerchRoute
   '/_app/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/connections'
+    | '/merch'
     | '/profile'
     | '/auth/callback'
     | '/claim/$uid'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/connections'
+    | '/merch'
     | '/profile'
     | '/auth/callback'
     | '/claim/$uid'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/_app/connections'
+    | '/_app/merch'
     | '/_app/profile'
     | '/auth/callback'
     | '/claim/$uid'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/merch': {
+      id: '/_app/merch'
+      path: '/merch'
+      fullPath: '/merch'
+      preLoaderRoute: typeof AppMerchRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/connections': {
       id: '/_app/connections'
       path: '/connections'
@@ -210,11 +229,13 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppConnectionsRoute: typeof AppConnectionsRoute
+  AppMerchRoute: typeof AppMerchRoute
   AppProfileRoute: typeof AppProfileRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConnectionsRoute: AppConnectionsRoute,
+  AppMerchRoute: AppMerchRoute,
   AppProfileRoute: AppProfileRoute,
 }
 

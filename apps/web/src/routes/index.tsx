@@ -1,10 +1,25 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { getSessionUserId } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/')({
   component: Home,
 });
 
 function Home() {
+  // The landing is SSR'd; the session is client-only, so the call to action
+  // settles after hydration (both renders start as signed-out).
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getSessionUserId().then((userId) => {
+      if (!cancelled) setSignedIn(userId !== null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main className="page">
       <div className="card">
@@ -20,19 +35,20 @@ function Home() {
             <code>{import.meta.env.VITE_DEMO_CREDENTIALS}</code>.
           </p>
         ) : null}
-        <nav className="btn-row">
-          <Link className="btn" to="/me">
-            My profile
-          </Link>
+        {signedIn ? (
           <Link className="btn" to="/connections">
-            Connections
+            Open the app
           </Link>
-        </nav>
+        ) : (
+          <Link className="btn" to="/login">
+            Sign in
+          </Link>
+        )}
         {/* Fulfillment pointer — dormant until the store URL is configured. */}
-        {import.meta.env.VITE_GET_TAGS_URL ? (
+        {import.meta.env.VITE_STORE_URL ? (
           <a
             className="btn btn--quiet"
-            href={import.meta.env.VITE_GET_TAGS_URL}
+            href={import.meta.env.VITE_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
