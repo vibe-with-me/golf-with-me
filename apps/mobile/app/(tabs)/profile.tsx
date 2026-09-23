@@ -58,7 +58,9 @@ export default function ProfileScreen() {
       });
       const redirect = safeRedirect(params.redirect);
       if (redirect) {
-        router.replace(redirect as never);
+        router.setParams({ redirect: undefined });
+        // Pop back to the resolver that sent us here; it is still mounted below.
+        router.dismissTo(redirect);
         return;
       }
       setExists(true);
