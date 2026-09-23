@@ -29,7 +29,8 @@ export default defineConfig({
       command: 'bunx vite dev --port 3010 --strictPort',
       url: 'http://localhost:3010',
       reuseExistingServer: !process.env.CI,
-      env: { VITE_API_URL: 'http://localhost:8796' },
+      // Pinned empty so a developer's .env can't add the Merch tab under test.
+      env: { VITE_API_URL: 'http://localhost:8796', VITE_STORE_URL: '' },
       timeout: 60_000,
     },
   ],
