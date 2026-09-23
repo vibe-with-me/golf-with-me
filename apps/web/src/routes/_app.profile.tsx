@@ -1,10 +1,12 @@
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
+import { shellStates } from '../components/CalmStates.tsx';
 import { api } from '../lib/api.ts';
 import { safeReturnTo } from '../lib/auth-guard.ts';
 import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/_app/profile')({
+  ...shellStates,
   head: () => ({ meta: [{ title: 'Your profile — withme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);

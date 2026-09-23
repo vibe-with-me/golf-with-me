@@ -1,4 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
+import { navItems } from '../components/AppShell.tsx';
+import { shellStates } from '../components/CalmStates.tsx';
 
 const STORE_URL = import.meta.env.VITE_STORE_URL;
 
@@ -8,9 +10,10 @@ const STORE_URL = import.meta.env.VITE_STORE_URL;
  * nav hides the tab and this route bounces to the first one.
  */
 export const Route = createFileRoute('/_app/merch')({
+  ...shellStates,
   head: () => ({ meta: [{ title: 'Merch — withme' }] }),
   beforeLoad: () => {
-    if (!STORE_URL) throw redirect({ to: '/connections', replace: true });
+    if (!STORE_URL) throw redirect({ to: navItems[0].to, replace: true });
   },
   component: MerchPage,
 });

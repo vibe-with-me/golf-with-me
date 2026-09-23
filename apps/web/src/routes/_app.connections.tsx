@@ -1,9 +1,11 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Avatar } from '../components/ProfileCard.tsx';
+import { shellStates } from '../components/CalmStates.tsx';
 import { api } from '../lib/api.ts';
 
 export const Route = createFileRoute('/_app/connections')({
+  ...shellStates,
   head: () => ({ meta: [{ title: 'Connections — withme' }] }),
   loader: async () => {
     const [pending, connections, blocks] = await Promise.all([

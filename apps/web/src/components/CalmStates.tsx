@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 
 /**
  * The resolver must be unbreakable: unknown routes, malformed UIDs, and
@@ -19,19 +20,40 @@ export function NotFoundCard() {
   );
 }
 
+/** Card bodies for use INSIDE the shell: no second <main>, no viewport-height page. */
+export function PendingBody() {
+  return (
+    <div className="card" aria-busy="true">
+      <div className="avatar" aria-hidden="true" />
+      <p className="hint">Loading…</p>
+    </div>
+  );
+}
+
+export function ErrorBody({ children }: { children?: ReactNode }) {
+  return (
+    <div className="card">
+      <h1>Something didn't load</h1>
+      <p className="bio">Give it another tap in a moment.</p>
+      <button className="btn" type="button" onClick={() => window.location.reload()}>
+        Try again
+      </button>
+      {children}
+    </div>
+  );
+}
+
+/** Spread into every `_app.*` child route so its fallbacks stay inside the shell. */
+export const shellStates = { pendingComponent: PendingBody, errorComponent: ErrorBody } as const;
+
 export function ErrorCard() {
   return (
     <main className="page">
-      <div className="card">
-        <h1>Something didn't load</h1>
-        <p className="bio">Give it another tap in a moment.</p>
-        <button className="btn" type="button" onClick={() => window.location.reload()}>
-          Try again
-        </button>
+      <ErrorBody>
         <Link className="btn btn--quiet" to="/">
           withme home
         </Link>
-      </div>
+      </ErrorBody>
     </main>
   );
 }
@@ -39,11 +61,8 @@ export function ErrorCard() {
 /** The card arrives before its contents: an empty shell the settle fills. */
 export function PendingCard() {
   return (
-    <main className="page" aria-busy="true">
-      <div className="card">
-        <div className="avatar" aria-hidden="true" />
-        <p className="hint">Loading…</p>
-      </div>
+    <main className="page">
+      <PendingBody />
     </main>
   );
 }

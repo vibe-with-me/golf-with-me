@@ -12,9 +12,11 @@ function Home() {
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    getSessionUserId().then((userId) => {
-      if (!cancelled) setSignedIn(userId !== null);
-    });
+    getSessionUserId()
+      .then((userId) => {
+        if (!cancelled) setSignedIn(userId !== null);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
