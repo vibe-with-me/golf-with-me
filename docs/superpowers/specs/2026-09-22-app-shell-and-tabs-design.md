@@ -103,8 +103,10 @@ src/components/
   `<main id="main">`; below, `<main>` + a fixed bottom bar with
   `env(safe-area-inset-bottom)` padding and a spacer. Includes a skip link.
   Active state via router `activeProps`.
-- New tokens: `--shell-breakpoint`, `--shell-nav-height`,
-  `--shell-tab-height`. Mobile mirrors the two heights.
+- New tokens: `--shell-nav-height`, `--shell-tab-height`,
+  `--shell-max-width`, `--text-xs`. (The 720px breakpoint is a documented
+  constant in tokens.css: CSS variables cannot drive media queries.) Mobile
+  mirrors the header height as `SHELL.headerHeight`.
 - `/claim/$uid` and `/t/$uid` stay chrome-free focused flows.
 
 ## Mobile architecture

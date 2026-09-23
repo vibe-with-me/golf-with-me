@@ -1,26 +1,17 @@
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
-/**
- * The resolver must be unbreakable: unknown routes, malformed UIDs, and
- * unexpected failures all land on the same calm card the rest of the app
- * speaks in — never a framework crash screen, never a stack trace.
- */
-export function NotFoundCard() {
+/** Card bodies for use INSIDE the shell: no second <main>, no viewport-height page. */
+export function NotFoundBody({ children }: { children?: ReactNode } & Record<string, unknown>) {
   return (
-    <main className="page">
-      <div className="card">
-        <h1>Nothing here</h1>
-        <p className="bio">This doesn't look like a live link. Give it another tap in a moment.</p>
-        <Link className="btn btn--quiet" to="/">
-          withme home
-        </Link>
-      </div>
-    </main>
+    <div className="card">
+      <h1>Nothing here</h1>
+      <p className="bio">This doesn't look like a live link. Give it another tap in a moment.</p>
+      {children}
+    </div>
   );
 }
 
-/** Card bodies for use INSIDE the shell: no second <main>, no viewport-height page. */
 export function PendingBody() {
   return (
     <div className="card" aria-busy="true">
@@ -45,6 +36,23 @@ export function ErrorBody({ children }: { children?: ReactNode }) {
 
 /** Spread into every `_app.*` child route so its fallbacks stay inside the shell. */
 export const shellStates = { pendingComponent: PendingBody, errorComponent: ErrorBody } as const;
+
+/**
+ * The resolver must be unbreakable: unknown routes, malformed UIDs, and
+ * unexpected failures all land on the same calm card the rest of the app
+ * speaks in — never a framework crash screen, never a stack trace.
+ */
+export function NotFoundCard() {
+  return (
+    <main className="page">
+      <NotFoundBody>
+        <Link className="btn btn--quiet" to="/">
+          withme home
+        </Link>
+      </NotFoundBody>
+    </main>
+  );
+}
 
 export function ErrorCard() {
   return (

@@ -92,8 +92,10 @@ Then open `http://localhost:3000/t/04BBBBBBBBBBBB` (Ada's claimed tag),
 `ada@demo.withme.local` / `withme-demo-1` to see her pending request.
 
 Tests: `bun run test` (unit + RLS), `bun run --cwd apps/web test:e2e`
-(Playwright smoke: resolve → claim → connect), `bun run --cwd apps/api e2e`
-(API e2e against the local stack).
+(Playwright smoke: resolve → claim → connect, plus the signed-in shell),
+`bun run --cwd apps/api e2e` (API e2e against the local stack). The web
+smoke runs against the production build and needs Supabase up first;
+Playwright starts the API worker and the built web worker itself.
 
 ### Deploy (one platform: Cloudflare + Supabase)
 

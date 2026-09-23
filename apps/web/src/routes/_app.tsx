@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AppShell } from '../components/AppShell.tsx';
+import { NotFoundBody } from '../components/CalmStates.tsx';
 import { api } from '../lib/api.ts';
 import { requireSession } from '../lib/auth-guard.ts';
 
@@ -26,4 +27,6 @@ export const Route = createFileRoute('/_app')({
   },
   staleTime: 60_000,
   component: AppShell,
+  // A bad path under the shell stays inside the shell (no second <main>).
+  notFoundComponent: NotFoundBody,
 });

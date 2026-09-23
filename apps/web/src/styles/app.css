@@ -347,11 +347,6 @@ a {
   padding: var(--space-5) 0 var(--space-7);
 }
 
-/* A router default card (not-found) inside the shell must not claim a viewport. */
-.shell-main .page {
-  min-height: auto;
-}
-
 .shell-nav {
   grid-area: nav;
   display: flex;

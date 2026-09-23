@@ -94,9 +94,11 @@ per-screen.
 **7. E2E.** Two harnesses, both against the real local stack:
 `apps/api/e2e/handshake.e2e.ts` drives the published SDK through the API
 Worker into Supabase (including the silent-drop and blocked-viewer
-assertions), and `apps/web/e2e/handshake.spec.ts` is the Playwright smoke —
-two strangers tap one tag and end up connected. Extend whichever one your
-slice touches; a slice nobody can walk end-to-end is not done.
+assertions), and the Playwright smoke in `apps/web/e2e/` runs against the
+production build (`vite build && vite preview`): `handshake.spec.ts` — two
+strangers tap one tag and end up connected — and `shell.spec.ts`, which
+covers the signed-in shell; both share `e2e/helpers.ts`. Extend whichever
+one your slice touches; a slice nobody can walk end-to-end is not done.
 
 ## The safety discipline
 
