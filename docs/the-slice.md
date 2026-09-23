@@ -58,32 +58,38 @@ a per-request client carrying the caller's JWT — the API never bypasses
 RLS. Anonymous endpoints take an edge rate limit keyed on UID + caller IP
 (`public.ts`); the IP is a rate-limit key only, never stored.
 
-**5. Web route.** File routes in `apps/web/src/routes/`. Signed-in pages
-live under the pathless `_app` layout (`_app.<name>.tsx`): the layout owns
-the session guard, the one profile fetch, and the chrome — a child route
-has neither `beforeLoad` auth nor `ssr: false` of its own. A new top-level
-section registers exactly one entry in `navItems`
-(`src/components/AppShell.tsx`); that is the whole tab. Every child
-spreads `shellStates` from `src/components/CalmStates.tsx` into its route
-options so a slow or failed loader renders a card inside the shell, never
-a second `<main>`. Detail pages un-nest with the underscore
-(`_app.gatherings_.$id.tsx`) so a list page never becomes a layout. Public
-and focused flows stay outside the shell: the resolver (`t.$uid.tsx`) is
-the idiom — loader does the data work, the page renders a single card on a
-calm background, and it is unbreakable. All styling references `var(--*)`
-tokens from `src/styles/tokens.css`; no hardcoded colors, fonts, radii, or
-spacing. The accent never marks navigation state: active tabs are ink.
+**5. Web route.** File routes in `apps/web/src/routes/`. Tab pages live
+under the pathless `_app` layout — `_app.tsx`, no URL segment of its own
+— as `_app.<name>.tsx`: the layout owns the session guard, the one
+profile fetch, and the chrome — a child route has neither `beforeLoad`
+auth nor `ssr: false` of its own. Every child spreads `shellStates` from
+`src/components/CalmStates.tsx` into its route options so a slow or
+failed loader renders a card inside the shell, never a second `<main>`.
+A new top-level section registers exactly one entry in `navItems`
+(`src/components/AppShell.tsx`, widening its `to` union); that is the
+whole tab. Config-gated tabs follow the Merch entry: present only when
+the env value is set. Detail pages un-nest with the underscore (e.g.
+`_app.gatherings_.$id.tsx`) so a list page never becomes a layout.
+Public and focused flows (`login.tsx`, `claim.$uid.tsx`) stay outside
+the shell: the resolver (`t.$uid.tsx`) is the idiom — loader does the
+data work, the page renders a single card on a calm background, and it
+is unbreakable. All styling references `var(--*)` tokens from
+`src/styles/tokens.css`; no hardcoded colors, fonts, radii, or spacing.
+The accent never marks navigation state: active tabs are ink.
 
 **6. Mobile screen.** Expo Router screens mirror the web routes wherever
-the surface is shared. Signed-in top-level screens live in
+the surface is shared (`t/[uid].tsx` ↔ `t.$uid.tsx`; `scan.tsx` is
+platform-specific). Signed-in top-level screens live in
 `apps/mobile/app/(tabs)/` and register one `Tabs.Screen` in
 `(tabs)/_layout.tsx` (Feather icon, title); detail and focused screens
-stay in `app/` as stack screens so they push over the bar (`t/[uid].tsx`
-↔ `t.$uid.tsx`; `scan.tsx` is platform-specific). Screens compose the
-card primitives from `components/ui.tsx` (`Card`, `Title`, `Muted`,
-`Button`, `Avatar`) and read colors through `useTokens()` from
-`lib/tokens.ts` — the mobile mirror of `tokens.css`. Auth gating happens
-once, via `Stack.Protected` in `app/_layout.tsx`, not per-screen.
+stay in `app/` as stack screens so they push over the bar
+(`claim/[uid].tsx`, `scan.tsx`). A config-gated tab follows the Merch
+screen: `href: null` when its env value is unset, so it is both hidden and
+unreachable. Screens compose the card primitives from `components/ui.tsx`
+(`Card`, `Title`, `Muted`, `Button`, `Avatar`) and read colors through
+`useTokens()` from `lib/tokens.ts` — the mobile mirror of `tokens.css`.
+Auth gating happens once, via `Stack.Protected` in `app/_layout.tsx`, not
+per-screen.
 
 **7. E2E.** Two harnesses, both against the real local stack:
 `apps/api/e2e/handshake.e2e.ts` drives the published SDK through the API

@@ -35,8 +35,10 @@ Execution rules for the whole skill:
 - Optional: background/surface/ink neutrals, display + body fonts (must
   be self-hostable — OFL or similarly licensed), reverse-domain id
   (e.g. `com.acme.app`), URL scheme (e.g. `acme`).
-- Optional: a store URL (`VITE_STORE_URL` / `EXPO_PUBLIC_STORE_URL`) —
-  turns on the Merch tab and the landing page's "Get tags" link.
+- Optional: a merch store URL (`VITE_STORE_URL` / `EXPO_PUBLIC_STORE_URL`)
+  — turns on the Merch tab and the landing page's "Get tags" link; set by
+  uncommenting the line in the two `.env` files copied just below (and as
+  a deploy-time var).
 
 Also do this now (a fresh clone ships only `.example` files, and the
 final boot check needs the real ones):
