@@ -1,5 +1,7 @@
 import { Link, Outlet } from '@tanstack/react-router';
 import { ShoppingBag, User, Users, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { ErrorBody, PendingBody } from './CalmStates.tsx';
 
 interface NavItem {
   to: '/connections' | '/merch' | '/profile';
@@ -22,8 +24,12 @@ export const navItems: readonly [NavItem, ...NavItem[]] = [
   { to: '/profile', label: 'Profile', icon: User },
 ];
 
-/** The signed-in chrome. Rendered by the pathless `_app` layout route. */
-export function AppShell() {
+/**
+ * The signed-in chrome. Rendered by the pathless `_app` layout route around
+ * the active tab, or around `children` when the layout itself is pending or
+ * has failed (a route's fallback replaces its component, chrome included).
+ */
+export function AppShell({ children }: { children?: ReactNode }) {
   return (
     <div className="shell">
       <a className="skip-link" href="#main">
@@ -35,7 +41,7 @@ export function AppShell() {
         </Link>
       </header>
       <main id="main" className="shell-main">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
       <nav className="shell-nav" aria-label="Primary">
         {navItems.map(({ to, label, icon: Icon }) => (
@@ -52,5 +58,27 @@ export function AppShell() {
         ))}
       </nav>
     </div>
+  );
+}
+
+/**
+ * The layout's own fallbacks. A route's fallback replaces its component, so
+ * these bring the chrome with them: a slow or failed profile load keeps the
+ * tabs on screen. They live here, not in the route file, because the router
+ * plugin code-splits route files and only carries imports across the split.
+ */
+export function ShellPending() {
+  return (
+    <AppShell>
+      <PendingBody />
+    </AppShell>
+  );
+}
+
+export function ShellError() {
+  return (
+    <AppShell>
+      <ErrorBody />
+    </AppShell>
   );
 }

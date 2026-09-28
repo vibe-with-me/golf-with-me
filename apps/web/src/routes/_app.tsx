@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { AppShell } from '../components/AppShell.tsx';
+import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
 import { api } from '../lib/api.ts';
 import { requireSession } from '../lib/auth-guard.ts';
@@ -27,6 +27,10 @@ export const Route = createFileRoute('/_app')({
   },
   staleTime: 60_000,
   component: AppShell,
-  // A bad path under the shell stays inside the shell (no second <main>).
+  // The layout's own fallbacks replace its component, so they bring the
+  // chrome with them: a slow or failed profile load keeps the tabs on screen.
+  pendingComponent: ShellPending,
+  errorComponent: ShellError,
+  // A bad path under the shell renders in the shell's outlet (no second <main>).
   notFoundComponent: NotFoundBody,
 });
