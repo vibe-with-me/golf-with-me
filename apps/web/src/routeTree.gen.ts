@@ -18,7 +18,9 @@ import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppMerchRouteImport } from './routes/_app.merch'
+import { Route as AppGatheringsRouteImport } from './routes/_app.gatherings'
 import { Route as AppConnectionsRouteImport } from './routes/_app.connections'
+import { Route as AppGatheringsIdRouteImport } from './routes/_app.gatherings_.$id'
 
 const MeRoute = MeRouteImport.update({
   id: '/me',
@@ -64,9 +66,19 @@ const AppMerchRoute = AppMerchRouteImport.update({
   path: '/merch',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGatheringsRoute = AppGatheringsRouteImport.update({
+  id: '/gatherings',
+  path: '/gatherings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConnectionsRoute = AppConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGatheringsIdRoute = AppGatheringsIdRouteImport.update({
+  id: '/gatherings_/$id',
+  path: '/gatherings/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -75,22 +87,26 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
+  '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
+  '/gatherings/$id': typeof AppGatheringsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
+  '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
+  '/gatherings/$id': typeof AppGatheringsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -99,11 +115,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/_app/connections': typeof AppConnectionsRoute
+  '/_app/gatherings': typeof AppGatheringsRoute
   '/_app/merch': typeof AppMerchRoute
   '/_app/profile': typeof AppProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
+  '/_app/gatherings_/$id': typeof AppGatheringsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,22 +130,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/connections'
+    | '/gatherings'
     | '/merch'
     | '/profile'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
+    | '/gatherings/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/me'
     | '/connections'
+    | '/gatherings'
     | '/merch'
     | '/profile'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
+    | '/gatherings/$id'
   id:
     | '__root__'
     | '/'
@@ -135,11 +157,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/_app/connections'
+    | '/_app/gatherings'
     | '/_app/merch'
     | '/_app/profile'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
+    | '/_app/gatherings_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,6 +241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMerchRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/gatherings': {
+      id: '/_app/gatherings'
+      path: '/gatherings'
+      fullPath: '/gatherings'
+      preLoaderRoute: typeof AppGatheringsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/connections': {
       id: '/_app/connections'
       path: '/connections'
@@ -224,19 +255,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectionsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/gatherings_/$id': {
+      id: '/_app/gatherings_/$id'
+      path: '/gatherings/$id'
+      fullPath: '/gatherings/$id'
+      preLoaderRoute: typeof AppGatheringsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppConnectionsRoute: typeof AppConnectionsRoute
+  AppGatheringsRoute: typeof AppGatheringsRoute
   AppMerchRoute: typeof AppMerchRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppGatheringsIdRoute: typeof AppGatheringsIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConnectionsRoute: AppConnectionsRoute,
+  AppGatheringsRoute: AppGatheringsRoute,
   AppMerchRoute: AppMerchRoute,
   AppProfileRoute: AppProfileRoute,
+  AppGatheringsIdRoute: AppGatheringsIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
