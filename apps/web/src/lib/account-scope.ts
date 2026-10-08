@@ -12,15 +12,16 @@ import { getSupabase } from './supabase.ts';
  * comes back only when the new account's data has loaded.
  */
 
-let changesInFlight = 0;
+let switchesInFlight = 0;
 const listeners = new Set<() => void>();
 
-function setInFlight(next: number): void {
-  const was = changesInFlight > 0;
-  changesInFlight = next;
-  if (was !== changesInFlight > 0) for (const listener of listeners) listener();
+function setSwitchesInFlight(next: number): void {
+  const was = switchesInFlight > 0;
+  switchesInFlight = Math.max(0, next);
+  if (was !== switchesInFlight > 0) for (const listener of listeners) listener();
 }
 
+// Module-level so useSyncExternalStore never re-subscribes on a re-render.
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
@@ -28,13 +29,17 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+function getSnapshot(): boolean {
+  return switchesInFlight > 0;
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
+
 /** True from the moment the account changes until its data has loaded. */
 export function useAccountSwitching(): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => changesInFlight > 0,
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export function scopeRouterToAccount(router: AnyRouter): void {
@@ -62,14 +67,15 @@ export function scopeRouterToAccount(router: AnyRouter): void {
     const shellOnScreen = router.state.matches.some((match) => match.routeId.startsWith('/_app'));
     if (!shellOnScreen) return;
 
-    setInFlight(changesInFlight + 1);
+    setSwitchesInFlight(switchesInFlight + 1);
     // Deferred: re-running loaders reads the session, which must not happen
     // inside this callback (Supabase holds its auth lock while it runs).
+    // `sync` makes the promise settle when the loaders have, not before.
     setTimeout(() => {
       router
         .invalidate({ sync: true })
         .catch(() => undefined)
-        .finally(() => setInFlight(Math.max(0, changesInFlight - 1)));
+        .finally(() => setSwitchesInFlight(switchesInFlight - 1));
     }, 0);
   });
 }
