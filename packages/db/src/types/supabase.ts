@@ -157,6 +157,80 @@ export type Database = {
           },
         ]
       }
+      gathering_members: {
+        Row: {
+          gathering_id: string
+          joined_at: string
+          profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          gathering_id: string
+          joined_at?: string
+          profile_id: string
+          tenant_id?: string
+        }
+        Update: {
+          gathering_id?: string
+          joined_at?: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gathering_members_gathering_id_fkey"
+            columns: ["gathering_id"]
+            isOneToOne: false
+            referencedRelation: "gatherings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gathering_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatherings: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          location: string | null
+          starts_at: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          location?: string | null
+          starts_at: string
+          tenant_id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          location?: string | null
+          starts_at?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatherings_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -267,10 +341,15 @@ export type Database = {
         Args: { p_destination?: Json; p_uid: string }
         Returns: Json
       }
+      create_gathering: {
+        Args: { p_location?: string; p_starts_at: string; p_title: string }
+        Returns: Json
+      }
       decline_connect_request: {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      join_gathering: { Args: { p_gathering_id: string }; Returns: undefined }
       log_scan: {
         Args: { p_uid: string; p_user_agent?: string }
         Returns: undefined

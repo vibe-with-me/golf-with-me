@@ -1,5 +1,6 @@
 // Demo seed: two users, three tags (unclaimed / claimed / disabled), one
-// pending connect request — enough to walk the full handshake locally.
+// pending connect request, one gathering — enough to walk the full handshake
+// locally.
 // Idempotent: re-running resets the demo users and tags. Local stack only.
 import { admin, anonClient } from '@withme/db/test-utils';
 
@@ -89,11 +90,32 @@ const { error: requestError } = await lin.client.rpc('send_connect_request', {
 });
 if (requestError) throw requestError;
 
+// Ada hosts a gathering, Lin has joined, and Ada's live tag points at it:
+// a tap on 04BBBBBBBBBBBB shows her card as the invitation.
+const startsAt = new Date();
+startsAt.setDate(startsAt.getDate() + 2);
+startsAt.setHours(19, 0, 0, 0);
+const { data: gathering, error: gatheringError } = await ada.client.rpc('create_gathering', {
+  p_title: 'Rooftop listening session',
+  p_starts_at: startsAt.toISOString(),
+  p_location: 'The roof, 14 Loom St',
+});
+if (gatheringError) throw gatheringError;
+const gatheringId = (gathering as { id: string }).id;
+const { error: joinError } = await lin.client.rpc('join_gathering', { p_gathering_id: gatheringId });
+if (joinError) throw joinError;
+// The owner's column-granted update — the same path app.tags.update takes.
+const { error: pointError } = await ada.client
+  .from('tags')
+  .update({ destination: { type: 'gathering', gathering_id: gatheringId } })
+  .eq('uid', TAGS.claimed);
+if (pointError) throw pointError;
+
 console.log(`
 Seeded.
-  Users     ada@demo.withme.local / ${DEMO_PASSWORD}   (has 1 pending request from Lin)
+  Users     ada@demo.withme.local / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a gathering Lin joined)
             lin@demo.withme.local / ${DEMO_PASSWORD}
-  Tags      /t/${TAGS.claimed}  -> Ada's card
+  Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her gathering
             /t/${TAGS.unclaimed}  -> claim flow
             /t/${TAGS.disabled}  -> inactive
 `);
