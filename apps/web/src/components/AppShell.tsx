@@ -1,6 +1,7 @@
 import { Link, Outlet } from '@tanstack/react-router';
 import { ShoppingBag, User, Users, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useAccountSwitching } from '../lib/account-scope.ts';
 import { ErrorBody, PendingBody } from './CalmStates.tsx';
 
 interface NavItem {
@@ -30,6 +31,9 @@ export const navItems: readonly [NavItem, ...NavItem[]] = [
  * has failed (a route's fallback replaces its component, chrome included).
  */
 export function AppShell({ children }: { children?: ReactNode }) {
+  // An account change unmounts the previous account's content at once; it
+  // comes back, freshly mounted, once the new account's data has loaded.
+  const switching = useAccountSwitching();
   return (
     <div className="shell">
       <a className="skip-link" href="#main">
@@ -41,7 +45,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </Link>
       </header>
       <main id="main" className="shell-main">
-        {children ?? <Outlet />}
+        {switching ? <PendingBody /> : (children ?? <Outlet />)}
       </main>
       <nav className="shell-nav" aria-label="Primary">
         {navItems.map(({ to, label, icon: Icon }) => (

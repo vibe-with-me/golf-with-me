@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { requireSession } from '../lib/auth-guard.ts';
 
@@ -8,7 +9,9 @@ export const Route = createFileRoute('/claim/$uid')({
   ssr: false,
   head: () => ({ meta: [{ title: 'Claim tag — withme' }] }),
   beforeLoad: ({ params }) => requireSession(`/claim/${params.uid}`),
-  loader: () => api.app.profile.get(),
+  // Outside the shell, so the account scope's re-load does not reach here: the
+  // load itself must belong to one account.
+  loader: () => asSignedInAccount(() => api.app.profile.get()),
   component: ClaimPage,
 });
 

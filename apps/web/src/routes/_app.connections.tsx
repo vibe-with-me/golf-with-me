@@ -2,17 +2,20 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { shellStates } from '../components/CalmStates.tsx';
+import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 
 export const Route = createFileRoute('/_app/connections')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Connections — withme' }] }),
   loader: async () => {
-    const [pending, connections, blocks] = await Promise.all([
-      api.app.requests.listPending(),
-      api.app.connections.list(),
-      api.app.blocks.list(),
-    ]);
+    const [pending, connections, blocks] = await asSignedInAccount(() =>
+      Promise.all([
+        api.app.requests.listPending(),
+        api.app.connections.list(),
+        api.app.blocks.list(),
+      ]),
+    );
     return { pending: pending.requests, connections: connections.connections, blocks: blocks.blocks };
   },
   component: ConnectionsPage,

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
+import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { requireSession } from '../lib/auth-guard.ts';
 
@@ -13,13 +14,14 @@ import { requireSession } from '../lib/auth-guard.ts';
 export const Route = createFileRoute('/_app')({
   ssr: false,
   beforeLoad: ({ location }) => requireSession(location.href),
-  // One profile fetch for the whole shell; children read it with
+  // One profile fetch for the whole shell (run again only if the account
+  // changed under it); children read it with
   // useLoaderData({ from: '/_app' }). Re-fetched on invalidate() or, after 60s, in
   // the background on the next navigation. A session without a profile is sent
   // to create one, carrying the intended destination. The gate fires on shell
   // entry, not on every tab switch; the Profile page invalidates after saving.
   loader: async ({ location }) => {
-    const { profile } = await api.app.profile.get();
+    const { profile } = await asSignedInAccount(() => api.app.profile.get());
     if (!profile && location.pathname !== '/profile') {
       throw redirect({ to: '/profile', search: { returnTo: location.href }, replace: true });
     }
