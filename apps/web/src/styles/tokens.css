@@ -27,6 +27,7 @@
   /* type */
   --font-display: 'Space Grotesk Variable', 'Avenir Next', 'Helvetica Neue', sans-serif;
   --font-body: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
+  --text-xs: 0.75rem;
   --text-sm: 0.9375rem;
   --text-md: 1.0625rem;
   --text-lg: 1.25rem;
@@ -45,6 +46,14 @@
   --space-7: 48px;
   --tap-target: 44px;
   --card-max-width: 26rem;
+
+  /* the shell: one nav, top-right on wide screens, a bottom bar under 720px.
+     CSS variables can't drive @media queries, so the breakpoint is a documented
+     constant: keep app.css's `@media (max-width: 719.98px)` and this comment
+     in lockstep. Mobile mirrors --shell-nav-height as SHELL.headerHeight. */
+  --shell-nav-height: 56px;
+  --shell-tab-height: 60px;
+  --shell-max-width: 60rem;
 
   /* elevation */
   --shadow-card:

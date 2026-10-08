@@ -38,7 +38,8 @@
           "nfcPermission": "Read withme tags to connect with people.",
           "includeNdefEntitlement": false
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "owner": "vibe-with-me",
     "runtimeVersion": {

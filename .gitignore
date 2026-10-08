@@ -36,3 +36,6 @@ expo-env.d.ts
 *.log
 
 # Note: bun.lockb is intentionally tracked — do not ignore it.
+
+# Supabase CLI scratch: rewritten on every `supabase start`, and newer CLIs write start-secrets/ here.
+supabase/.temp/

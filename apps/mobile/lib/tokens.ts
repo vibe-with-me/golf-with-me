@@ -68,3 +68,6 @@ export const space = {
 
 /** Minimum tap target (pt). Taps happen outdoors and at night events. */
 export const TAP_TARGET = 44;
+
+/** Mirror of --shell-nav-height in tokens.css. The tab bar keeps React Navigation's default height. */
+export const SHELL = { headerHeight: 56 } as const;

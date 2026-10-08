@@ -120,7 +120,8 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
     return (
       <>
         <Muted>This is your tag.</Muted>
-        <Button label="Edit profile" onPress={() => router.push('/me')} />
+        {/* Pop back to the tabs (or push them if this was a cold deep link). */}
+        <Button label="Edit profile" onPress={() => router.dismissTo('/profile')} />
       </>
     );
   }
@@ -148,7 +149,7 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
           const { profile } = await api.app.profile.get();
           if (!profile) {
             setSend('idle'); // this screen stays mounted under the push
-            router.push({ pathname: '/me', params: { redirect: `/t/${uid}` } });
+            router.push({ pathname: '/profile', params: { redirect: `/t/${uid}` } });
             return;
           }
           await api.app.requests.send({ recipient_id: profileId });

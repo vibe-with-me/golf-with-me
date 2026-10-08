@@ -1,19 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
-import { Button, Card, ErrorText, Field, Title } from '../components/ui';
+import { Button, Card, ErrorText, Field, Title } from '../../components/ui';
 import type { Profile } from '@withme/contract';
-import { api } from '../lib/api';
-import { safeRedirect } from '../lib/safe-redirect';
-import { supabase } from '../lib/supabase';
-import { space, useTokens } from '../lib/tokens';
+import { api } from '../../lib/api';
+import { safeRedirect } from '../../lib/safe-redirect';
+import { supabase } from '../../lib/supabase';
+import { space, useTokens } from '../../lib/tokens';
 
 async function signOut() {
   await supabase.auth.signOut();
   router.replace('/login');
 }
 
-export default function MeScreen() {
+export default function ProfileScreen() {
   const t = useTokens();
   const params = useLocalSearchParams<{ redirect?: string }>();
   const [loaded, setLoaded] = useState(false);
@@ -58,7 +58,9 @@ export default function MeScreen() {
       });
       const redirect = safeRedirect(params.redirect);
       if (redirect) {
-        router.replace(redirect as never);
+        router.setParams({ redirect: undefined });
+        // Pop back to the resolver that sent us here; it is still mounted below.
+        router.dismissTo(redirect);
         return;
       }
       setExists(true);
@@ -78,7 +80,6 @@ export default function MeScreen() {
             <Title>Couldn't load your profile</Title>
             <ErrorText>Check your connection and try again.</ErrorText>
             <Button label="Retry" onPress={load} />
-            <Button label="Back" kind="quiet" onPress={() => router.back()} />
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -120,7 +121,6 @@ export default function MeScreen() {
           {error ? <ErrorText>{error}</ErrorText> : null}
           <Button label={busy ? 'Saving…' : 'Save'} onPress={save} disabled={busy || !displayName.trim()} />
           <Button label="Sign out" kind="quiet" onPress={signOut} />
-          <Button label="Back" kind="quiet" onPress={() => router.back()} />
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>

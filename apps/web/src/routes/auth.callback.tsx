@@ -31,7 +31,7 @@ function AuthCallbackPage() {
           setError(exchangeError.message);
           return;
         }
-        navigate({ to: returnTo ?? '/me', replace: true });
+        navigate({ href: returnTo ?? '/connections', replace: true });
       });
     return () => {
       cancelled = true;

@@ -7,6 +7,7 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
 } from '@expo-google-fonts/space-grotesk';
+import { Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -20,6 +21,7 @@ export default function RootLayout() {
   const t = useTokens();
   const { session, loading } = useSession();
   const [fontsLoaded] = useFonts({
+    ...Feather.font,
     Inter_400Regular,
     Inter_600SemiBold,
     SpaceGrotesk_500Medium,
@@ -52,9 +54,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
         </Stack.Protected>
         <Stack.Protected guard={!!session}>
-          <Stack.Screen name="home" />
-          <Stack.Screen name="connections" />
-          <Stack.Screen name="me" />
+          <Stack.Screen name="(tabs)" />
           <Stack.Screen name="claim/[uid]" />
         </Stack.Protected>
       </Stack>

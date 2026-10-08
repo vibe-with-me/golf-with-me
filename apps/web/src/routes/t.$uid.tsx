@@ -101,7 +101,7 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
     return (
       <>
         <p className="hint">This is your tag.</p>
-        <Link className="btn" to="/me">
+        <Link className="btn" to="/profile">
           Edit profile
         </Link>
       </>
@@ -136,7 +136,7 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
           // must exist before a request can go out.
           const { profile } = await api.app.profile.get();
           if (!profile) {
-            navigate({ to: '/me', search: { returnTo: `/t/${uid}` } });
+            navigate({ to: '/profile', search: { returnTo: `/t/${uid}` } });
             return;
           }
           await api.app.requests.send({ recipient_id: profileId });

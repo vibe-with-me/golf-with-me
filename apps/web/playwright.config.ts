@@ -1,14 +1,11 @@
 import { defineConfig } from '@playwright/test';
 
 // Smoke tests need the Supabase local stack running first: `bun run db:start`.
-// API and web dev servers are started here on dedicated ports.
+// The API worker (wrangler dev) and the built web worker (vite preview) are started here on dedicated ports.
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
-  // No in-run retries: a cold dev-server SSR stall sticks to the server
-  // process, so retrying against the same server can't recover. CI retries
-  // at the shell level instead, with a fresh dev server per attempt (see
-  // the "Web smoke" step in .github/workflows/ci.yml).
+  // No in-run retries: a failure should be visible, not papered over.
   retries: 0,
   reporter: [['list']],
   use: {
@@ -26,11 +23,24 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command: 'bunx vite dev --port 3010 --strictPort',
+      // The built worker in workerd via `vite preview`, not `vite dev`: the
+      // cold dev-server SSR stall (see git history of ci.yml) does not exist
+      // on this path. SSR reaches the API worker above through the service
+      // binding (Workers under separate dev commands find each other); the
+      // browser reaches it over plain HTTP at VITE_API_URL.
+      command: 'bunx vite build && bunx vite preview --port 3010 --strictPort',
       url: 'http://localhost:3010',
-      reuseExistingServer: !process.env.CI,
-      env: { VITE_API_URL: 'http://localhost:8796' },
-      timeout: 60_000,
+      // Never reuse: the command builds first, and a leftover preview would serve a stale build.
+      reuseExistingServer: false,
+      env: {
+        VITE_API_URL: 'http://localhost:8796',
+        VITE_SUPABASE_URL: process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321',
+        VITE_SUPABASE_PUBLISHABLE_KEY:
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH',
+        // Pinned empty so a developer's .env can't add the Merch tab under test.
+        VITE_STORE_URL: '',
+      },
+      timeout: 180_000,
     },
   ],
 });

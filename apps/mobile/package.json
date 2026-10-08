@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
+    "@expo/vector-icons": "^15.0.2",
     "@orpc/client": "^1.13.6",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.103.0",
@@ -30,6 +31,7 @@
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "expo-updates": "~56.0.19",
+    "expo-web-browser": "~56.0.6",
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-nfc-manager": "^3.17.2",
