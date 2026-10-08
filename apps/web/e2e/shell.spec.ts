@@ -202,7 +202,7 @@ test('an account change while a navigation into the shell is loading never lands
     await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
       timeout: 15_000,
     });
-    expect(returnToOf(first)).toBe('/connections');
+    expect(returnToOf(first)).toBe('/gatherings');
     await expect(first.getByLabel('Name')).toHaveValue('');
   } finally {
     releaseHeld();
