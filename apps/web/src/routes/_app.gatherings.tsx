@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { formatStartsAt, tomorrowEvening } from '../lib/format-time.ts';
+import { tomorrowEvening, whenAndWhere } from '../lib/format-time.ts';
 
 /**
  * The Events tab: the gatherings you host or have joined, and a form to
@@ -32,6 +32,7 @@ function GatheringsPage() {
 
   const now = Date.now();
   const upcoming = gatherings.filter((g) => Date.parse(g.starts_at) >= now);
+  // most recent first
   const past = gatherings.filter((g) => Date.parse(g.starts_at) < now).toReversed();
 
   async function create(event: React.FormEvent) {
@@ -47,7 +48,8 @@ function GatheringsPage() {
       setTitle('');
       setLocation('');
       setStartsAt(tomorrowEvening());
-      await router.invalidate();
+      // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
+      await router.invalidate({ sync: true });
     } catch {
       setError('Could not create the gathering. Check the fields and try again.');
     } finally {
@@ -119,14 +121,11 @@ function GatheringsPage() {
 }
 
 function GatheringRow({ gathering }: { gathering: Gathering }) {
-  const sub = [formatStartsAt(gathering.starts_at) ?? gathering.starts_at, gathering.location]
-    .filter(Boolean)
-    .join(' · ');
   return (
     <div className="row">
       <div className="row-body">
         <span className="name">{gathering.title}</span>
-        <span className="sub">{sub}</span>
+        <span className="sub">{whenAndWhere(gathering)}</span>
       </div>
       <div className="row-actions">
         <Link className="btn btn--quiet" to="/gatherings/$id" params={{ id: gathering.id }}>

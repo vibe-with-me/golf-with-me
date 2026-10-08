@@ -24,13 +24,16 @@ export function tomorrowEvening(): string {
   return toDateTimeLocal(when);
 }
 
+/** "Thu, Oct 9 · 7:00 PM · Location" (the location only when set). */
+export function whenAndWhere(g: { starts_at: string; location: string | null }): string {
+  return [formatStartsAt(g.starts_at) ?? g.starts_at, g.location].filter(Boolean).join(' · ');
+}
+
 /** One line for a gathering: "Title · Thu, Oct 9 · 7:00 PM · Location". */
 export function gatheringLine(g: {
   title: string;
   starts_at: string;
   location: string | null;
 }): string {
-  return [g.title, formatStartsAt(g.starts_at) ?? g.starts_at, g.location]
-    .filter(Boolean)
-    .join(' · ');
+  return [g.title, whenAndWhere(g)].join(' · ');
 }

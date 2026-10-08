@@ -5,7 +5,7 @@ import { shellStates } from '../components/CalmStates.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { formatStartsAt, toDateTimeLocal } from '../lib/format-time.ts';
+import { formatStartsAt, toDateTimeLocal, whenAndWhere } from '../lib/format-time.ts';
 
 type LoaderResult =
   | { kind: 'detail'; gathering: Gathering; members: GatheringMember[] }
@@ -85,8 +85,9 @@ function JoinCard() {
             setJoin('joining');
             try {
               await api.app.gatherings.join({ id });
-              // The loader now sees the gathering as a member.
-              await router.invalidate();
+              // The loader now sees the gathering as a member; wait for the
+              // re-fetch (sync) so this card never lingers over stale data.
+              await router.invalidate({ sync: true });
             } catch (error) {
               setJoin((error as { code?: string }).code === 'NOT_FOUND' ? 'unavailable' : 'failed');
             }
@@ -122,16 +123,13 @@ function GatheringDetail({
 
   const isHost = viewerId === gathering.host_id;
   const isMember = viewerId !== null && members.some((member) => member.profile.id === viewerId);
-  const when = [formatStartsAt(gathering.starts_at) ?? gathering.starts_at, gathering.location]
-    .filter(Boolean)
-    .join(' · ');
-
   async function save(patch: GatheringPatch) {
     setBusy(true);
     setActionError(null);
     try {
       await api.app.gatherings.update({ id: gathering.id, ...patch });
-      await router.invalidate();
+      // Wait for the re-fetch (sync) before leaving edit mode so view never shows the old title.
+      await router.invalidate({ sync: true });
       setMode('view');
     } catch {
       setActionError('Could not save. Check the fields and try again.');
@@ -145,7 +143,8 @@ function GatheringDetail({
     setActionError(null);
     try {
       await api.app.gatherings.remove({ id: gathering.id });
-      navigate({ to: '/gatherings' });
+      // Replace, so Back does not land on a gathering that no longer exists.
+      navigate({ to: '/gatherings', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -157,7 +156,8 @@ function GatheringDetail({
     setActionError(null);
     try {
       await api.app.gatherings.leave({ id: gathering.id });
-      navigate({ to: '/gatherings' });
+      // Replace, so Back does not land on a gathering the viewer can no longer see.
+      navigate({ to: '/gatherings', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -177,10 +177,14 @@ function GatheringDetail({
         ) : (
           <>
             <h1>{gathering.title}</h1>
-            <p className="hint">{when}</p>
-            <TagPointer gatheringId={gathering.id} />
+            <p className="hint">{whenAndWhere(gathering)}</p>
           </>
         )}
+        {/* Outside the ternary so it stays mounted across Edit/Cancel and does
+            not refetch the viewer's tags; hidden, not unmounted, while editing. */}
+        <div hidden={mode === 'edit'}>
+          <TagPointer gatheringId={gathering.id} />
+        </div>
         {actionError ? (
           <p className="form-error" role="alert">
             {actionError}
@@ -348,7 +352,9 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
 
   const pointsHere = (tag: Tag) =>
     tag.destination?.type === 'gathering' && tag.destination.gathering_id === gatheringId;
-  const pointingHere = tags.some(pointsHere);
+  const here = tags.filter(pointsHere);
+  // After a partial failure the tags are split; offer both actions so it can be finished.
+  const elsewhere = tags.filter((tag) => !pointsHere(tag));
 
   async function repoint(targets: Tag[], destination: Destination) {
     setBusy(true);
@@ -363,26 +369,38 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
     setBusy(false);
   }
 
+  const forward =
+    elsewhere.length > 0 ? (
+      <button
+        type="button"
+        className="btn"
+        disabled={busy}
+        onClick={() => repoint(elsewhere, { type: 'gathering', gathering_id: gatheringId })}
+      >
+        Point my tags at this gathering
+      </button>
+    ) : null;
+  const back =
+    here.length > 0 ? (
+      <button
+        type="button"
+        className="btn"
+        disabled={busy}
+        onClick={() => repoint(here, { type: 'profile' })}
+      >
+        Point my tags back to my profile
+      </button>
+    ) : null;
+
   return (
     <>
-      {pointingHere ? (
-        <button
-          type="button"
-          className="btn"
-          disabled={busy}
-          onClick={() => repoint(tags.filter(pointsHere), { type: 'profile' })}
-        >
-          Point my tags back to my profile
-        </button>
+      {forward && back ? (
+        <div className="row-actions">
+          {back}
+          {forward}
+        </div>
       ) : (
-        <button
-          type="button"
-          className="btn"
-          disabled={busy}
-          onClick={() => repoint(tags, { type: 'gathering', gathering_id: gatheringId })}
-        >
-          Point my tags at this gathering
-        </button>
+        (back ?? forward)
       )}
       {pointError ? (
         <p className="form-error" role="alert">
