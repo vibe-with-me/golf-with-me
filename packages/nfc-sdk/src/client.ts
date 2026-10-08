@@ -6,10 +6,10 @@ import { RPCLink } from '@orpc/client/fetch';
 // self-contained — the contract package is a private workspace package. A
 // compile-time parity test in test/client-types.test.ts keeps them in sync.
 
-/** The typed destination union. Declared structurally; the parity test keeps it equal to the contract. */
+/** Where a tag points: the owner's profile, or a gathering they host or belong to. */
 export type Destination = { type: 'profile' } | { type: 'gathering'; gathering_id: string };
 
-/** What an anonymous tap on a gathering tag may learn. Null for every other destination type. */
+/** What an anonymous tap on a gathering tag may learn. */
 export interface GatheringSummary {
   id: string;
   title: string;
@@ -33,6 +33,7 @@ export type ApiResolveResult =
       status: 'claimed';
       uid: string;
       destination: Destination;
+      /** The summary for a gathering destination; null for every other type. */
       gathering: GatheringSummary | null;
       profile: PublicProfileCard;
     }
