@@ -1,6 +1,6 @@
 import type { AnyRouter } from '@tanstack/react-router';
 import { useSyncExternalStore } from 'react';
-import { getSupabase } from './supabase.ts';
+import { getSessionUserId, getSupabase } from './supabase.ts';
 
 /**
  * Loader data belongs to the signed-in account. The router keeps a route's
@@ -42,6 +42,24 @@ export function useAccountSwitching(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
+/**
+ * Runs a load as the signed-in account. A request carries the token of
+ * whoever is signed in when it is sent; if the account changed while it was
+ * in flight (another tab), its result belongs to the previous account, and
+ * the router would keep it: a load already in flight is reused by the
+ * re-load, not run again. So it runs again here, until one account held for
+ * the whole of it.
+ */
+export async function asSignedInAccount<T>(load: () => Promise<T>): Promise<T> {
+  let account = await getSessionUserId();
+  for (;;) {
+    const result = await load();
+    const now = await getSessionUserId();
+    if (now === account) return result;
+    account = now;
+  }
+}
+
 export function scopeRouterToAccount(router: AnyRouter): void {
   if (typeof window === 'undefined') return;
   let supabase: ReturnType<typeof getSupabase>;
@@ -66,14 +84,14 @@ export function scopeRouterToAccount(router: AnyRouter): void {
     // page, a tag): the cleared cache is all that is needed. A pending
     // navigation into the shell counts: its loader ran as the previous account.
     const shellOnScreen = [...router.state.matches, ...router.stores.pendingMatches.get()].some(
-      (match) => match.routeId.startsWith('/_app'),
+      (match) => match.routeId === '/_app',
     );
     if (!shellOnScreen) return;
 
     setSwitchesInFlight(switchesInFlight + 1);
-    // Deferred: re-running loaders reads the session, which must not happen
-    // inside this callback (Supabase holds its auth lock while it runs).
-    // `sync` makes the promise settle when the loaders have, not before.
+    // Deferred so this callback stays quick and a sign-out's own navigation
+    // starts before the re-load (auth-js holds no lock by default; none is
+    // waited on here). `sync` makes the promise settle when the loaders have.
     setTimeout(() => {
       router
         .invalidate({ sync: true })

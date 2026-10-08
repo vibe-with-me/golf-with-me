@@ -96,49 +96,116 @@ test('a failed profile load keeps the shell around the error', async ({ page }) 
 test('an account change in another tab hides the previous account at once', async ({ browser }) => {
   const stamp = Date.now();
   const context = await browser.newContext();
-  const first = await context.newPage();
-  await first.goto('/connections');
-  await first.waitForURL(/\/login\?/);
-  await signUp(first, `smoke-tab-a-${stamp}@rls.test`);
-  await first.waitForURL(/\/profile\?/);
-  await first.getByLabel('Name').fill('Smoke Tab A');
-  await first.getByRole('button', { name: 'Save' }).click();
-  await first.waitForURL('**/connections');
-  await first
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: 'Profile' })
-    .click();
-  await expect(first.getByLabel('Name')).toHaveValue('Smoke Tab A');
+  try {
+    const first = await context.newPage();
+    await first.goto('/connections');
+    await first.waitForURL(/\/login\?/);
+    await signUp(first, `smoke-tab-a-${stamp}@rls.test`);
+    await first.waitForURL(/\/profile\?/);
+    await first.getByLabel('Name').fill('Smoke Tab A');
+    await first.getByRole('button', { name: 'Save' }).click();
+    await first.waitForURL('**/connections');
+    await first
+      .getByRole('navigation', { name: 'Primary' })
+      .getByRole('link', { name: 'Profile' })
+      .click();
+    await expect(first.getByLabel('Name')).toHaveValue('Smoke Tab A');
 
-  // Slow the first tab's re-load, so whatever it keeps on screen meanwhile
-  // is observable.
-  await first.route('**/rpc/app/profile/get', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    await route.continue();
+    // Slow the first tab's re-load, so whatever it keeps on screen meanwhile
+    // is observable.
+    await first.route('**/rpc/app/profile/get', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await route.continue();
+    });
+
+    // Another tab in the same browser becomes a different account.
+    const second = await context.newPage();
+    await second.goto('/login');
+    await signUp(second, `smoke-tab-b-${stamp}@rls.test`);
+    await second.waitForURL(/\/profile\?/);
+
+    // The first tab drops the previous account's data immediately, not when
+    // its re-load finishes.
+    await expect
+      .poll(
+        () =>
+          first.evaluate(
+            () => document.querySelector<HTMLInputElement>('#display_name')?.value ?? null,
+          ),
+        { timeout: 2000 },
+      )
+      .not.toBe('Smoke Tab A');
+
+    // And it settles on the new account, which has no profile yet.
+    await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(first.getByLabel('Name')).toHaveValue('');
+  } finally {
+    await context.close();
+  }
+});
+
+test('an account change while a navigation into the shell is loading never lands the previous account', async ({
+  browser,
+}) => {
+  const stamp = Date.now();
+  const context = await browser.newContext();
+  // The first tab's held profile fetch is let go once the account has changed
+  // (or on the way out, so a failure cannot leave it hanging).
+  let releaseHeld!: () => void;
+  const held = new Promise<void>((resolve) => {
+    releaseHeld = resolve;
   });
+  try {
+    const first = await context.newPage();
+    await first.goto('/connections');
+    await first.waitForURL(/\/login\?/);
+    await signUp(first, `smoke-midload-a-${stamp}@rls.test`);
+    await first.waitForURL(/\/profile\?/);
+    await first.getByLabel('Name').fill('Smoke Midload A');
+    await first.getByRole('button', { name: 'Save' }).click();
+    await first.waitForURL('**/connections');
 
-  // Another tab in the same browser becomes a different account.
-  const second = await context.newPage();
-  await second.goto('/login');
-  await signUp(second, `smoke-tab-b-${stamp}@rls.test`);
-  await second.waitForURL(/\/profile\?/);
+    // Back out to the landing page, so the next step is a navigation INTO the shell.
+    await first.goto('/');
+    const openTheApp = first.getByRole('link', { name: 'Open the app' });
+    await expect(openTheApp).toBeVisible();
 
-  // The first tab drops the previous account's data immediately, not when
-  // its re-load finishes.
-  await expect
-    .poll(
-      () =>
-        first.evaluate(
-          () => document.querySelector<HTMLInputElement>('#display_name')?.value ?? null,
-        ),
-      { timeout: 2000 },
-    )
-    .not.toBe('Smoke Tab A');
+    // Hold the shell's first profile fetch (made with account A's token) until
+    // the account has changed underneath it: the loader is in flight when the
+    // change arrives, however fast or slow the machine.
+    let holding = false;
+    await first.route('**/rpc/app/profile/get', async (route) => {
+      if (!holding) {
+        holding = true;
+        await held;
+      }
+      // The held request may have been aborted meanwhile; that is the point.
+      await route.continue().catch(() => undefined);
+    });
+    const profileRequested = first.waitForRequest('**/rpc/app/profile/get');
+    await openTheApp.click();
+    await profileRequested;
 
-  // And it settles on the new account, which has no profile yet.
-  await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
-    timeout: 15_000,
-  });
-  await expect(first.getByLabel('Name')).toHaveValue('');
-  await context.close();
+    // Another tab in the same browser becomes a different account, mid-load.
+    // Its own shell entry (a round trip to the API) completes well after the
+    // change has reached the first tab.
+    const second = await context.newPage();
+    await second.goto('/login');
+    await signUp(second, `smoke-midload-b-${stamp}@rls.test`);
+    await second.waitForURL(/\/profile\?/);
+    releaseHeld();
+
+    // The first tab ends up as the new account, which has no profile yet: sent
+    // to create one, carrying its destination, never shown account A's profile.
+    await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
+      timeout: 15_000,
+    });
+    expect(returnToOf(first)).toBe('/connections');
+    await expect(first.getByLabel('Name')).toHaveValue('');
+  } finally {
+    releaseHeld();
+    await context.close();
+  }
 });

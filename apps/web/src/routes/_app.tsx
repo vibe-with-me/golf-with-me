@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
+import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { requireSession } from '../lib/auth-guard.ts';
 
@@ -19,7 +20,7 @@ export const Route = createFileRoute('/_app')({
   // to create one, carrying the intended destination. The gate fires on shell
   // entry, not on every tab switch; the Profile page invalidates after saving.
   loader: async ({ location }) => {
-    const { profile } = await api.app.profile.get();
+    const { profile } = await asSignedInAccount(() => api.app.profile.get());
     if (!profile && location.pathname !== '/profile') {
       throw redirect({ to: '/profile', search: { returnTo: location.href }, replace: true });
     }
