@@ -181,7 +181,7 @@ test('an account change while a navigation into the shell is loading never lands
         holding = true;
         await held;
       }
-      // The held request may have been aborted meanwhile; that is the point.
+      // On the way out the context may already be closed; nothing to continue then.
       await route.continue().catch(() => undefined);
     });
     const profileRequested = first.waitForRequest('**/rpc/app/profile/get');

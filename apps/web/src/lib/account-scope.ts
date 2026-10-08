@@ -53,9 +53,17 @@ export function useAccountSwitching(): boolean {
 export async function asSignedInAccount<T>(load: () => Promise<T>): Promise<T> {
   let account = await getSessionUserId();
   for (;;) {
-    const result = await load();
+    // A rejection is kept too: the previous account's request failing (its
+    // token gone) must not put the new account's page into the error state.
+    const outcome = await load().then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
     const now = await getSessionUserId();
-    if (now === account) return result;
+    if (now === account) {
+      if (outcome.ok) return outcome.value;
+      throw outcome.error;
+    }
     account = now;
   }
 }

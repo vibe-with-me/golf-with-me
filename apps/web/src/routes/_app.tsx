@@ -14,7 +14,8 @@ import { requireSession } from '../lib/auth-guard.ts';
 export const Route = createFileRoute('/_app')({
   ssr: false,
   beforeLoad: ({ location }) => requireSession(location.href),
-  // One profile fetch for the whole shell; children read it with
+  // One profile fetch for the whole shell (run again only if the account
+  // changed under it); children read it with
   // useLoaderData({ from: '/_app' }). Re-fetched on invalidate() or, after 60s, in
   // the background on the next navigation. A session without a profile is sent
   // to create one, carrying the intended destination. The gate fires on shell
