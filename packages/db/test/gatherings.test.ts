@@ -27,6 +27,12 @@ async function createGathering(
   return (data as { id: string }).id;
 }
 
+/** Invisible means an empty, error-free select: a policy error is not invisibility. */
+function expectEmpty(result: { data: unknown[] | null; error: unknown }): void {
+  expect(result.error).toBeNull();
+  expect(result.data).toEqual([]);
+}
+
 describe('gathering membership and visibility', () => {
   it('creating a gathering makes the host a member', async () => {
     const alice = await createTestUser('Alice');
@@ -39,6 +45,21 @@ describe('gathering membership and visibility', () => {
       .select('profile_id')
       .eq('gathering_id', id);
     expect(members?.map((m) => m.profile_id)).toEqual([alice.id]);
+
+    // both new tables carry the tenant seam
+    const { data: gathering } = await admin
+      .from('gatherings')
+      .select('tenant_id')
+      .eq('id', id)
+      .single();
+    expect(gathering?.tenant_id).toBeTruthy();
+    const { data: membership } = await admin
+      .from('gathering_members')
+      .select('tenant_id')
+      .eq('gathering_id', id)
+      .eq('profile_id', alice.id)
+      .single();
+    expect(membership?.tenant_id).toBe(gathering?.tenant_id);
   });
 
   it('a stranger sees neither the gathering nor its members', async () => {
@@ -46,13 +67,8 @@ describe('gathering membership and visibility', () => {
     const mallory = await createTestUser('Mallory');
     const id = await createGathering(alice.client);
 
-    expect(
-      (await mallory.client.from('gatherings').select('*').eq('id', id)).data ?? [],
-    ).toEqual([]);
-    expect(
-      (await mallory.client.from('gathering_members').select('*').eq('gathering_id', id)).data ??
-        [],
-    ).toEqual([]);
+    expectEmpty(await mallory.client.from('gatherings').select('*').eq('id', id));
+    expectEmpty(await mallory.client.from('gathering_members').select('*').eq('gathering_id', id));
   });
 
   it('joining admits the user, and co-members can now read each other cards', async () => {
@@ -61,9 +77,7 @@ describe('gathering membership and visibility', () => {
     const id = await createGathering(alice.client);
 
     // before joining, alice is invisible to bob (no enumeration)
-    expect((await bob.client.from('profiles').select('id').eq('id', alice.id)).data ?? []).toEqual(
-      [],
-    );
+    expectEmpty(await bob.client.from('profiles').select('id').eq('id', alice.id));
 
     const { error } = await bob.client.rpc('join_gathering', { p_gathering_id: id });
     expect(error).toBeNull();
@@ -95,10 +109,8 @@ describe('gathering membership and visibility', () => {
       .eq('profile_id', bob.id);
     expect(error).toBeNull();
 
-    expect((await bob.client.from('gatherings').select('*').eq('id', id)).data ?? []).toEqual([]);
-    expect((await bob.client.from('profiles').select('id').eq('id', alice.id)).data ?? []).toEqual(
-      [],
-    );
+    expectEmpty(await bob.client.from('gatherings').select('*').eq('id', id));
+    expectEmpty(await bob.client.from('profiles').select('id').eq('id', alice.id));
   });
 
   it('anon can neither create nor join', async () => {
@@ -145,8 +157,30 @@ describe('gathering membership and visibility', () => {
 
     const { error: deleteError } = await alice.client.from('gatherings').delete().eq('id', id);
     expect(deleteError).toBeNull();
-    expect((await admin.from('gatherings').select('*').eq('id', id)).data ?? []).toEqual([]);
-    expect((await bob.client.from('gatherings').select('*').eq('id', id)).data ?? []).toEqual([]);
+    expectEmpty(await admin.from('gatherings').select('*').eq('id', id));
+    expectEmpty(await bob.client.from('gatherings').select('*').eq('id', id));
+  });
+
+  it('nobody inserts a membership directly: joining is the RPC', async () => {
+    const alice = await createTestUser('Alice');
+    const mallory = await createTestUser('Mallory');
+    const id = await createGathering(alice.client);
+
+    // neither a stranger for themselves nor the host for someone else
+    const { error: selfInsert } = await mallory.client
+      .from('gathering_members')
+      .insert({ gathering_id: id, profile_id: mallory.id });
+    expect(selfInsert).not.toBeNull();
+    const { error: hostInsert } = await alice.client
+      .from('gathering_members')
+      .insert({ gathering_id: id, profile_id: mallory.id });
+    expect(hostInsert).not.toBeNull();
+
+    const { data: raw } = await admin
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(raw?.map((m) => m.profile_id)).toEqual([alice.id]);
   });
 });
 
@@ -182,7 +216,57 @@ describe('gatherings respect blocks', () => {
       .select('profile_id')
       .eq('gathering_id', id);
     expect(raw?.map((m) => m.profile_id)).toEqual([alice.id]);
-    expect((await bob.client.from('gatherings').select('*').eq('id', id)).data ?? []).toEqual([]);
+    expectEmpty(await bob.client.from('gatherings').select('*').eq('id', id));
+  });
+
+  it('blocking evicts in the other direction too: a member who blocks the host leaves', async () => {
+    const carol = await createTestUser('Carol');
+    const dave = await createTestUser('Dave');
+    const id = await createGathering(carol.client);
+    await dave.client.rpc('join_gathering', { p_gathering_id: id });
+
+    const { error } = await dave.client
+      .from('blocks')
+      .insert({ blocker_id: dave.id, blocked_id: carol.id });
+    expect(error).toBeNull();
+
+    const { data: raw } = await admin
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(raw?.map((m) => m.profile_id)).toEqual([carol.id]);
+    expectEmpty(await dave.client.from('gatherings').select('*').eq('id', id));
+  });
+
+  it('a block between co-members hides their cards; the third-party gathering is untouched', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const carol = await createTestUser('Carol');
+    const id = await createGathering(alice.client);
+    await bob.client.rpc('join_gathering', { p_gathering_id: id });
+    await carol.client.rpc('join_gathering', { p_gathering_id: id });
+
+    const { error } = await carol.client
+      .from('blocks')
+      .insert({ blocker_id: carol.id, blocked_id: bob.id });
+    expect(error).toBeNull();
+
+    // both stay members of alice's gathering
+    const { data: raw } = await admin
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(raw?.map((m) => m.profile_id).toSorted()).toEqual(
+      [alice.id, bob.id, carol.id].toSorted(),
+    );
+    expect((await bob.client.from('gatherings').select('id').eq('id', id)).data).toHaveLength(1);
+
+    // the blocked member cannot see the blocker's card through the gathering;
+    // the blocker still sees whom they blocked (their own list UI)
+    expectEmpty(await bob.client.from('profiles').select('id').eq('id', carol.id));
+    expect((await carol.client.from('profiles').select('id').eq('id', bob.id)).data).toHaveLength(
+      1,
+    );
   });
 });
 
@@ -215,13 +299,16 @@ describe('gathering destinations', () => {
     const alice = await createTestUser('Alice');
     const id = await createGathering(alice.client);
     const uid = await provisionTag();
-    await alice.client.rpc('claim_tag', {
+    const { error: claimError } = await alice.client.rpc('claim_tag', {
       p_uid: uid,
       p_destination: { type: 'gathering', gathering_id: id },
     });
+    expect(claimError).toBeNull();
     await alice.client.from('gatherings').delete().eq('id', id);
 
-    const resolved = (await anonClient().rpc('resolve_tag', { p_uid: uid })).data as Resolved;
+    const { data, error } = await anonClient().rpc('resolve_tag', { p_uid: uid });
+    expect(error).toBeNull();
+    const resolved = data as Resolved;
     expect(resolved.status).toBe('claimed');
     expect(resolved.destination).toEqual({ type: 'profile' });
     expect(resolved.gathering).toBeNull();
@@ -233,13 +320,17 @@ describe('gathering destinations', () => {
     const id = await createGathering(alice.client);
     await bob.client.rpc('join_gathering', { p_gathering_id: id });
     const uid = await provisionTag();
-    await bob.client.rpc('claim_tag', {
+    const { error: claimError } = await bob.client.rpc('claim_tag', {
       p_uid: uid,
       p_destination: { type: 'gathering', gathering_id: id },
     });
-    expect(
-      ((await anonClient().rpc('resolve_tag', { p_uid: uid })).data as Resolved).gathering,
-    ).not.toBeNull();
+    expect(claimError).toBeNull();
+
+    const { data: before, error: beforeError } = await anonClient().rpc('resolve_tag', {
+      p_uid: uid,
+    });
+    expect(beforeError).toBeNull();
+    expect((before as Resolved).gathering).not.toBeNull();
 
     await bob.client
       .from('gathering_members')
@@ -247,7 +338,9 @@ describe('gathering destinations', () => {
       .eq('gathering_id', id)
       .eq('profile_id', bob.id);
 
-    const resolved = (await anonClient().rpc('resolve_tag', { p_uid: uid })).data as Resolved;
+    const { data, error } = await anonClient().rpc('resolve_tag', { p_uid: uid });
+    expect(error).toBeNull();
+    const resolved = data as Resolved;
     expect(resolved.destination).toEqual({ type: 'profile' });
     expect(resolved.gathering).toBeNull();
   });

@@ -51,7 +51,7 @@ bun run lint && bun run typecheck && bun run test
 git log --oneline -3 origin/main   # expect the merge of PR #7 (account-switch follow-up) on top of PR #6
 ```
 
-Expected: seed prints the demo users; gate green. Note the db suite's test count from the output: it is the baseline, and Task 3 expects it +12. No commit.
+Expected: seed prints the demo users; gate green. Note the db suite's test count from the output: it is the baseline, and Task 3 expects it +15. No commit.
 
 ---
 
@@ -341,7 +341,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:** Create `packages/db/test/gatherings.test.ts`.
 
-The twelve tests and their assertions:
+The fifteen tests and their assertions:
 1. Creating makes the host a member — the host reads the row and the one membership (their own id).
 2. A stranger sees neither the gathering nor its members — both selects empty.
 3. Joining admits the user and co-members read each other's cards — the host's profile is INVISIBLE to the joiner before `join_gathering`, two members after, the host card readable after.
@@ -354,6 +354,9 @@ The twelve tests and their assertions:
 10. A dangling destination degrades to the profile card — host deletes the gathering; anon resolve has `destination { type: 'profile' }` and `gathering null`.
 11. (extra) A tag whose owner left the gathering degrades the same way.
 12. Malformed destinations rejected at the DB boundary — `{ type: 'gathering' }` (the NULL trap), a non-uuid id, an extra key: each update error contains `tags_destination_shape`.
+13. (extra) Nobody inserts a membership directly — a stranger's and the host's direct inserts error; admin sees only the host.
+14. (extra) Blocking evicts in the member-blocks-host direction too.
+15. (extra) A block between co-members hides their cards; the third-party gathering and its memberships are untouched.
 
 ```ts
 // Gatherings: membership-scoped visibility, block-respecting joins, and the
@@ -1008,7 +1011,7 @@ if (pointError) throw pointError;
 
 Update the printed summary: the Ada line becomes `(has 1 pending request from Lin; hosts a gathering Lin joined)` and the claimed-tag line `-> Ada's card, inviting you to her gathering`. Update the header comment ("two users, three tags …, one pending connect request, one gathering").
 
-**Step 4:** `bun run db:seed` prints the new lines. `cd packages/db && bun test; cd ../..` → 52 pass (12 new). `bun run lint && bun run --cwd packages/db typecheck && bun run --cwd packages/contract typecheck` clean.
+**Step 4:** `bun run db:seed` prints the new lines. `cd packages/db && bun test; cd ../..` → 55 pass (15 new). `bun run lint && bun run --cwd packages/db typecheck && bun run --cwd packages/contract typecheck` clean.
 
 **Commit**
 
@@ -3011,7 +3014,7 @@ and landed across the shell PRs. Two findings from the first two derivations
 **Step 2:** `README.md`:
 - Contract bullet: `(`{ type: 'profile' }` today; `link | menu | vcard` can join without schema change)` → `(`profile` and `gathering` today; `link | menu | vcard` can join without schema change)`; `app` router description → `(profile, connect, block, gatherings, my tags — session-scoped)`.
 - `apps/mobile` bullet → `` `apps/mobile` — the Expo client: the same tabs (Events, Connections, Merch, Profile) and resolver over the same contract; NFC reading in development builds. ``
-- Safety semantics: add a bullet after "Mutual consent": `- **Gatherings are membership-scoped.** The one feature beyond the handshake: a host creates a gathering, points a tag at it, and a tap is the invitation. Only members see a gathering or each other's cards through it; a join refused by a block is indistinguishable from a gathering that does not exist; blocking evicts. There is no browse surface.` Replace the `37` in the phrase `37 policy tests` (it wraps across two README lines; search for `37 policy`) with the number `bun run --cwd packages/db test` prints (the Task 0 baseline +12).
+- Safety semantics: add a bullet after "Mutual consent": `- **Gatherings are membership-scoped.** The one feature beyond the handshake: a host creates a gathering, points a tag at it, and a tap is the invitation. Only members see a gathering or each other's cards through it; a join refused by a block is indistinguishable from a gathering that does not exist; blocking evicts. There is no browse surface.` Replace the `37` in the phrase `37 policy tests` (it wraps across two README lines; search for `37 policy`) with the number `bun run --cwd packages/db test` prints (the Task 0 baseline +15).
 - Quickstart: `` Then open `http://localhost:3000/t/04BBBBBBBBBBBB` (Ada's tag — her card, inviting you to the gathering she hosts), `/t/04AAAAAAAAAAAA` (the claim flow), or sign in as `ada@demo.withme.local` / `withme-demo-1` to see her gathering and her pending request. `` Tests line: `(Playwright smoke: resolve → claim → connect, the signed-in shell, and tap → join a gathering)`.
 
 **Step 3:** `docs/the-slice.md`:
@@ -3220,7 +3223,7 @@ cd apps/web && CI=1 bunx playwright test; cd ../..
 cd apps/api && bun run e2e; cd ../..   # needs `bun run dev` for the API in another shell
 ```
 
-Expected: all green — db at the Task 0 baseline +12, contract 22, Playwright 10, API e2e ending `handshake e2e: all checks passed`. Paste the summary lines into the PR body.
+Expected: all green — db at the Task 0 baseline +15, contract 22, Playwright 10, API e2e ending `handshake e2e: all checks passed`. Paste the summary lines into the PR body.
 
 **Step 2:** Push and open the PR against `main`. Title: `Add the gathering to core: Events tab, tap-to-join, the ten RLS tests`.
 
