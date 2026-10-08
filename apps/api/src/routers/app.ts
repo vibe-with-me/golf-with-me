@@ -1,12 +1,21 @@
-import type { Connection, Profile } from '@withme/contract';
+import { ORPCError } from '@orpc/server';
+import type { Connection, Gathering, Profile, Tag } from '@withme/contract';
 import {
   blockUser,
+  deleteGathering,
+  getGathering,
   getOwnProfile,
+  leaveGathering,
   listBlocks,
   listConnections,
+  listGatheringMembers,
+  listMyGatherings,
+  listOwnTags,
   listPendingRequests,
   removeConnection,
   unblockUser,
+  updateGathering,
+  updateOwnTagDestination,
   upsertOwnProfile,
 } from '@withme/db/queries';
 import { throwFromDbError } from '../lib/errors.ts';
@@ -113,6 +122,83 @@ const blocksList = appProcedure.blocks.list.handler(async ({ context }) => {
   return { blocks };
 });
 
+const gatheringsCreate = appProcedure.gatherings.create.handler(async ({ input, context }) => {
+  requireUser(context);
+  const { data, error } = await context.db.rpc('create_gathering', {
+    p_title: input.title,
+    p_starts_at: input.starts_at,
+    p_location: input.location ?? undefined,
+  });
+  if (error) throwFromDbError(error, context.logger);
+  context.logger.info('gathering created');
+  return { gathering: data as Gathering };
+});
+
+const gatheringsGet = appProcedure.gatherings.get.handler(async ({ input, context }) => {
+  requireUser(context);
+  const gathering = await run(context, () => getGathering(context.db, input.id));
+  if (!gathering) {
+    // invisible (stranger or blocked) and nonexistent are the same answer
+    throw new ORPCError('NOT_FOUND', { message: 'Not found' });
+  }
+  const members = await run(context, () => listGatheringMembers(context.db, input.id));
+  return { gathering, members };
+});
+
+const gatheringsJoin = appProcedure.gatherings.join.handler(async ({ input, context }) => {
+  requireUser(context);
+  const { error } = await context.db.rpc('join_gathering', { p_gathering_id: input.id });
+  if (error) throwFromDbError(error, context.logger);
+  return { ok: true as const };
+});
+
+const gatheringsLeave = appProcedure.gatherings.leave.handler(async ({ input, context }) => {
+  const userId = requireUser(context);
+  await run(context, () => leaveGathering(context.db, input.id, userId));
+  return { ok: true as const };
+});
+
+const gatheringsListMine = appProcedure.gatherings.listMine.handler(async ({ context }) => {
+  requireUser(context);
+  const gatherings = await run(context, () => listMyGatherings(context.db));
+  return { gatherings };
+});
+
+const gatheringsUpdate = appProcedure.gatherings.update.handler(async ({ input, context }) => {
+  requireUser(context);
+  const { id, ...patch } = input;
+  const gathering = await run(context, () => updateGathering(context.db, id, patch));
+  if (!gathering) {
+    // not the host, or not visible at all: the same answer
+    throw new ORPCError('NOT_FOUND', { message: 'Not found' });
+  }
+  return { gathering };
+});
+
+const gatheringsRemove = appProcedure.gatherings.remove.handler(async ({ input, context }) => {
+  requireUser(context);
+  await run(context, () => deleteGathering(context.db, input.id));
+  return { ok: true as const };
+});
+
+const tagsListMine = appProcedure.tags.listMine.handler(async ({ context }) => {
+  requireUser(context);
+  const tags = await run(context, () => listOwnTags(context.db));
+  return { tags: tags as Tag[] };
+});
+
+const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) => {
+  requireUser(context);
+  const tag = await run(context, () =>
+    updateOwnTagDestination(context.db, input.uid, input.destination),
+  );
+  if (!tag) {
+    // not yours and nonexistent are the same answer
+    throw new ORPCError('NOT_FOUND', { message: 'Not found' });
+  }
+  return { tag: tag as Tag };
+});
+
 export const appRouter = {
   profile: { get: getProfile, update: updateProfile },
   requests: {
@@ -123,4 +209,14 @@ export const appRouter = {
   },
   connections: { list: connectionsList, remove: connectionsRemove },
   blocks: { block, unblock, list: blocksList },
+  gatherings: {
+    create: gatheringsCreate,
+    get: gatheringsGet,
+    join: gatheringsJoin,
+    leave: gatheringsLeave,
+    listMine: gatheringsListMine,
+    update: gatheringsUpdate,
+    remove: gatheringsRemove,
+  },
+  tags: { listMine: tagsListMine, update: tagsUpdate },
 };

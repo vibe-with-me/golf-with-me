@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server';
-import type { ResolveOutput } from '@withme/contract';
+import type { Destination, ResolveOutput } from '@withme/contract';
 import { throwFromDbError } from '../lib/errors.ts';
 import type { ApiContext } from '../lib/orpc.ts';
 import { publicProcedure, requireUser } from '../lib/orpc.ts';
@@ -41,7 +41,7 @@ const claim = publicProcedure.claim.handler(async ({ input, context }) => {
     p_destination: input.destination,
   });
   if (error) throwFromDbError(error, context.logger);
-  const tag = data as { uid: string; status: 'claimed'; destination: { type: 'profile' } };
+  const tag = data as { uid: string; status: 'claimed'; destination: Destination };
   context.logger.info('tag claimed', { uid: tag.uid });
   return { tag };
 });
