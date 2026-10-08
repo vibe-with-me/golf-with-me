@@ -177,6 +177,7 @@ describe('ConnectRequestSchema', () => {
 });
 
 describe('gathering schemas', () => {
+  // Both offset spellings on purpose: the schema must accept each.
   const gathering = {
     id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
     title: 'Rooftop listening session',
@@ -214,6 +215,13 @@ describe('gathering schemas', () => {
       location: null,
     });
     expect(parsed).toEqual({ title: 'Tee time', starts_at: gathering.starts_at, location: null });
+    expect(CreateGatheringInputSchema.parse({ ...parsed, location: '   ' }).location).toBeNull();
+  });
+
+  it('an emptied location clears it', () => {
+    expect(
+      UpdateGatheringInputSchema.parse({ id: gathering.id, location: '   ' }).location,
+    ).toBeNull();
   });
 
   it('rejects an update with nothing to update', () => {

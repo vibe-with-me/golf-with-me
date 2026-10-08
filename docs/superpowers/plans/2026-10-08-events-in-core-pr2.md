@@ -67,6 +67,15 @@ Expected: seed prints the demo users; gate green. Note the db suite's test count
 import { z } from 'zod';
 import { PublicProfileSchema } from './profile.ts';
 
+/** An emptied location means "no location": the entity never carries ''. */
+const LocationInputSchema = z
+  .string()
+  .trim()
+  .max(160)
+  .transform((value) => (value === '' ? null : value))
+  .nullable()
+  .optional();
+
 /** A gathering as its members see it. host_id tells the UI who runs it. */
 export const GatheringSchema = z.object({
   id: z.uuid(),
@@ -97,7 +106,7 @@ export const GatheringMemberSchema = z.object({
 export const CreateGatheringInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
   starts_at: z.iso.datetime({ offset: true }),
-  location: z.string().trim().max(160).nullable().optional(),
+  location: LocationInputSchema,
 });
 
 /** Host-only patch; the id travels in the path. At least one field. */
@@ -106,7 +115,7 @@ export const UpdateGatheringInputSchema = z
     id: z.uuid(),
     title: z.string().trim().min(1).max(120).optional(),
     starts_at: z.iso.datetime({ offset: true }).optional(),
-    location: z.string().trim().max(160).nullable().optional(),
+    location: LocationInputSchema,
   })
   .refine(
     (patch) =>
@@ -1253,10 +1262,6 @@ const gatheringsListMine = appProcedure.gatherings.listMine.handler(async ({ con
 const gatheringsUpdate = appProcedure.gatherings.update.handler(async ({ input, context }) => {
   requireUser(context);
   const { id, ...patch } = input;
-  // An emptied location means "no location" — the CHECK rejects ''.
-  if (patch.location !== undefined && patch.location !== null && patch.location.trim() === '') {
-    patch.location = null;
-  }
   const gathering = await run(context, () => updateGathering(context.db, id, patch));
   if (!gathering) {
     // not the host, or not visible at all: the same answer

@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { PublicProfileSchema } from './profile.ts';
 
+/** An emptied location means "no location": the entity never carries ''. */
+const LocationInputSchema = z
+  .string()
+  .trim()
+  .max(160)
+  .transform((value) => (value === '' ? null : value))
+  .nullable()
+  .optional();
+
 /** A gathering as its members see it. host_id tells the UI who runs it. */
 export const GatheringSchema = z.object({
   id: z.uuid(),
@@ -23,6 +32,7 @@ export const GatheringSummarySchema = GatheringSchema.pick({
   location: true,
 });
 
+/** A member as co-members see them: the card plus when they joined. */
 export const GatheringMemberSchema = z.object({
   joined_at: z.iso.datetime({ offset: true }),
   profile: PublicProfileSchema,
@@ -31,7 +41,7 @@ export const GatheringMemberSchema = z.object({
 export const CreateGatheringInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
   starts_at: z.iso.datetime({ offset: true }),
-  location: z.string().trim().max(160).nullable().optional(),
+  location: LocationInputSchema,
 });
 
 /** Host-only patch; the id travels in the path. At least one field. */
@@ -40,7 +50,7 @@ export const UpdateGatheringInputSchema = z
     id: z.uuid(),
     title: z.string().trim().min(1).max(120).optional(),
     starts_at: z.iso.datetime({ offset: true }).optional(),
-    location: z.string().trim().max(160).nullable().optional(),
+    location: LocationInputSchema,
   })
   .refine(
     (patch) =>
