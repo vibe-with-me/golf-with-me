@@ -92,3 +92,53 @@ test('a failed profile load keeps the shell around the error', async ({ page }) 
   await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
   await expect(page.locator('main')).toHaveCount(1);
 });
+
+test('an account change in another tab hides the previous account at once', async ({ browser }) => {
+  const stamp = Date.now();
+  const context = await browser.newContext();
+  const first = await context.newPage();
+  await first.goto('/connections');
+  await first.waitForURL(/\/login\?/);
+  await signUp(first, `smoke-tab-a-${stamp}@rls.test`);
+  await first.waitForURL(/\/profile\?/);
+  await first.getByLabel('Name').fill('Smoke Tab A');
+  await first.getByRole('button', { name: 'Save' }).click();
+  await first.waitForURL('**/connections');
+  await first
+    .getByRole('navigation', { name: 'Primary' })
+    .getByRole('link', { name: 'Profile' })
+    .click();
+  await expect(first.getByLabel('Name')).toHaveValue('Smoke Tab A');
+
+  // Slow the first tab's re-load, so whatever it keeps on screen meanwhile
+  // is observable.
+  await first.route('**/rpc/app/profile/get', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await route.continue();
+  });
+
+  // Another tab in the same browser becomes a different account.
+  const second = await context.newPage();
+  await second.goto('/login');
+  await signUp(second, `smoke-tab-b-${stamp}@rls.test`);
+  await second.waitForURL(/\/profile\?/);
+
+  // The first tab drops the previous account's data immediately, not when
+  // its re-load finishes.
+  await expect
+    .poll(
+      () =>
+        first.evaluate(
+          () => document.querySelector<HTMLInputElement>('#display_name')?.value ?? null,
+        ),
+      { timeout: 2000 },
+    )
+    .not.toBe('Smoke Tab A');
+
+  // And it settles on the new account, which has no profile yet.
+  await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(first.getByLabel('Name')).toHaveValue('');
+  await context.close();
+});
