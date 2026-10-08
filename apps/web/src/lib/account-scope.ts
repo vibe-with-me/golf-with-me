@@ -62,9 +62,12 @@ export function scopeRouterToAccount(router: AnyRouter): void {
     // served the previous account's data.
     router.clearCache();
 
-    // Nothing of the previous account is on screen (the login page, a tag):
-    // the cleared cache is all that is needed.
-    const shellOnScreen = router.state.matches.some((match) => match.routeId.startsWith('/_app'));
+    // Nothing of the previous account is on screen or about to be (the login
+    // page, a tag): the cleared cache is all that is needed. A pending
+    // navigation into the shell counts: its loader ran as the previous account.
+    const shellOnScreen = [...router.state.matches, ...router.stores.pendingMatches.get()].some(
+      (match) => match.routeId.startsWith('/_app'),
+    );
     if (!shellOnScreen) return;
 
     setSwitchesInFlight(switchesInFlight + 1);
