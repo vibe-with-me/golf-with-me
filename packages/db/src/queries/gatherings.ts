@@ -1,7 +1,5 @@
 import type { Db, Tables } from '../index.ts';
-import type { ProfileCard } from './handshake.ts';
-
-const CARD_COLUMNS = 'id, display_name, avatar_url, bio';
+import { CARD_COLUMNS, type ProfileCard } from './handshake.ts';
 
 /**
  * RLS does the scoping in every query here: a gathering you may not see (a
@@ -37,6 +35,7 @@ export async function listGatheringMembers(
     .eq('gathering_id', gatheringId)
     .order('joined_at', { ascending: true });
   if (error) throw error;
+  // The generated type says profile is never null (NOT NULL FK); RLS on profiles makes it null for a hidden card.
   return (data ?? []).flatMap((row) =>
     row.profile ? [{ joined_at: row.joined_at, profile: row.profile }] : [],
   );

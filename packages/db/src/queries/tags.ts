@@ -1,9 +1,14 @@
 import type { Db } from '../index.ts';
 import type { Json } from '../types/supabase.ts';
 
-/** The owner's view of a tag. tenant_id and claimed_by never leave the database layer. */
 const OWN_TAG_COLUMNS = 'uid, status, destination';
 
+/**
+ * The owner's view of a tag. tenant_id and claimed_by never leave the
+ * database layer. destination is Json here (this package does not depend on
+ * the contract); the tags_destination_shape CHECK is what makes the handler's
+ * narrowing to the contract's Destination union safe.
+ */
 export interface OwnTagRow {
   uid: string;
   status: 'unclaimed' | 'claimed' | 'disabled';
