@@ -3072,7 +3072,7 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
 | Migration | `supabase/migrations/20261008120000_add_gatherings.sql` |
-| RLS tests | `packages/db/test/gatherings.test.ts` (12) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (15) |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
 | Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `components/AppShell.tsx` (`navItems[0]`) |
@@ -3140,7 +3140,7 @@ In slice order:
    `packages/db/src/types/supabase.ts`.
 3. **Tests.** `gatherings.test.ts`: `createGathering()` passes the new
    argument; a field with a CHECK gets a rejected-at-the-boundary case. The
-   twelve existing tests pass untouched — if one does not, you moved a
+   fifteen existing tests pass untouched — if one does not, you moved a
    safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
@@ -3225,7 +3225,7 @@ cd apps/api && bun run e2e; cd ../..   # needs `bun run dev` for the API in anot
 
 Expected: all green — db at the Task 0 baseline +15, contract 22, Playwright 10, API e2e ending `handshake e2e: all checks passed`. Paste the summary lines into the PR body.
 
-**Step 2:** Push and open the PR against `main`. Title: `Add the gathering to core: Events tab, tap-to-join, the ten RLS tests`.
+**Step 2:** Push and open the PR against `main`. Title: `Add the gathering to core: Events tab, tap-to-join, fifteen RLS tests`.
 
 Body must include: the spec link; the four mechanisms by name with the migration path; the `resolve_tag` payload change (`gathering` key always present) and the member guard as a tightening beyond golf; the M2-minimal `app.tags.{listMine,update}` and how M3 extends them; `app.gatherings.update/remove` added for host edit/delete; the seed change (Ada's demo tag now points at her gathering); the Events-first default (`/gatherings`); the gate output; the simulator screenshots from Task 13. End with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 
