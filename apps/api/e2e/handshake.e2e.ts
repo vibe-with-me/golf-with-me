@@ -168,6 +168,10 @@ assert(
   detail.members.some((m) => m.profile.display_name === 'E2E Alice'),
   'member list carries the host card',
 );
+assert(
+  detail.members.some((m) => m.profile.display_name === 'E2E Bob'),
+  'member list carries the joiner card',
+);
 const mine = await bobApp.gatherings.listMine();
 assert(
   mine.gatherings.some((g) => g.id === created.gathering.id),
@@ -214,5 +218,29 @@ const gone = await bobApp.gatherings.get({ id: created.gathering.id }).then(
   (e: { code?: string }) => e.code ?? 'error',
 );
 assert(gone === 'NOT_FOUND', `a left gathering reads as not found (got ${gone})`);
+
+// 17. the host deletes; the gathering is gone for everyone, and a tag that
+// pointed at it degrades to the profile card
+const doomed = await aliceApp.gatherings.create({
+  title: 'E2E Doomed',
+  starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+});
+await aliceApp.tags.update({
+  uid: gatheringUid,
+  destination: { type: 'gathering', gathering_id: doomed.gathering.id },
+});
+await aliceApp.gatherings.remove({ id: doomed.gathering.id });
+const removed = await aliceApp.gatherings.get({ id: doomed.gathering.id }).then(
+  () => 'visible',
+  (e: { code?: string }) => e.code ?? 'error',
+);
+assert(removed === 'NOT_FOUND', `a deleted gathering reads as not found (got ${removed})`);
+const degraded = await anon.resolve(gatheringUid);
+assert(
+  degraded.status === 'claimed' &&
+    degraded.destination.type === 'profile' &&
+    degraded.gathering === null,
+  'a tag pointed at a deleted gathering degrades to the profile card',
+);
 
 console.log('\nhandshake e2e: all checks passed');
