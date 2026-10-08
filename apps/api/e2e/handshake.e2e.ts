@@ -133,4 +133,86 @@ assert((await aliceApp.blocks.list()).blocks.length === 0, 'unblock empties the 
 await aliceApp.blocks.block({ user_id: crypto.randomUUID() });
 assert(true, 'blocking an unknown id acks silently');
 
+// === gatherings: tap-to-join through the API ===
+
+// 12. create a gathering, point a tag at it, resolve anonymously
+const created = await aliceApp.gatherings.create({
+  title: 'E2E Rooftop',
+  starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+  location: 'The roof',
+});
+assert(created.gathering.title === 'E2E Rooftop', 'gathering created');
+assert(created.gathering.host_id === alice.id, 'creator is the host');
+
+const gatheringUid = await provisionTag();
+await authed.claim(gatheringUid, { type: 'gathering', gathering_id: created.gathering.id });
+const gatheringResolved = await anon.resolve(gatheringUid);
+assert(
+  gatheringResolved.status === 'claimed' &&
+    gatheringResolved.destination.type === 'gathering' &&
+    gatheringResolved.gathering?.title === 'E2E Rooftop' &&
+    gatheringResolved.gathering.location === 'The roof',
+  'gathering tag resolves with the summary',
+);
+const plainResolved = await anon.resolve(uid);
+assert(
+  plainResolved.status === 'claimed' && plainResolved.gathering === null,
+  'a profile tag carries gathering: null',
+);
+
+// 13. bob joins; the member list carries cards both ways
+await bobApp.gatherings.join({ id: created.gathering.id });
+const detail = await bobApp.gatherings.get({ id: created.gathering.id });
+assert(detail.members.length === 2, 'join lands in the member list');
+assert(
+  detail.members.some((m) => m.profile.display_name === 'E2E Alice'),
+  'member list carries the host card',
+);
+const mine = await bobApp.gatherings.listMine();
+assert(
+  mine.gatherings.some((g) => g.id === created.gathering.id),
+  'joined gathering shows in listMine',
+);
+
+// 14. only the host edits; a member's edit reads as not found
+const edited = await aliceApp.gatherings.update({
+  id: created.gathering.id,
+  title: 'E2E Rooftop (moved)',
+});
+assert(edited.gathering.title === 'E2E Rooftop (moved)', 'host edits the gathering');
+const bobEdit = await bobApp.gatherings
+  .update({ id: created.gathering.id, title: 'Hijacked' })
+  .then(
+    () => 'edited',
+    (e: { code?: string }) => e.code ?? 'error',
+  );
+assert(bobEdit === 'NOT_FOUND', `a member cannot edit (got ${bobEdit})`);
+
+// 15. my tags: list, re-point (destination only), stranger denied
+const myTags = await aliceApp.tags.listMine();
+assert(myTags.tags.some((t) => t.uid === gatheringUid), 'tags.listMine carries the pointed tag');
+await aliceApp.tags.update({ uid: gatheringUid, destination: { type: 'profile' } });
+const repointed = await anon.resolve(gatheringUid);
+assert(
+  repointed.status === 'claimed' &&
+    repointed.destination.type === 'profile' &&
+    repointed.gathering === null,
+  'tags.update re-points the tag; the summary is gone',
+);
+const bobRepoint = await bobApp.tags
+  .update({ uid: gatheringUid, destination: { type: 'profile' } })
+  .then(
+    () => 'updated',
+    (e: { code?: string }) => e.code ?? 'error',
+  );
+assert(bobRepoint === 'NOT_FOUND', `a stranger cannot re-point another's tag (got ${bobRepoint})`);
+
+// 16. leaving removes visibility entirely
+await bobApp.gatherings.leave({ id: created.gathering.id });
+const gone = await bobApp.gatherings.get({ id: created.gathering.id }).then(
+  () => 'visible',
+  (e: { code?: string }) => e.code ?? 'error',
+);
+assert(gone === 'NOT_FOUND', `a left gathering reads as not found (got ${gone})`);
+
 console.log('\nhandshake e2e: all checks passed');
