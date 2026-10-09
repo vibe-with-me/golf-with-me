@@ -47,23 +47,31 @@ and replace only inside string literals and JSX text — never identifiers
 (`api.app.gatherings`, `GatheringSchema`, the `'/gathering/[id]'` pathname
 are code). The tab label lives in `AppShell.tsx` (`label: 'Events'`) and
 `(tabs)/_layout.tsx` (`title: 'Events'`); page titles are each route's
-`head()`. The Playwright specs select by copy — update their strings in the
-same sweep.
+`head()` (the list's is `'Events — withme'`). The Playwright specs select by
+copy, including the tab label (`'Events'` in `shell.spec.ts` and
+`gatherings.spec.ts`), so update their strings in the same sweep.
 
 **URLs (optional).** To make `/rounds` the path:
 - Web: `git mv` `_app.gatherings.tsx` → `_app.rounds.tsx` and
   `_app.gatherings_.$id.tsx` → `_app.rounds_.$id.tsx`; change the
   `createFileRoute('/_app/gatherings…')` ids, every `to="/gatherings…"`
   (`AppShell.tsx`, `index.tsx`, `login.tsx`, `auth.callback.tsx`,
-  `t.$uid.tsx`, the detail's leave/delete navigations), the `NavItem.to`
-  union, and the URL assertions in `shell.spec.ts` / `gatherings.spec.ts`;
+  `t.$uid.tsx`, the list's row link, the detail's leave/delete
+  navigations), the `startsWith('/gatherings/')` check behind the login
+  page's invitation line, the `NavItem.to` union, and the URL assertions in
+  `shell.spec.ts` / `gatherings.spec.ts`;
   then `cd apps/web && bunx vite build` regenerates `routeTree.gen.ts`.
 - Mobile: rename `(tabs)/gatherings.tsx` → `(tabs)/rounds.tsx` and
   `gathering/[id].tsx` → `round/[id].tsx`; update the `Tabs.Screen` name,
   the root `Stack.Screen` name, and every `pathname` / `href` /
   `dismissTo('/gatherings')` / `redirect` string (`index.tsx`, `login.tsx`,
-  `(tabs)/merch.tsx`, `t/[uid].tsx`, the detail), plus the `/gathering/`
-  prefix that `gatheringHref` in `lib/gathering-link.ts` builds for redirects.
+  `(tabs)/merch.tsx`, `t/[uid].tsx`, the detail), the
+  `startsWith('/gathering/')` check behind the login screen's invitation
+  line, and the `/gathering/` prefix that `gatheringHref` in
+  `lib/gathering-link.ts` builds for redirects.
+
+The API's REST paths (`/gatherings…` in `packages/contract/src/contract/app.ts`)
+are internal identifiers: leave them.
 
 The `/t/<uid>` resolver URL and the `gathering` destination type do not
 change: tags already in the field keep working.
@@ -78,19 +86,25 @@ in, rows and the detail header show it, and the resolver summary carries it.
 In slice order:
 
 1. **Contract.** `schemas/gathering.ts`: add it to `GatheringSchema`,
-   `CreateGatheringInputSchema`, `UpdateGatheringInputSchema`, and — only if
-   a tapper should see it before joining — to `GatheringSummarySchema`'s
+   `CreateGatheringInputSchema`, `UpdateGatheringInputSchema` (and its
+   `.refine`, which requires at least one field to update), and — only if a
+   tapper should see it before joining — to `GatheringSummarySchema`'s
    `pick`. Add a negative case to `packages/contract/test/schemas.test.ts`.
    The summary crosses the anonymous resolve boundary: never put private
    data in it.
 2. **Migration (additive).** New file:
    `alter table public.gatherings add column course_name text not null default '' check (char_length(course_name) <= 120);`
    (the default lets existing rows pass; drop it afterwards if creates must
-   supply it). Then `create or replace` BOTH `public.create_gathering` (new
-   parameter — the signature changes, so `drop function` the old signature
-   and re-issue `revoke … from public` / `grant … to authenticated` for the
-   new one) and `public.resolve_tag` (add the column to `v_gathering_json`
-   if it is in the summary). Re-issue the whole host column grant:
+   supply it). Then replace `public.create_gathering`: the signature
+   changes, so `drop function public.create_gathering(text, timestamptz, text)`
+   and create the new one with `p_course_name text` placed BEFORE
+   `p_location text default null` (Postgres refuses a required parameter
+   after a defaulted one), i.e. `(text, timestamptz, text, text)`; insert
+   the column, add it to the `jsonb_build_object` the function returns (the
+   API validates that object against `GatheringSchema`), and re-issue
+   `revoke … from public` / `grant … to authenticated` for the new
+   signature. Also `create or replace public.resolve_tag` if the summary
+   carries it (add it to `v_gathering_json`). Re-issue the whole host column grant:
    `grant update (title, starts_at, location, course_name) on public.gatherings to authenticated;`.
    Then `bun run db:reset && bun run db:seed && bun run db:types` and commit
    `packages/db/src/types/supabase.ts`.
