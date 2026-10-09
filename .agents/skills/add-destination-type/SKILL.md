@@ -1,6 +1,6 @@
 ---
 name: add-destination-type
-description: Use when a withme-starter fork needs tags to point at something new — growing the destination union with a member like link, menu, vcard, or gathering, end to end from contract to mobile.
+description: Use when a withme-starter fork needs tags to point at something new — growing the destination union with a member like link, menu, or vcard, end to end from contract to mobile.
 ---
 
 # add-destination-type — grow the destination union
@@ -195,8 +195,9 @@ vitest run erases them and passes even when the types have drifted.)
 ## 7. Web resolver
 
 `apps/web/src/routes/t.$uid.tsx` renders the profile card for every
-claimed tag; branch on your type in the loader (redirect-like types) or
-the component (card-like types). The link branch goes in the loader,
+claimed tag except a gathering tag, whose branch in the component is the
+worked example of a card-like type. Branch on your type in the loader
+(redirect-like types) or the component (card-like types). The link branch goes in the loader,
 after the unclaimed redirect:
 
 ```ts
@@ -227,7 +228,7 @@ setResult(resolved);
 ```
 
 ```tsx
-// in the component, before the profile-card return:
+// in the component, next to the gathering branch, before the profile-card return:
 if (result.destination.type === 'link') {
   const url = result.destination.url;
   return (

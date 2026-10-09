@@ -87,9 +87,9 @@ platform-specific). Signed-in top-level screens live in
 `apps/mobile/app/(tabs)/` and register one `Tabs.Screen` in
 `(tabs)/_layout.tsx` (Feather icon, title); detail and focused screens
 stay in `app/` as stack screens so they push over the bar
-(`gathering/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated tab follows the Merch
-screen: `href: null` when its env value is unset, so it is both hidden and
-unreachable. Screens compose the card primitives from `components/ui.tsx`
+(`gathering/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
+tab follows the Merch screen: `href: null` when its env value is unset,
+so it is both hidden and unreachable. Screens compose the card primitives from `components/ui.tsx`
 (`Card`, `Title`, `Muted`, `Button`, `Avatar`) and read colors through
 `useTokens()` from `lib/tokens.ts` — the mobile mirror of `tokens.css`.
 Auth gating happens once, via `Stack.Protected` in `app/_layout.tsx`, not
