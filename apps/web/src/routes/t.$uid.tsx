@@ -119,7 +119,10 @@ function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; h
       className={isHost ? 'btn' : 'btn btn--connect'}
       to="/gatherings/$id"
       params={{ id: gathering.id }}
-      search={{ title: gathering.title, starts_at: gathering.starts_at }}
+      // Display-only hints; the returnTo guard refuses control characters and
+      // backslashes, so they must not enter the URL in the first place.
+      // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
+      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
     >
       {isHost ? 'Open gathering' : 'Join this gathering'}
     </Link>
