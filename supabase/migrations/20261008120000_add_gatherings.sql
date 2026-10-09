@@ -297,7 +297,8 @@ grant execute on function public.join_gathering(uuid) to authenticated;
 -- A dangling gathering (deleted after the tag was pointed at it) or one the
 -- tag's owner no longer belongs to (left, or evicted by a block) degrades to
 -- the profile destination: the resolver never breaks, and a tag is an
--- invitation only while its owner is actually in the gathering.
+-- invitation only while its owner is actually in the gathering. A viewer the
+-- host blocked gets the profile card too, exactly like a dangling destination.
 -- Grants from the initial schema (anon, authenticated) survive the replace.
 create or replace function public.resolve_tag(p_uid text)
 returns jsonb
@@ -338,7 +339,9 @@ begin
       from public.gatherings
      where id = (v_destination->>'gathering_id')::uuid
        and tenant_id = private.current_tenant_id();
-    if found and private.is_gathering_member(v_gathering.id, v_tag.claimed_by) then
+    if found
+       and private.is_gathering_member(v_gathering.id, v_tag.claimed_by)
+       and not private.is_blocked((select auth.uid()), v_gathering.host_id) then
       v_gathering_json := jsonb_build_object(
         'id', v_gathering.id,
         'title', v_gathering.title,

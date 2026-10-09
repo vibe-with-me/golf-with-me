@@ -75,7 +75,7 @@ points at remains yours to change forever.
 - **Deletion cascades.** Deleting an account removes connections, requests,
   and blocks, resets claimed tags to unclaimed, and erases their scan history.
 
-All of the above is RLS + security-definer functions, covered by 55 policy
+All of the above is RLS + security-definer functions, covered by 56 policy
 tests (`packages/db/test`) that run against Supabase local. The tests are the
 spec.
 

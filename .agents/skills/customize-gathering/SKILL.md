@@ -27,7 +27,7 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
 | Migration | `supabase/migrations/20261008120000_add_gatherings.sql` |
-| RLS tests | `packages/db/test/gatherings.test.ts` (15) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (16) |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
 | Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `components/AppShell.tsx` (`navItems[0]`) |
@@ -110,7 +110,7 @@ In slice order:
    `packages/db/src/types/supabase.ts`.
 3. **Tests.** `gatherings.test.ts`: `createGathering()` passes the new
    argument; a field with a CHECK gets a rejected-at-the-boundary case. The
-   fifteen existing tests pass untouched — if one does not, you moved a
+   sixteen existing tests pass untouched — if one does not, you moved a
    safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
@@ -144,7 +144,8 @@ d. `join_gathering` raises `'gathering not found'` (P0003) for a missing id
    policies: creation and joining are RPCs.
 
 Also: `resolve_tag` degrades a dangling destination, or one whose tag owner
-is no longer a member, to the profile card; the `tags_destination_shape`
+is no longer a member, to the profile card, and so does a tap by a viewer
+the host has blocked, whoever owns the tag; the `tags_destination_shape`
 CHECK keeps its `coalesce(…, false)`; `listMine` stays a bare RLS-scoped
 select — no browse, search, or "nearby" surface, ever. A new field that
 changes who may see what needs its own RLS test before it ships.

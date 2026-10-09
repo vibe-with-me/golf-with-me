@@ -345,6 +345,42 @@ describe('gathering destinations', () => {
     expect(resolved.gathering).toBeNull();
   });
 
+  it("a viewer the host blocked never sees the host's gathering through a member's tag", async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const mallory = await createTestUser('Mallory');
+    const id = await createGathering(alice.client, 'Pinehurst at dawn');
+    await bob.client.rpc('join_gathering', { p_gathering_id: id });
+    const uid = await provisionTag();
+    const { error: claimError } = await bob.client.rpc('claim_tag', {
+      p_uid: uid,
+      p_destination: { type: 'gathering', gathering_id: id },
+    });
+    expect(claimError).toBeNull();
+
+    const { error: blockError } = await alice.client
+      .from('blocks')
+      .insert({ blocker_id: alice.id, blocked_id: mallory.id });
+    expect(blockError).toBeNull();
+
+    // Bob did not block Mallory, so his card still resolves; the host's
+    // gathering does not
+    const { data, error } = await mallory.client.rpc('resolve_tag', { p_uid: uid });
+    expect(error).toBeNull();
+    const resolved = data as Resolved;
+    expect(resolved.status).toBe('claimed');
+    expect(resolved.destination).toEqual({ type: 'profile' });
+    expect(resolved.gathering).toBeNull();
+
+    // the check is viewer-specific: an unblocked (anonymous) tap still gets the summary
+    const { data: anon, error: anonError } = await anonClient().rpc('resolve_tag', {
+      p_uid: uid,
+    });
+    expect(anonError).toBeNull();
+    expect((anon as Resolved).destination).toEqual({ type: 'gathering', gathering_id: id });
+    expect((anon as Resolved).gathering?.title).toBe('Pinehurst at dawn');
+  });
+
   it('malformed gathering destinations are rejected at the DB boundary', async () => {
     const alice = await createTestUser('Alice');
     const uid = await provisionTag();
