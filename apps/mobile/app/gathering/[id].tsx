@@ -19,6 +19,7 @@ import {
   toDateAndTime,
   whenAndWhere,
 } from '../../lib/format-time';
+import { gatheringHref } from '../../lib/gathering-link';
 import { supabase } from '../../lib/supabase';
 import { fonts, radius, space, useTokens } from '../../lib/tokens';
 
@@ -31,6 +32,15 @@ type ScreenState =
   | { kind: 'detail'; gathering: Gathering; members: GatheringMember[]; userId: string | null };
 
 /** The detail is a stack screen: it pushes over the tab bar (docs/the-slice.md step 6). */
+/**
+ * Back, or to the Events tab when there is nothing to go back to: after a
+ * login redirect or a cold deep link this screen is the whole stack.
+ */
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.dismissTo('/gatherings');
+}
+
 export default function GatheringScreen() {
   const t = useTokens();
   // title/starts_at are display-only hints from the resolver — never data.
@@ -70,7 +80,7 @@ export default function GatheringScreen() {
           <Title>Couldn't load this gathering</Title>
           <ErrorText>Check your connection and try again.</ErrorText>
           <Button label="Retry" onPress={load} />
-          <Button label="Back" kind="quiet" onPress={() => router.back()} />
+          <Button label="Back" kind="quiet" onPress={goBack} />
         </Card>
       </View>
     );
@@ -99,7 +109,13 @@ export default function GatheringScreen() {
                   const { profile } = await api.app.profile.get();
                   if (!profile) {
                     setJoin('idle'); // this screen stays mounted under the push
-                    router.push({ pathname: '/profile', params: { redirect: `/gathering/${id}` } });
+                    // The hints ride along so the join card comes back as it was.
+                    router.push({
+                      pathname: '/profile',
+                      params: {
+                        redirect: gatheringHref(id, { title: params.title, starts_at: params.starts_at }),
+                      },
+                    });
                     return;
                   }
                   await api.app.gatherings.join({ id });
@@ -110,7 +126,7 @@ export default function GatheringScreen() {
               }}
             />
           )}
-          <Button label="Back" kind="quiet" onPress={() => router.back()} />
+          <Button label="Back" kind="quiet" onPress={goBack} />
         </Card>
       </View>
     );
@@ -150,8 +166,8 @@ function GatheringDetail({
     try {
       await work();
       if (then === 'list') {
-        // Pop back to the tabs if they are below us; push them if this was a
-        // cold deep link. Never stack a second tab shell.
+        // Pop back to the tabs if they are below us; on a cold deep link,
+        // replace this screen with them. Never stack a second tab shell.
         router.dismissTo('/gatherings');
         return;
       }
@@ -222,7 +238,7 @@ function GatheringDetail({
               onPress={() => run(() => api.app.gatherings.leave({ id: gathering.id }), 'list')}
             />
           ) : null}
-          {!editing ? <Button label="Back" kind="quiet" onPress={() => router.back()} /> : null}
+          {!editing ? <Button label="Back" kind="quiet" onPress={goBack} /> : null}
         </Card>
 
         <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's coming</Text>

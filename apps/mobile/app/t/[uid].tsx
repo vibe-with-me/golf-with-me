@@ -6,6 +6,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Card, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { gatheringLine } from '../../lib/format-time';
+import { gatheringHref } from '../../lib/gathering-link';
 import { supabase } from '../../lib/supabase';
 import { space, useTokens } from '../../lib/tokens';
 
@@ -123,7 +124,8 @@ export default function ResolveScreen() {
 /**
  * gathering/[id] sits behind Stack.Protected: a signed-out push would bounce
  * to the anchor and lose the id, so the signed-out path carries the id and
- * the display hints through login. The host gets a quiet "Open".
+ * the display hints through login. The host, with nothing to join, gets
+ * "Open gathering" in the default style instead of the accent.
  */
 function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
   const [viewer, setViewer] = useState<'loading' | 'anon' | 'host' | 'other'>('loading');
@@ -142,14 +144,9 @@ function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; h
       label={viewer === 'host' ? 'Open gathering' : 'Join this gathering'}
       onPress={() => {
         if (viewer === 'anon') {
-          // Display-only hints; safeRedirect refuses control characters and
-          // backslashes, so they must not enter the redirect in the first place.
-          // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
-          const title = gathering.title.replace(/[\\\u0000-\u001f]/g, ' ').slice(0, 60);
-          const hints = `title=${encodeURIComponent(title)}&starts_at=${encodeURIComponent(gathering.starts_at)}`;
           router.push({
             pathname: '/login',
-            params: { redirect: `/gathering/${gathering.id}?${hints}` },
+            params: { redirect: gatheringHref(gathering.id, gathering) },
           });
           return;
         }
