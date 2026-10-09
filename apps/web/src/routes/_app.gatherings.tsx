@@ -8,8 +8,9 @@ import { tomorrowEvening, whenAndWhere } from '../lib/format-time.ts';
 
 /**
  * The Events tab: the gatherings you host or have joined, and a form to
- * create one. There is deliberately no browse surface — the only way into
- * someone else's gathering is tapping their tag (docs/the-slice.md).
+ * create one. There is deliberately no browse surface: someone else's
+ * gathering is reached through its invitation, which a tap on a member's tag
+ * hands out (docs/the-slice.md).
  */
 export const Route = createFileRoute('/_app/gatherings')({
   ...shellStates,

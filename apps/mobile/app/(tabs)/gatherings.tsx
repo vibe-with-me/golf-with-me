@@ -18,8 +18,8 @@ import { fonts, radius, space, useTokens } from '../../lib/tokens';
 
 /**
  * The Events tab: gatherings you host or have joined, and a form to create
- * one. No browse surface — the only way into someone else's gathering is
- * their tag.
+ * one. No browse surface: someone else's gathering is reached through its
+ * invitation, which a tap on a member's tag hands out.
  */
 export default function GatheringsScreen() {
   const t = useTokens();
