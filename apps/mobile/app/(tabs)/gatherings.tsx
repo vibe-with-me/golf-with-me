@@ -1,7 +1,16 @@
 import type { Gathering } from '@withme/contract';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Button, Card, ErrorText, Field, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { parseLocalDateTime, tomorrowEvening, whenAndWhere } from '../../lib/format-time';
@@ -95,76 +104,80 @@ export default function GatheringsScreen() {
   );
 
   return (
-    <ScrollView
-      style={{ backgroundColor: t.bg }}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={async () => {
-            setRefreshing(true);
-            await load();
-            setRefreshing(false);
-          }}
-        />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: t.bg }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Card>
-        <Title>Create a gathering</Title>
-        <Field
-          label="Title"
-          value={title}
-          onChangeText={setTitle}
-          maxLength={120}
-          placeholder="e.g. Rooftop listening session"
-        />
-        <Field
-          label="Date"
-          value={when.date}
-          onChangeText={(date) => setWhen({ ...when, date })}
-          autoCapitalize="none"
-          keyboardType="numbers-and-punctuation"
-          placeholder="2026-10-09"
-        />
-        <Field
-          label="Time"
-          value={when.time}
-          onChangeText={(time) => setWhen({ ...when, time })}
-          autoCapitalize="none"
-          keyboardType="numbers-and-punctuation"
-          placeholder="18:00"
-        />
-        <Field
-          label="Location (optional)"
-          value={location}
-          onChangeText={setLocation}
-          maxLength={160}
-          placeholder="Where to find it"
-        />
-        {error ? <ErrorText>{error}</ErrorText> : null}
-        <Button
-          label={busy ? 'Creating…' : 'Create gathering'}
-          onPress={create}
-          disabled={busy || !title.trim() || !when.date.trim() || !when.time.trim()}
-        />
-      </Card>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await load();
+              setRefreshing(false);
+            }}
+          />
+        }
+      >
+        <Card>
+          <Title>Create a gathering</Title>
+          <Field
+            label="Title"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={120}
+            placeholder="e.g. Rooftop listening session"
+          />
+          <Field
+            label="Date"
+            value={when.date}
+            onChangeText={(date) => setWhen((w) => ({ ...w, date }))}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            placeholder="2026-10-09"
+          />
+          <Field
+            label="Time"
+            value={when.time}
+            onChangeText={(time) => setWhen((w) => ({ ...w, time }))}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            placeholder="18:00"
+          />
+          <Field
+            label="Location (optional)"
+            value={location}
+            onChangeText={setLocation}
+            maxLength={160}
+            placeholder="Where to find it"
+          />
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          <Button
+            label={busy ? 'Creating…' : 'Create gathering'}
+            onPress={create}
+            disabled={busy || !title.trim() || !when.date.trim() || !when.time.trim()}
+          />
+        </Card>
 
-      <Text style={[styles.sectionTitle, { color: t.ink }]}>Your gatherings</Text>
-      {!loaded ? null : gatherings.length === 0 ? (
-        <Muted>Tap a host's tag to join one, or create your own.</Muted>
-      ) : upcoming.length === 0 ? (
-        <Muted>Nothing coming up.</Muted>
-      ) : (
-        upcoming.map(row)
-      )}
-      {past.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, { color: t.ink }]}>Past</Text>
-          {past.map(row)}
-        </>
-      ) : null}
-    </ScrollView>
+        <Text style={[styles.sectionTitle, { color: t.ink }]}>Your gatherings</Text>
+        {!loaded ? null : gatherings.length === 0 ? (
+          <Muted>Tap a host's tag to join one, or create your own.</Muted>
+        ) : upcoming.length === 0 ? (
+          <Muted>Nothing coming up.</Muted>
+        ) : (
+          upcoming.map(row)
+        )}
+        {past.length > 0 ? (
+          <>
+            <Text style={[styles.sectionTitle, { color: t.ink }]}>Past</Text>
+            {past.map(row)}
+          </>
+        ) : null}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

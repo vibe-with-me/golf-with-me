@@ -2267,6 +2267,7 @@ export function parseLocalDateTime(date: string, time: string): string | null {
   const [year, month, day] = [Number(d[1]), Number(d[2]), Number(d[3])];
   const [hour, minute] = [Number(t[1]), Number(t[2])];
   if (hour > 23 || minute > 59) return null;
+  if (month < 1 || month > 12 || day < 1) return null;
   const when = new Date(year, month - 1, day, hour, minute, 0, 0);
   if (Number.isNaN(when.getTime()) || when.getDate() !== day) return null; // e.g. Feb 30
   return when.toISOString();
