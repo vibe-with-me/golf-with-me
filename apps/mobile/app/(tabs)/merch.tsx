@@ -24,7 +24,7 @@ async function openStore(url: string): Promise<void> {
 export default function MerchScreen() {
   const t = useTokens();
   const [failed, setFailed] = useState(false);
-  if (!STORE_URL) return <Redirect href="/connections" />;
+  if (!STORE_URL) return <Redirect href="/gatherings" />;
   return (
     <View style={[styles.page, { backgroundColor: t.bg }]}>
       <Card>

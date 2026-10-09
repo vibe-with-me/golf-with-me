@@ -1,10 +1,11 @@
-import type { ResolveOutput } from '@withme/contract';
+import type { GatheringSummary, ResolveOutput } from '@withme/contract';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Card, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
+import { gatheringLine } from '../../lib/format-time';
 import { supabase } from '../../lib/supabase';
 import { space, useTokens } from '../../lib/tokens';
 
@@ -90,6 +91,23 @@ export default function ResolveScreen() {
   // for the in-between frame.
   if (result.status !== 'claimed') return null;
 
+  // A gathering tag: the host's card is the invitation, the gathering is the
+  // detail. `gathering` is non-null only alongside a gathering destination;
+  // a deleted gathering (or one the owner left) degrades upstream.
+  if (result.destination.type === 'gathering' && result.gathering) {
+    return (
+      <View style={[styles.page, { backgroundColor: t.bg }]}>
+        <Card settle>
+          <Avatar name={result.profile.display_name} url={result.profile.avatar_url} />
+          <Title>{result.profile.display_name}</Title>
+          {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
+          <Muted>{gatheringLine(result.gathering)}</Muted>
+          <GatheringInvite gathering={result.gathering} hostId={result.profile.id} />
+        </Card>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.page, { backgroundColor: t.bg }]}>
       <Card settle>
@@ -99,6 +117,48 @@ export default function ResolveScreen() {
         <ConnectAction profileId={result.profile.id} uid={result.uid} />
       </Card>
     </View>
+  );
+}
+
+/**
+ * gathering/[id] sits behind Stack.Protected: a signed-out push would bounce
+ * to the anchor and lose the id, so the signed-out path carries the id and
+ * the display hints through login. The host gets a quiet "Open".
+ */
+function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
+  const [viewer, setViewer] = useState<'loading' | 'anon' | 'host' | 'other'>('loading');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const userId = data.session?.user.id;
+      setViewer(!userId ? 'anon' : userId === hostId ? 'host' : 'other');
+    });
+  }, [hostId]);
+
+  return (
+    <Button
+      kind={viewer === 'host' ? 'default' : 'connect'}
+      disabled={viewer === 'loading'}
+      label={viewer === 'host' ? 'Open gathering' : 'Join this gathering'}
+      onPress={() => {
+        if (viewer === 'anon') {
+          // Display-only hints; safeRedirect refuses control characters and
+          // backslashes, so they must not enter the redirect in the first place.
+          // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
+          const title = gathering.title.replace(/[\\\u0000-\u001f]/g, ' ').slice(0, 60);
+          const hints = `title=${encodeURIComponent(title)}&starts_at=${encodeURIComponent(gathering.starts_at)}`;
+          router.push({
+            pathname: '/login',
+            params: { redirect: `/gathering/${gathering.id}?${hints}` },
+          });
+          return;
+        }
+        router.push({
+          pathname: '/gathering/[id]',
+          params: { id: gathering.id, title: gathering.title, starts_at: gathering.starts_at },
+        });
+      }}
+    />
   );
 }
 

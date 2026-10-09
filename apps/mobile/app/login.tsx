@@ -32,7 +32,7 @@ export default function LoginScreen() {
       setAwaitingConfirmation(true);
       return;
     }
-    router.replace(safeRedirect(params.redirect) ?? '/connections');
+    router.replace(safeRedirect(params.redirect) ?? '/gatherings');
   }
 
   if (awaitingConfirmation) {
@@ -53,7 +53,9 @@ export default function LoginScreen() {
     >
       <Card>
         <Title>{mode === 'signin' ? 'Sign in' : 'Create account'}</Title>
-        {params.redirect?.startsWith('/t/') || params.redirect?.startsWith('/claim/') ? (
+        {params.redirect?.startsWith('/gathering/') ? (
+          <Muted>to join the gathering you were invited to</Muted>
+        ) : params.redirect?.startsWith('/t/') || params.redirect?.startsWith('/claim/') ? (
           <Muted>to connect over the tag you just tapped</Muted>
         ) : null}
         <Field
