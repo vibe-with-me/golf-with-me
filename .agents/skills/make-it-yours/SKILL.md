@@ -142,8 +142,9 @@ sentences (the `nfcPermission` string, README prose):
 - `apps/web/src/routes/index.tsx` — the `<h1 className="wordmark">`.
 - `apps/web/src/components/AppShell.tsx` — the header wordmark link.
 - Page titles: `apps/web/src/routes/__root.tsx`, `login.tsx`,
-  `claim.$uid.tsx`, `_app.connections.tsx`, `_app.profile.tsx`,
-  `_app.merch.tsx` (each route's `head()`).
+  `claim.$uid.tsx`, `_app.connections.tsx`, `_app.gatherings.tsx`,
+  `_app.gatherings_.$id.tsx`, `_app.profile.tsx`, `_app.merch.tsx` (each
+  route's `head()`).
 - `apps/mobile/components/Header.tsx` — the wordmark `<Text>`.
 - `apps/mobile/app/t/[uid].tsx` — the `user_agent` prefix
   (`withme-mobile/…`).
