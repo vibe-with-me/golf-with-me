@@ -101,19 +101,23 @@ function WordmarkFooter() {
  * The Join link lands on the detail route under the shell, carrying
  * display-only hints. A signed-out tapper is sent through login by the
  * shell's own guard (returnTo keeps the hints), so no login routing here.
- * The host has nothing to join and gets a quiet "Open".
+ * The host has nothing to join and gets a quiet "Open". Until the session
+ * read settles there is no link at all (the card and the summary line are
+ * already up): guessing "Join" would flash the accent at the host.
  */
 function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
-  const [isHost, setIsHost] = useState(false);
+  const [viewer, setViewer] = useState<'loading' | 'host' | 'other'>('loading');
   useEffect(() => {
     let cancelled = false;
     getSessionUserId().then((userId) => {
-      if (!cancelled) setIsHost(userId === hostId);
+      if (!cancelled) setViewer(userId === hostId ? 'host' : 'other');
     });
     return () => {
       cancelled = true;
     };
   }, [hostId]);
+  if (viewer === 'loading') return null;
+  const isHost = viewer === 'host';
   return (
     <Link
       className={isHost ? 'btn' : 'btn btn--connect'}
