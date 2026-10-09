@@ -1,10 +1,11 @@
 -- Gatherings: the one universal feature. A host creates one, points a tag at
--- it, and a tap on that tag is the invitation.
+-- it, and a tap on that tag hands out the invitation.
 --
 -- Same safety semantics as the handshake:
---   * No enumeration: a gathering is reachable only via membership or a tag
---     whose destination points at it (capability = holding the tag). There
---     is no browse surface and no policy that could power one.
+--   * No enumeration: no policy can list gatherings and there is no browse
+--     surface. The capability is knowing the id, which a member's tag hands
+--     out (and a member can forward); a host's block is what refuses the
+--     join.
 --   * Blocks are absolute and invisible: a join blocked by the host gets the
 --     same 'gathering not found' as a nonexistent gathering; blocking evicts
 --     the blocked party from gatherings the pair hosts for each other.

@@ -122,10 +122,12 @@ test, not promised by UI code.
   anon select policy on `profiles` exists, deliberately. New features must
   not create a browse/search/list-strangers surface — that includes
   indirect oracles (FK errors, distinguishable error codes, rate-limit
-  responses that reveal whether a row exists). Membership is a capability
-  too: a gathering is reachable only by its members or through a tag whose
-  owner is a member (`private.is_gathering_member`), and `gatherings` has
-  no policy that could power a browse.
+  responses that reveal whether a row exists). A gathering is never listed
+  or searchable (`gatherings` has no policy that could power a browse); its
+  id is the invitation — a tap on a member's tag hands it out, and a member
+  can share the link. A host's block is what refuses someone:
+  `join_gathering` answers `'gathering not found'`, as it does for an id
+  that does not exist.
 - **Block-respecting visibility.** Blocks are absolute and invisible:
   checked via `private.is_blocked()` inside policies and RPCs, never in UI.
   A blocked viewer gets the same response shape as "nothing there" (a

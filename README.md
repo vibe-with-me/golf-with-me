@@ -65,9 +65,9 @@ points at remains yours to change forever.
   Requests expire after 7 days; either party can remove a connection
   unilaterally, without notification.
 - **Gatherings are membership-scoped.** The one feature beyond the
-  handshake: a host creates a gathering, points a tag at it, and a tap is
-  the invitation. Only members see a gathering or each other's cards
-  through it; a join refused by a block is indistinguishable from a
+  handshake: a host creates a gathering, points a tag at it, and a tap
+  hands out the invitation. Only members see a gathering or each other's
+  cards through it; a join refused by a block is indistinguishable from a
   gathering that does not exist; blocking evicts. There is no browse
   surface.
 - **Privacy-default scans.** `tag_scans` stores a user-agent string and a
