@@ -30,15 +30,18 @@ export default function GatheringsScreen() {
   const [when, setWhen] = useState(tomorrowEvening);
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
+  // The form's error (create/validation) and the list's are separate: a
+  // failed load must not read as an empty list, nor show up inside the form.
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const { gatherings: mine } = await api.app.gatherings.listMine();
       setGatherings(mine);
-      setError(null);
+      setLoadError(false);
     } catch {
-      setError('Could not load. Pull to retry.');
+      setLoadError(true);
     } finally {
       setLoaded(true);
     }
@@ -163,14 +166,16 @@ export default function GatheringsScreen() {
         </Card>
 
         <Text style={[styles.sectionTitle, { color: t.ink }]}>Your gatherings</Text>
-        {!loaded ? null : gatherings.length === 0 ? (
+        {!loaded ? null : loadError ? (
+          <ErrorText>Could not load your gatherings. Pull to retry.</ErrorText>
+        ) : gatherings.length === 0 ? (
           <Muted>Tap a host's tag to join one, or create your own.</Muted>
         ) : upcoming.length === 0 ? (
           <Muted>Nothing coming up.</Muted>
         ) : (
           upcoming.map(row)
         )}
-        {past.length > 0 ? (
+        {!loadError && past.length > 0 ? (
           <>
             <Text style={[styles.sectionTitle, { color: t.ink }]}>Past</Text>
             {past.map(row)}
