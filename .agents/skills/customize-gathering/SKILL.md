@@ -27,7 +27,7 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
 | Migration | `supabase/migrations/20261008120000_add_gatherings.sql` |
-| RLS tests | `packages/db/test/gatherings.test.ts` (16) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (17) |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
 | Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `components/AppShell.tsx` (`navItems[0]`) |
@@ -110,7 +110,7 @@ In slice order:
    `packages/db/src/types/supabase.ts`.
 3. **Tests.** `gatherings.test.ts`: `createGathering()` passes the new
    argument; a field with a CHECK gets a rejected-at-the-boundary case. The
-   sixteen existing tests pass untouched — if one does not, you moved a
+   seventeen existing tests pass untouched — if one does not, you moved a
    safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
@@ -147,21 +147,19 @@ Also: `resolve_tag` degrades a dangling destination, or one whose tag owner
 is no longer a member, to the profile card, and so does a tap by a viewer
 the host has blocked, whoever owns the tag; the `tags_destination_shape`
 CHECK keeps its `coalesce(…, false)`; `listMine` stays a bare RLS-scoped
-select — no browse, search, or "nearby" surface, ever. A new field that
-changes who may see what needs its own RLS test before it ships.
+select — no browse, search, or "nearby" surface, ever; a host cannot leave
+their own gathering (`gathering_members_delete_own` excludes the host's row;
+deleting the gathering is how a host leaves). A new field that changes who
+may see what needs its own RLS test before it ships.
 
-Two known edges, kept on purpose:
+One known edge, kept on purpose:
 
-- `gathering_members_delete_own` lets a host leave their own gathering.
-  Their tag then degrades to the profile card while they still see the
-  gathering as host. Forbid it with `profile_id <> host_id` in that policy
-  if your fork needs hosts to stay members.
-- `join_gathering` refuses a joiner the host has blocked, not a joiner who
-  has blocked the host: a block protects the blocker, who may still attend.
-  The host never sees that member's card (the profiles block guard hides it,
-  and the member list drops hidden cards). To refuse both directions, test
-  `private.is_blocked(v_gathering.host_id, v_user)` as well, with the same
-  `'gathering not found'` message, and add an RLS test for it.
+`join_gathering` refuses a joiner the host has blocked, not a joiner who
+has blocked the host: a block protects the blocker, who may still attend.
+The host never sees that member's card (the profiles block guard hides it,
+and the member list drops hidden cards). To refuse both directions, test
+`private.is_blocked(v_gathering.host_id, v_user)` as well, with the same
+`'gathering not found'` message, and add an RLS test for it.
 
 ## Scope notes
 

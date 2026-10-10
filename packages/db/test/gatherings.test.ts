@@ -113,6 +113,30 @@ describe('gathering membership and visibility', () => {
     expectEmpty(await bob.client.from('profiles').select('id').eq('id', alice.id));
   });
 
+  it('the host cannot leave their own gathering', async () => {
+    const alice = await createTestUser('Alice');
+    const id = await createGathering(alice.client);
+
+    // RLS matches zero rows: a silent no-op, like a stranger's delete
+    const { error } = await alice.client
+      .from('gathering_members')
+      .delete()
+      .eq('gathering_id', id)
+      .eq('profile_id', alice.id);
+    expect(error).toBeNull();
+
+    const { data: memberships } = await admin
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(memberships?.map((m) => m.profile_id)).toEqual([alice.id]);
+    const { data: own } = await alice.client
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(own?.map((m) => m.profile_id)).toEqual([alice.id]);
+  });
+
   it('anon can neither create nor join', async () => {
     const alice = await createTestUser('Alice');
     const id = await createGathering(alice.client);

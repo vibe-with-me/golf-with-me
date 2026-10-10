@@ -105,8 +105,9 @@ create policy gatherings_delete_host on public.gatherings
   using (tenant_id = private.current_tenant_id() and host_id = (select auth.uid()));
 
 -- The member list is visible to members only. Joining goes through
--- join_gathering(); leaving is deleting your own row. NO insert policy on
--- either table: creation and joining are RPCs.
+-- join_gathering(); leaving is deleting your own row, unless you host it; a
+-- host deletes the gathering instead. NO insert policy on either table:
+-- creation and joining are RPCs.
 create policy gathering_members_select on public.gathering_members
   for select to authenticated
   using (
@@ -116,7 +117,17 @@ create policy gathering_members_select on public.gathering_members
 
 create policy gathering_members_delete_own on public.gathering_members
   for delete to authenticated
-  using (tenant_id = private.current_tenant_id() and profile_id = (select auth.uid()));
+  using (
+    tenant_id = private.current_tenant_id()
+    and profile_id = (select auth.uid())
+    -- the host stays a member: hosting is membership, and deleting the
+    -- gathering is how a host leaves it
+    and not exists (
+      select 1 from public.gatherings g
+      where g.id = gathering_members.gathering_id
+        and g.host_id = (select auth.uid())
+    )
+  );
 
 -- (b) Co-members of a gathering see each other's cards (the gathering IS the
 -- introduction context). profiles_select is dropped and recreated: every
