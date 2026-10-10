@@ -1,6 +1,6 @@
 import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contract';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -48,6 +48,7 @@ export default function GatheringScreen() {
   const id = (params.id ?? '').trim();
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
   const [join, setJoin] = useState<'idle' | 'joining' | 'failed' | 'unavailable'>('idle');
+  const inFlight = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -103,6 +104,9 @@ export default function GatheringScreen() {
               disabled={join === 'joining'}
               label={join === 'joining' ? 'Joining…' : join === 'failed' ? 'Try again' : 'Join'}
               onPress={async () => {
+                // ref guard: two taps in one frame both pass the disabled check
+                if (inFlight.current) return;
+                inFlight.current = true;
                 setJoin('joining');
                 try {
                   // Members see your card, so a profile must exist before you join.
@@ -122,6 +126,9 @@ export default function GatheringScreen() {
                   await load();
                 } catch (error) {
                   setJoin((error as { code?: string }).code === 'NOT_FOUND' ? 'unavailable' : 'failed');
+                } finally {
+                  // runs on the /profile early return too: back from Profile, Join taps again
+                  inFlight.current = false;
                 }
               }}
             />
