@@ -95,16 +95,25 @@ In slice order:
 2. **Migration (additive).** New file:
    `alter table public.gatherings add column course_name text not null default '' check (char_length(course_name) <= 120);`
    (the default lets existing rows pass; drop it afterwards if creates must
-   supply it). Then replace `public.create_gathering`: the signature
-   changes, so `drop function public.create_gathering(text, timestamptz, text)`
-   and create the new one with `p_course_name text` placed BEFORE
-   `p_location text default null` (Postgres refuses a required parameter
-   after a defaulted one), i.e. `(text, timestamptz, text, text)`; insert
-   the column, add it to the `jsonb_build_object` the function returns (the
-   API validates that object against `GatheringSchema`), and re-issue
-   `revoke … from public` / `grant … to authenticated` for the new
-   signature. Also `create or replace public.resolve_tag` if the summary
-   carries it (add it to `v_gathering_json`). Re-issue the whole host column grant:
+   supply it). Then rebuild `public.create_gathering`. The signature
+   changes, and `create or replace function` cannot change one: run
+   `drop function public.create_gathering(text, timestamptz, text);`
+   then
+   `create function public.create_gathering(p_title text, p_starts_at timestamptz, p_course_name text, p_location text default null)`
+   with `p_course_name` BEFORE `p_location` (Postgres refuses a required
+   parameter after a defaulted one), restating every attribute of the
+   original: `returns jsonb language plpgsql volatile security definer set search_path = ''`.
+   Insert the column, add it to the `jsonb_build_object` the function
+   returns (the API validates that object against `GatheringSchema`), and
+   re-issue the grants for the new signature:
+   `revoke execute on function public.create_gathering(text, timestamptz, text, text) from public;`
+   `grant execute on function public.create_gathering(text, timestamptz, text, text) to authenticated;`.
+   If the summary carries the field, also
+   `create or replace function public.resolve_tag(p_uid text) returns jsonb`
+   (copy the whole body from the gatherings migration, add the field to
+   `v_gathering_json`, and restate every attribute:
+   `language plpgsql stable security definer set search_path = ''`; the
+   same signature keeps its existing grants). Re-issue the whole host column grant:
    `grant update (title, starts_at, location, course_name) on public.gatherings to authenticated;`.
    Then `bun run db:reset && bun run db:seed && bun run db:types` and commit
    `packages/db/src/types/supabase.ts`.
