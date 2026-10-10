@@ -40,6 +40,15 @@ describe('DestinationSchema (discriminated union)', () => {
     ).toBe(false);
     expect(DestinationSchema.safeParse({ type: 'gathering' }).success).toBe(false);
   });
+
+  it('lowercases a gathering id so it matches the database', () => {
+    expect(
+      DestinationSchema.parse({
+        type: 'gathering',
+        gathering_id: '7C9E6679-7425-40DE-944B-E07FC1F90AE7',
+      }),
+    ).toEqual({ type: 'gathering', gathering_id: '7c9e6679-7425-40de-944b-e07fc1f90ae7' });
+  });
 });
 
 describe('TagUidSchema', () => {

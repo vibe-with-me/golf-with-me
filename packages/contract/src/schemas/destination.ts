@@ -13,7 +13,8 @@ export const ProfileDestinationSchema = z.object({
 /** Tag -> a gathering: tap the host's tag to join. resolve carries a summary alongside. */
 export const GatheringDestinationSchema = z.object({
   type: z.literal('gathering'),
-  gathering_id: z.uuid(),
+  // the database CHECK accepts lowercase only, and ids compare against Postgres's lowercase output
+  gathering_id: z.uuid().toLowerCase(),
 });
 
 export const DestinationSchema = z.discriminatedUnion('type', [
