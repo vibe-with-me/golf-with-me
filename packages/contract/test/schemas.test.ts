@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  AVATAR_MAX_BYTES,
+  AvatarPathSchema,
+  AvatarUploadInputSchema,
+  avatarPublicUrl,
   ConnectRequestSchema,
   CreateGatheringInputSchema,
   DestinationSchema,
@@ -9,6 +13,8 @@ import {
   ResolveOutputSchema,
   TagUidSchema,
   UpdateGatheringInputSchema,
+  UpdateMyTagInputSchema,
+  UpdateProfileInputSchema,
 } from '../src/index.ts';
 
 describe('DestinationSchema (discriminated union)', () => {
@@ -80,7 +86,7 @@ describe('ResolveOutputSchema', () => {
       profile: {
         id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         display_name: 'Sam',
-        avatar_url: null,
+        avatar_path: null,
         bio: null,
       },
     });
@@ -101,7 +107,7 @@ describe('ResolveOutputSchema', () => {
       profile: {
         id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
         display_name: 'Sam',
-        avatar_url: null,
+        avatar_path: null,
         bio: null,
       },
     });
@@ -119,7 +125,7 @@ describe('ResolveOutputSchema', () => {
         profile: {
           id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
           display_name: 'Sam',
-          avatar_url: null,
+          avatar_path: null,
           bio: null,
         },
       }).success,
@@ -146,7 +152,7 @@ describe('ResolveOutputSchema', () => {
 describe('PublicProfileSchema', () => {
   it('exposes only card-safe fields', () => {
     const keys = Object.keys(PublicProfileSchema.shape).toSorted();
-    expect(keys).toEqual(['avatar_url', 'bio', 'display_name', 'id']);
+    expect(keys).toEqual(['avatar_path', 'bio', 'display_name', 'id']);
   });
 });
 
@@ -157,7 +163,7 @@ describe('ConnectRequestSchema', () => {
       requester: {
         id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
         display_name: 'Alex',
-        avatar_url: null,
+        avatar_path: null,
         bio: 'hi',
       },
       status: 'pending',
@@ -174,7 +180,7 @@ describe('ConnectRequestSchema', () => {
         requester: {
           id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
           display_name: 'Alex',
-          avatar_url: null,
+          avatar_path: null,
           bio: null,
         },
         status: 'ghosted',
@@ -238,5 +244,79 @@ describe('gathering schemas', () => {
     expect(UpdateGatheringInputSchema.safeParse({ id: gathering.id, title: 'Moved' }).success).toBe(
       true,
     );
+  });
+});
+
+/** A JPEG-labelled file of exactly `bytes` zero bytes (only the size matters to the schema). */
+function sized(bytes: number): File {
+  return new File([new Uint8Array(bytes)], 'avatar.jpg', { type: 'image/jpeg' });
+}
+
+describe('avatar schemas', () => {
+  const owner = '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90';
+  const file = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
+  it('accepts a path in a user folder, webp or jpg', () => {
+    expect(AvatarPathSchema.safeParse(`${owner}/${file}.webp`).success).toBe(true);
+    expect(AvatarPathSchema.safeParse(`${owner}/${file}.jpg`).success).toBe(true);
+  });
+
+  it('rejects a URL, another extension, a nested, uppercase, or folderless path', () => {
+    for (const path of [
+      `https://evil.example/${owner}/${file}.jpg`,
+      `${owner}/${file}.png`,
+      `${owner}/nested/${file}.jpg`,
+      `${owner.toUpperCase()}/${file}.jpg`,
+      `${file}.jpg`,
+    ]) {
+      expect(AvatarPathSchema.safeParse(path).success).toBe(false);
+    }
+  });
+
+  it("builds the public URL from the client's own Supabase URL", () => {
+    expect(avatarPublicUrl('http://127.0.0.1:55321/', `${owner}/${file}.webp`)).toBe(
+      `http://127.0.0.1:55321/storage/v1/object/public/avatars/${owner}/${file}.webp`,
+    );
+  });
+
+  it('the profile update cannot set an avatar: the keys are dropped', () => {
+    expect(
+      UpdateProfileInputSchema.parse({
+        display_name: 'Sam',
+        avatar_path: `${owner}/${file}.jpg`,
+        avatar_url: 'https://evil.example/a.jpg',
+      }),
+    ).toEqual({ display_name: 'Sam' });
+  });
+
+  it('the upload takes a file up to the cap and refuses an empty, oversized, or non-file one', () => {
+    expect(AvatarUploadInputSchema.safeParse({ file: sized(1024) }).success).toBe(true);
+    expect(AvatarUploadInputSchema.safeParse({ file: sized(AVATAR_MAX_BYTES) }).success).toBe(true);
+    expect(AvatarUploadInputSchema.safeParse({ file: sized(0) }).success).toBe(false);
+    expect(AvatarUploadInputSchema.safeParse({ file: sized(AVATAR_MAX_BYTES + 1) }).success).toBe(
+      false,
+    );
+    expect(
+      AvatarUploadInputSchema.safeParse({ file: 'data:image/jpeg;base64,AAAA' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('UpdateMyTagInputSchema', () => {
+  it('accepts a destination-only or a status-only patch', () => {
+    expect(
+      UpdateMyTagInputSchema.safeParse({ uid: '04A3B2C1D05E80', destination: { type: 'profile' } })
+        .success,
+    ).toBe(true);
+    expect(
+      UpdateMyTagInputSchema.safeParse({ uid: '04A3B2C1D05E80', status: 'disabled' }).success,
+    ).toBe(true);
+  });
+
+  it('rejects an empty patch and an owner releasing the tag', () => {
+    expect(UpdateMyTagInputSchema.safeParse({ uid: '04A3B2C1D05E80' }).success).toBe(false);
+    expect(
+      UpdateMyTagInputSchema.safeParse({ uid: '04A3B2C1D05E80', status: 'unclaimed' }).success,
+    ).toBe(false);
   });
 });
