@@ -224,6 +224,8 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
+    // A long label wraps; keep both lines centred like a short one.
+    textAlign: 'center',
   },
   buttonLabelConnect: {
     fontSize: 18,

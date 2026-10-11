@@ -15,6 +15,7 @@ test('a signed-out visitor is sent to sign in, then lands in the shell', async (
 
   const nav = page.getByRole('navigation', { name: 'Primary' });
   await expect(nav.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+  await expect(nav.getByRole('link', { name: 'Events' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Connections' })).toBeVisible();
   // VITE_STORE_URL is unset for the smoke: the Merch tab must not exist.
   await expect(nav.getByRole('link', { name: 'Merch' })).toHaveCount(0);
@@ -202,10 +203,26 @@ test('an account change while a navigation into the shell is loading never lands
     await expect(first.getByRole('heading', { name: 'Create your profile' })).toBeVisible({
       timeout: 15_000,
     });
-    expect(returnToOf(first)).toBe('/connections');
+    expect(returnToOf(first)).toBe('/gatherings');
     await expect(first.getByLabel('Name')).toHaveValue('');
   } finally {
     releaseHeld();
     await context.close();
   }
+});
+
+test('signing in without a destination lands on Events, the first tab', async ({ page }) => {
+  await page.goto('/login');
+  await signUp(page, `smoke-default-${Date.now()}@rls.test`);
+  await page.waitForURL(/\/profile\?/);
+  expect(returnToOf(page)).toBe('/gatherings');
+  await page.getByLabel('Name').fill('Smoke Default');
+  await page.getByRole('button', { name: 'Save' }).click();
+
+  await page.waitForURL('**/gatherings');
+  const nav = page.getByRole('navigation', { name: 'Primary' });
+  await expect(nav.getByRole('link').first()).toHaveText('Events');
+  await expect(nav.getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Create a gathering' })).toBeVisible();
+  await expect(page.getByText("Tap a host's tag to join one, or create your own.")).toBeVisible();
 });

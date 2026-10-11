@@ -1,12 +1,15 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 import { DestinationSchema } from '../schemas/destination.ts';
+import { GatheringSummarySchema } from '../schemas/gathering.ts';
 import { PublicProfileSchema } from '../schemas/profile.ts';
 import { TagSchema, TagUidSchema } from '../schemas/tag.ts';
 
 /**
  * What a tap resolves to. A viewer blocked by the tag owner receives
  * 'disabled' — indistinguishable from a deactivated tag, by design.
+ * `gathering` is a summary for gathering-destination tags (capability-based:
+ * holding the tag is the invitation) and null for every other type.
  */
 export const ResolveOutputSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('unclaimed'), uid: TagUidSchema }),
@@ -14,6 +17,7 @@ export const ResolveOutputSchema = z.discriminatedUnion('status', [
     status: z.literal('claimed'),
     uid: TagUidSchema,
     destination: DestinationSchema,
+    gathering: GatheringSummarySchema.nullable(),
     profile: PublicProfileSchema,
   }),
   z.object({ status: z.literal('disabled'), uid: TagUidSchema }),

@@ -32,17 +32,19 @@ indirection is the core pattern: you encode a tag once, lock it, and what it
 points at remains yours to change forever.
 
 - `packages/contract` — the single source of truth: ORPC contracts + Zod
-  schemas, including the typed destination union (`{ type: 'profile' }` today;
-  `link | menu | vcard` can join without schema change). Two routers:
+  schemas, including the typed destination union (`profile` and `gathering`
+  today; `link | menu | vcard` can join without schema change). Two routers:
   `public` (resolve / claim / logScan — the SDK surface) and `app`
-  (connect, block, profile — session-scoped).
+  (profile, connect, block, gatherings, my tags — session-scoped).
 - `apps/api` — the one backend every client talks to. Verifies Supabase JWTs
   (ES256 via JWKS), runs every query under the **caller's** RLS identity, and
   rate-limits per tag UID at the edge.
 - `apps/web` — a thin TanStack Start client. Loaders call the API through the
   typed contract client; the web app owns no business logic and no data
   access. `/t/$uid` is the product: SSR'd, fast, unbreakable.
-- `apps/mobile` — placeholder; an Expo client will consume the same contract.
+- `apps/mobile` — the Expo client: the same tabs (Events, Connections, Merch,
+  Profile) and resolver over the same contract; NFC reading in development
+  builds.
 - `packages/db` — Supabase client, generated types, query helpers, and the
   RLS test suite (consumed by `apps/api` only).
 - `packages/nfc-sdk` — `@withme/nfc`, the standalone redirect SDK. Its
@@ -62,12 +64,18 @@ points at remains yours to change forever.
 - **Mutual consent.** Connections exist only when a request is accepted.
   Requests expire after 7 days; either party can remove a connection
   unilaterally, without notification.
+- **Gatherings are membership-scoped.** The one feature beyond the
+  handshake: a host creates a gathering, points a tag at it, and a tap
+  hands out the invitation. Only members see a gathering or each other's
+  cards through it; a join refused by a block is indistinguishable from a
+  gathering that does not exist; blocking evicts. There is no browse
+  surface.
 - **Privacy-default scans.** `tag_scans` stores a user-agent string and a
   timestamp. No GPS, no IP, no fingerprinting — the columns don't exist.
 - **Deletion cascades.** Deleting an account removes connections, requests,
   and blocks, resets claimed tags to unclaimed, and erases their scan history.
 
-All of the above is RLS + security-definer functions, covered by 37 policy
+All of the above is RLS + security-definer functions, covered by 57 policy
 tests (`packages/db/test`) that run against Supabase local. The tests are the
 spec.
 
@@ -87,12 +95,14 @@ cp apps/web/.env.example apps/web/.env
 bun run dev             # api on :8786, web on :3000
 ```
 
-Then open `http://localhost:3000/t/04BBBBBBBBBBBB` (Ada's claimed tag),
-`/t/04AAAAAAAAAAAA` (the claim flow), or sign in as
-`ada@demo.withme.local` / `withme-demo-1` to see her pending request.
+Then open `http://localhost:3000/t/04BBBBBBBBBBBB` (Ada's tag — her card,
+inviting you to the gathering she hosts), `/t/04AAAAAAAAAAAA` (the claim
+flow), or sign in as `ada@demo.withme.local` / `withme-demo-1` to see her
+gathering and her pending request.
 
 Tests: `bun run test` (unit + RLS), `bun run --cwd apps/web test:e2e`
-(Playwright smoke: resolve → claim → connect, plus the signed-in shell),
+(Playwright smoke: resolve → claim → connect, the signed-in shell, and tap →
+join a gathering),
 `bun run --cwd apps/api e2e` (API e2e against the local stack). The web
 smoke runs against the production build and needs Supabase up first;
 Playwright starts the API worker and the built web worker itself.

@@ -1,7 +1,15 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 import { ConnectRequestSchema, ConnectionSchema } from '../schemas/connection.ts';
+import { DestinationSchema } from '../schemas/destination.ts';
+import {
+  CreateGatheringInputSchema,
+  GatheringMemberSchema,
+  GatheringSchema,
+  UpdateGatheringInputSchema,
+} from '../schemas/gathering.ts';
 import { ProfileSchema, PublicProfileSchema, UpdateProfileInputSchema } from '../schemas/profile.ts';
+import { TagSchema, TagUidSchema } from '../schemas/tag.ts';
 
 const getProfile = oc
   .route({ method: 'GET', path: '/me/profile', tags: ['Profile'] })
@@ -65,6 +73,56 @@ const listBlocks = oc
     }),
   );
 
+const createGathering = oc
+  .route({ method: 'POST', path: '/gatherings', tags: ['Gatherings'] })
+  .input(CreateGatheringInputSchema)
+  .output(z.object({ gathering: GatheringSchema }));
+
+const getGathering = oc
+  .route({ method: 'GET', path: '/gatherings/{id}', tags: ['Gatherings'] })
+  .input(z.object({ id: z.uuid() }))
+  // Not-found and blocked-by-host are the same NOT_FOUND error — a gathering
+  // you may not see is a gathering that does not exist.
+  .output(z.object({ gathering: GatheringSchema, members: z.array(GatheringMemberSchema) }));
+
+const joinGathering = oc
+  .route({ method: 'POST', path: '/gatherings/{id}/join', tags: ['Gatherings'] })
+  .input(z.object({ id: z.uuid() }))
+  .output(z.object({ ok: z.literal(true) }));
+
+const leaveGathering = oc
+  .route({ method: 'POST', path: '/gatherings/{id}/leave', tags: ['Gatherings'] })
+  .input(z.object({ id: z.uuid() }))
+  .output(z.object({ ok: z.literal(true) }));
+
+const listMyGatherings = oc
+  .route({ method: 'GET', path: '/gatherings', tags: ['Gatherings'] })
+  // Bare RLS-scoped list of the caller's own gatherings. This is NOT a browse
+  // surface and must never grow into one.
+  .output(z.object({ gatherings: z.array(GatheringSchema) }));
+
+const updateGathering = oc
+  .route({ method: 'PATCH', path: '/gatherings/{id}', tags: ['Gatherings'] })
+  .input(UpdateGatheringInputSchema)
+  // Host-only; a non-host's patch is NOT_FOUND, same as a stranger's read.
+  .output(z.object({ gathering: GatheringSchema }));
+
+const removeGathering = oc
+  .route({ method: 'DELETE', path: '/gatherings/{id}', tags: ['Gatherings'] })
+  .input(z.object({ id: z.uuid() }))
+  .output(z.object({ ok: z.literal(true) }));
+
+// My tags, minimal in M2 (the gathering detail's "point my tags here").
+// M3 extends `update` with `status` and builds the Profile section on these.
+const listMyTags = oc
+  .route({ method: 'GET', path: '/me/tags', tags: ['Tags'] })
+  .output(z.object({ tags: z.array(TagSchema) }));
+
+const updateMyTag = oc
+  .route({ method: 'PATCH', path: '/me/tags/{uid}', tags: ['Tags'] })
+  .input(z.object({ uid: TagUidSchema, destination: DestinationSchema }))
+  .output(z.object({ tag: TagSchema }));
+
 /** Session-scoped surface — every procedure requires a verified Supabase JWT. */
 export const appContract = {
   profile: { get: getProfile, update: updateProfile },
@@ -76,4 +134,14 @@ export const appContract = {
   },
   connections: { list: listConnections, remove: removeConnection },
   blocks: { block, unblock, list: listBlocks },
+  gatherings: {
+    create: createGathering,
+    get: getGathering,
+    join: joinGathering,
+    leave: leaveGathering,
+    listMine: listMyGatherings,
+    update: updateGathering,
+    remove: removeGathering,
+  },
+  tags: { listMine: listMyTags, update: updateMyTag },
 };

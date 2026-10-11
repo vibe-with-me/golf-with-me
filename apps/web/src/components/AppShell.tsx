@@ -1,11 +1,11 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { ShoppingBag, User, Users, type LucideIcon } from 'lucide-react';
+import { Calendar, ShoppingBag, User, Users, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAccountSwitching } from '../lib/account-scope.ts';
 import { ErrorBody, PendingBody } from './CalmStates.tsx';
 
 interface NavItem {
-  to: '/connections' | '/merch' | '/profile';
+  to: '/gatherings' | '/connections' | '/merch' | '/profile';
   label: string;
   icon: LucideIcon;
 }
@@ -14,10 +14,12 @@ interface NavItem {
  * The tabs. One array drives one <nav>; app.css puts it top-right on wide
  * screens and makes it a bottom bar under 720px — the DOM never changes.
  * Adding a top-level section = adding one entry here (see docs/the-slice.md
- * step 5). Merch exists only when a store is configured: the fulfillment
- * pointer is dormant by default.
+ * step 5). Events leads: the one universal feature is the first thing a
+ * signed-in user sees. Merch exists only when a store is configured: the
+ * fulfillment pointer is dormant by default.
  */
 export const navItems: readonly [NavItem, ...NavItem[]] = [
+  { to: '/gatherings', label: 'Events', icon: Calendar },
   { to: '/connections', label: 'Connections', icon: Users },
   ...(import.meta.env.VITE_STORE_URL
     ? ([{ to: '/merch', label: 'Merch', icon: ShoppingBag }] as const)

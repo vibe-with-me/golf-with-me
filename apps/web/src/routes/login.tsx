@@ -22,7 +22,7 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const destination = returnTo ?? '/connections';
+  const destination = returnTo ?? '/gatherings';
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   async function submit(event: React.FormEvent) {
@@ -82,7 +82,9 @@ function LoginPage() {
   // The tapper arrives here mid-handshake; keep the thread visible.
   const context = returnTo?.startsWith('/t/')
     ? 'to connect with the person whose tag you tapped'
-    : null;
+    : returnTo?.startsWith('/gatherings/')
+      ? 'to join the gathering you were invited to'
+      : null;
 
   return (
     <main className="page">

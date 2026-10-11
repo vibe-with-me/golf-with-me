@@ -68,14 +68,18 @@ failed loader renders a card inside the shell, never a second `<main>`.
 A new top-level section registers exactly one entry in `navItems`
 (`src/components/AppShell.tsx`, widening its `to` union); that is the
 whole tab. Config-gated tabs follow the Merch entry: present only when
-the env value is set. Detail pages un-nest with the underscore (e.g.
-`_app.gatherings_.$id.tsx`) so a list page never becomes a layout.
+the env value is set. Detail pages un-nest with the underscore
+(`_app.gatherings_.$id.tsx` is the real one) so a list page never becomes
+a layout.
 Public and focused flows (`login.tsx`, `claim.$uid.tsx`) stay outside
 the shell: the resolver (`t.$uid.tsx`) is the idiom — loader does the
 data work, the page renders a single card on a calm background, and it
 is unbreakable. All styling references `var(--*)` tokens from
 `src/styles/tokens.css`; no hardcoded colors, fonts, radii, or spacing.
-The accent never marks navigation state: active tabs are ink.
+The accent never marks navigation state: active tabs are ink. The web
+app owns no data access, even for single-row owner CRUD: re-pointing your
+own tag goes through `app.tags.update`, never a browser Supabase query —
+the My tags precedent.
 
 **6. Mobile screen.** Expo Router screens mirror the web routes wherever
 the surface is shared (`t/[uid].tsx` ↔ `t.$uid.tsx`; `scan.tsx` is
@@ -83,21 +87,23 @@ platform-specific). Signed-in top-level screens live in
 `apps/mobile/app/(tabs)/` and register one `Tabs.Screen` in
 `(tabs)/_layout.tsx` (Feather icon, title); detail and focused screens
 stay in `app/` as stack screens so they push over the bar
-(`claim/[uid].tsx`, `scan.tsx`). A config-gated tab follows the Merch
-screen: `href: null` when its env value is unset, so it is both hidden and
-unreachable. Screens compose the card primitives from `components/ui.tsx`
+(`gathering/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
+tab follows the Merch screen: `href: null` when its env value is unset,
+so it is both hidden and unreachable. Screens compose the card primitives from `components/ui.tsx`
 (`Card`, `Title`, `Muted`, `Button`, `Avatar`) and read colors through
 `useTokens()` from `lib/tokens.ts` — the mobile mirror of `tokens.css`.
 Auth gating happens once, via `Stack.Protected` in `app/_layout.tsx`, not
-per-screen.
+per-screen. A detail screen returns to the tabs with `router.dismissTo`,
+never by pushing a second `(tabs)` shell.
 
 **7. E2E.** Two harnesses, both against the real local stack:
 `apps/api/e2e/handshake.e2e.ts` drives the published SDK through the API
 Worker into Supabase (including the silent-drop and blocked-viewer
 assertions), and the Playwright smoke in `apps/web/e2e/` runs against the
-production build (`vite build && vite preview`): `handshake.spec.ts` — two
-strangers tap one tag and end up connected — and `shell.spec.ts`, which
-covers the signed-in shell; both share `e2e/helpers.ts`. Extend whichever
+production build (`vite build && vite preview`): `handshake.spec.ts` (two
+strangers tap one tag and end up connected), `shell.spec.ts` (the
+signed-in shell), and `gatherings.spec.ts` (tap the host's tag, join, both
+see the member list), all sharing `e2e/helpers.ts`. Extend whichever
 one your slice touches; a slice nobody can walk end-to-end is not done.
 
 ## The safety discipline
@@ -116,7 +122,12 @@ test, not promised by UI code.
   anon select policy on `profiles` exists, deliberately. New features must
   not create a browse/search/list-strangers surface — that includes
   indirect oracles (FK errors, distinguishable error codes, rate-limit
-  responses that reveal whether a row exists).
+  responses that reveal whether a row exists). A gathering is never listed
+  or searchable (`gatherings` has no policy that could power a browse); its
+  id is the invitation — a tap on a member's tag hands it out, and a member
+  can share the link. A host's block is what refuses someone:
+  `join_gathering` answers `'gathering not found'`, as it does for an id
+  that does not exist.
 - **Block-respecting visibility.** Blocks are absolute and invisible:
   checked via `private.is_blocked()` inside policies and RPCs, never in UI.
   A blocked viewer gets the same response shape as "nothing there" (a

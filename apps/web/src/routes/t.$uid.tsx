@@ -1,8 +1,10 @@
+import type { GatheringSummary } from '@withme/contract';
 import { createFileRoute, Link, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
 import { ProfileCard } from '../components/ProfileCard.tsx';
 import { api } from '../lib/api.ts';
+import { gatheringLine } from '../lib/format-time.ts';
 import { getSessionUserId } from '../lib/supabase.ts';
 
 // The tapper's user agent: from the SSR request on the server, from the
@@ -57,6 +59,22 @@ function ResolvePage() {
     );
   }
 
+  // A gathering tag: the host's card is the invitation, the gathering is the
+  // detail. `gathering` is non-null only alongside a gathering destination;
+  // a deleted gathering (or one the owner left) degrades upstream to a plain
+  // profile destination, so the card below is never blank.
+  if (result.destination.type === 'gathering' && result.gathering) {
+    return (
+      <main className="page">
+        <ProfileCard profile={result.profile} settle>
+          <p className="hint">{gatheringLine(result.gathering)}</p>
+          <GatheringInvite gathering={result.gathering} hostId={result.profile.id} />
+        </ProfileCard>
+        <WordmarkFooter />
+      </main>
+    );
+  }
+
   return (
     <main className="page">
       <ProfileCard profile={result.profile} settle>
@@ -76,6 +94,42 @@ function WordmarkFooter() {
     <p className="hint">
       <Link to="/">withme</Link>
     </p>
+  );
+}
+
+/**
+ * The Join link lands on the detail route under the shell, carrying
+ * display-only hints. A signed-out tapper is sent through login by the
+ * shell's own guard (returnTo keeps the hints), so no login routing here.
+ * The host has nothing to join and gets a quiet "Open". Until the session
+ * read settles there is no link at all (the card and the summary line are
+ * already up): guessing "Join" would flash the accent at the host.
+ */
+function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
+  const [viewer, setViewer] = useState<'loading' | 'host' | 'other'>('loading');
+  useEffect(() => {
+    let cancelled = false;
+    getSessionUserId().then((userId) => {
+      if (!cancelled) setViewer(userId === hostId ? 'host' : 'other');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hostId]);
+  if (viewer === 'loading') return null;
+  const isHost = viewer === 'host';
+  return (
+    <Link
+      className={isHost ? 'btn' : 'btn btn--connect'}
+      to="/gatherings/$id"
+      params={{ id: gathering.id }}
+      // Display-only hints; the returnTo guard refuses control characters and
+      // backslashes, so they must not enter the URL in the first place.
+      // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
+      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
+    >
+      {isHost ? 'Open gathering' : 'Join this gathering'}
+    </Link>
   );
 }
 

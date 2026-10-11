@@ -1,6 +1,6 @@
 ---
 name: add-destination-type
-description: Use when a withme-starter fork needs tags to point at something new — growing the destination union with a member like link, menu, vcard, or gathering, end to end from contract to mobile.
+description: Use when a withme-starter fork needs tags to point at something new — growing the destination union with a member like link, menu, or vcard, end to end from contract to mobile.
 ---
 
 # add-destination-type — grow the destination union
@@ -36,6 +36,7 @@ export const LinkDestinationSchema = z.object({
 
 export const DestinationSchema = z.discriminatedUnion('type', [
   ProfileDestinationSchema,
+  GatheringDestinationSchema,
   LinkDestinationSchema,
 ]);
 ```
@@ -53,14 +54,25 @@ missing url).
 ## 2. Migration — the CHECK constraint
 
 New file `supabase/migrations/<UTC-timestamp>_add_link_destination.sql`.
-The constraint currently pins `{"type": "profile"}` by exact jsonb
-equality; your type adds a branch. The verified link constraint:
+The constraint currently admits `{"type": "profile"}` by exact jsonb
+equality and the core `gathering` branch (latest definition in
+`20261008120000_add_gatherings.sql`); your type adds a branch. Dropping
+and re-adding replaces the whole constraint, so copy every existing branch
+forward or you silently reject them. The verified link constraint:
 
 ```sql
 alter table public.tags drop constraint tags_destination_shape;
 alter table public.tags add constraint tags_destination_shape check (
   destination is null
   or destination = '{"type": "profile"}'::jsonb
+  or coalesce(
+    jsonb_typeof(destination) = 'object'
+    and destination->>'type' = 'gathering'
+    and destination->>'gathering_id'
+        ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    and destination - 'type' - 'gathering_id' = '{}'::jsonb,
+    false
+  )
   or coalesce(
     jsonb_typeof(destination) = 'object'
     and destination->>'type' = 'link'
@@ -93,13 +105,14 @@ columns, commit the regenerated types instead).
 
 ## 3. RPCs: usually no change
 
-`resolve_tag` returns `v_tag.destination` verbatim and `claim_tag`
-accepts any `p_destination` the CHECK admits — for a pure payload type
-like link, **no SQL function changes**. Touch `resolve_tag` only if your
-type changes *what resolve must return* (e.g. a `gathering` type that
-must join in extra fields). If you do, remember its contract: blocked
-viewers get `'disabled'`, unknown UIDs get `'unclaimed'`, and it never
-throws.
+`resolve_tag` returns `v_tag.destination` verbatim (every type but
+`gathering`) and `claim_tag` accepts any `p_destination` the CHECK
+admits — for a pure payload type like link, **no SQL function changes**.
+Touch `resolve_tag` only if your type changes *what resolve must return*
+(the core `gathering` type is the worked example — see the `resolve_tag`
+section of `supabase/migrations/20261008120000_add_gatherings.sql`). If
+you do, remember its contract: blocked viewers get `'disabled'`, unknown
+UIDs get `'unclaimed'`, and it never throws.
 
 ## 4. RLS tests
 
@@ -147,15 +160,12 @@ coalesce.
 
 ## 5. API passthrough
 
-`apps/api/src/routers/public.ts`, the `claim` handler, casts the RPC
-result with a hardcoded `destination: { type: 'profile' }`. Widen it to
-the contract union:
-
-```ts
-import type { Destination, ResolveOutput } from '@withme/contract';
-// …
-const tag = data as { uid: string; status: 'claimed'; destination: Destination };
-```
+`apps/api/src/routers/public.ts`: the claim handler already casts to the
+contract's `Destination` union — nothing to do unless you changed
+`resolve_tag`'s shape. If you did, the change belongs in
+`ResolveOutputSchema` (`packages/contract/src/contract/public.ts` — the
+gathering summary is the example); the resolve handler casts to it and
+stays as it is.
 
 Nothing else in the API names destination types — resolve and claim
 flow through the contract schemas.
@@ -167,7 +177,10 @@ flow through the contract schemas.
 contract). Add your member:
 
 ```ts
-export type Destination = { type: 'profile' } | { type: 'link'; url: string };
+export type Destination =
+  | { type: 'profile' }
+  | { type: 'gathering'; gathering_id: string }
+  | { type: 'link'; url: string };
 ```
 
 The compile-time parity test
@@ -182,8 +195,9 @@ vitest run erases them and passes even when the types have drifted.)
 ## 7. Web resolver
 
 `apps/web/src/routes/t.$uid.tsx` renders the profile card for every
-claimed tag; branch on your type in the loader (redirect-like types) or
-the component (card-like types). The link branch goes in the loader,
+claimed tag except a gathering tag, whose branch in the component is the
+worked example of a card-like type. Branch on your type in the loader
+(redirect-like types) or the component (card-like types). The link branch goes in the loader,
 after the unclaimed redirect:
 
 ```ts
@@ -214,7 +228,7 @@ setResult(resolved);
 ```
 
 ```tsx
-// in the component, before the profile-card return:
+// in the component, next to the gathering branch, before the profile-card return:
 if (result.destination.type === 'link') {
   const url = result.destination.url;
   return (

@@ -1,6 +1,6 @@
 # Skills roadmap — extension recipes, not features
 
-Decided 2026-06-11 (Alex + Claude session). Status: agreed, not started.
+Decided 2026-06-11 (Alex + Claude session). Status: agreed; revised 2026-09-22 — see the dated section at the end.
 
 ## The strategy
 
@@ -92,3 +92,35 @@ Currently ahead of skills work, per earlier session decisions:
 
 Tier 1 skills may land before the public flip (stronger launch story);
 Tier 2 waits for items 1–3.
+
+## Revised 2026-09-22 — the shell and the gathering move into core
+
+Decided with `docs/superpowers/specs/2026-09-22-app-shell-and-tabs-design.md`
+and landed across the shell PRs. Two findings from the first two derivations
+(golf-with-me, tailgate-with-me) changed the strategy above:
+
+- **The gathering is core, not a skill.** Both forks hand-built the same
+  entity (a round, a tailgate) plus list/detail screens on the flat two-link
+  nav before they could do anything vertical-specific — the one universal
+  feature cannot be added by prose after the fact. `gatherings` +
+  `gathering_members`, the `{ type: 'gathering', gathering_id }` destination,
+  the `resolve_tag` summary, `app.gatherings.*`, and the Events tab ship in
+  the starter (`supabase/migrations/20261008120000_add_gatherings.sql`,
+  `packages/db/test/gatherings.test.ts`). Tier 2 item 4 (**build-gathering**)
+  becomes **customize-gathering**: rename user-facing nouns, add fields.
+  Internal identifiers stay `gathering` in a fork, as `@withme/*` packages
+  stay. The V1 invariant is unchanged: no browse surface, nothing ranks or
+  aggregates.
+- **Merch is a tab, still a pointer.** The rejected merch/Shopify tab above
+  stands as written for commerce; the approved fulfillment pointer is
+  promoted from a landing-page link to a tab rendering one card and one
+  "Open store" action, present only when `VITE_STORE_URL` /
+  `EXPO_PUBLIC_STORE_URL` is set. No Shopify API, no cart, no product data.
+- **Chrome is core.** Events, Connections, Merch, Profile on web (`_app`
+  layout) and mobile (`(tabs)`). `/me` is now `/profile` — the V1.1 note
+  "account-deletion UI in /me" reads `/profile`.
+- **Naming.** Tier 2 item 3 ("onboarding") ships as **extend-profile**; its
+  two-tier visibility work is unchanged. Tier 3's **provision-tags** is
+  distilled from golf-with-me `bee9c9d`.
+- **My tags goes through the contract** (`app.tags.listMine` / `update`):
+  the web app keeps owning no data access, even for single-row owner CRUD.

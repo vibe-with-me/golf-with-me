@@ -1,7 +1,7 @@
 import type { Db, Tables } from '../index.ts';
 
 /** The card columns — everything a counterpart may see, nothing more. */
-const CARD_COLUMNS = 'id, display_name, avatar_url, bio';
+export const CARD_COLUMNS = 'id, display_name, avatar_url, bio';
 
 export interface ProfileCard {
   id: string;
