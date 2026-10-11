@@ -24,7 +24,11 @@ export const TagSchema = z.object({
  */
 export const OwnerTagStatusSchema = z.enum(['claimed', 'disabled']);
 
-/** Re-point and/or switch one of your tags; the uid travels in the path. At least one field. */
+/**
+ * Re-point and/or switch one of your tags. The uid identifies the tag (a path
+ * parameter under OpenAPI; the RPC link sends it in the body). At least one
+ * field.
+ */
 export const UpdateMyTagInputSchema = z
   .object({
     uid: TagUidSchema,

@@ -6,8 +6,10 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 export const AVATARS_BUCKET = 'avatars';
 
 /**
- * The upload cap (1 MiB), enforced here, by the API, and as the bucket's
- * file_size_limit. Clients send 512px squares, far below it.
+ * The upload cap (1 MiB). The contract validates the file's size, but only
+ * after oRPC has buffered the whole multipart body, so the API also rejects
+ * an oversized request by its Content-Length before reading it; the bucket's
+ * file_size_limit is the last line. Clients send 512px squares, far below it.
  */
 export const AVATAR_MAX_BYTES = 1_048_576;
 

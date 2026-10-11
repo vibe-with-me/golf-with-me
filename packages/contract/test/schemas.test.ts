@@ -262,15 +262,15 @@ describe('avatar schemas', () => {
   });
 
   it('rejects a URL, another extension, a nested, uppercase, or folderless path', () => {
-    for (const path of [
+    const paths = [
       `https://evil.example/${owner}/${file}.jpg`,
       `${owner}/${file}.png`,
       `${owner}/nested/${file}.jpg`,
       `${owner.toUpperCase()}/${file}.jpg`,
       `${file}.jpg`,
-    ]) {
-      expect(AvatarPathSchema.safeParse(path).success).toBe(false);
-    }
+    ];
+    // Any path the schema wrongly accepts is named in the failure diff.
+    expect(paths.filter((path) => AvatarPathSchema.safeParse(path).success)).toEqual([]);
   });
 
   it("builds the public URL from the client's own Supabase URL", () => {

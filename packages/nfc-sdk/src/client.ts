@@ -23,7 +23,8 @@ export interface PublicProfileCard {
   display_name: string;
   /**
    * `<user-id>/<uuid>.(webp|jpg)` in the public `avatars` bucket, or null.
-   * A path, never a URL: build it from your Supabase URL as
+   * A path, never a URL: build it from your Supabase URL, with any trailing
+   * slash stripped (`supabaseUrl.replace(/\/+$/, '')`), as
    * `${supabaseUrl}/storage/v1/object/public/avatars/${avatar_path}`.
    */
   avatar_path: string | null;
