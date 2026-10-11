@@ -23,7 +23,6 @@ function ProfilePage() {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? '');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -35,7 +34,6 @@ function ProfilePage() {
       await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
-        avatar_url: avatarUrl.trim() === '' ? null : avatarUrl.trim(),
       });
       // The layout caches the profile until invalidated; wait for the re-fetch
       // (sync) before leaving so the shell never keeps a stale "no profile".
@@ -78,16 +76,6 @@ function ProfilePage() {
           placeholder="A line or two about you"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="avatar_url">Avatar URL</label>
-        <input
-          id="avatar_url"
-          type="url"
-          placeholder="https://…"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
         />
       </div>
       {status ? (
