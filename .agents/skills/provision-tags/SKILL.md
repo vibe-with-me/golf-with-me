@@ -118,13 +118,12 @@ readable only by you.
 
   prints three `04…|unclaimed` lines.
 - End to end, with both dev servers up (`cd apps/api && bun run dev` and
-  `cd apps/web && bun run dev`): open one encode URL. Signed out, `/t/<UID>`
+  `cd apps/web && bun run dev`): open one encode URL signed out. `/t/<UID>`
   goes to `/claim/<UID>`, which sends you to sign in
-  (`/login?returnTo=%2Fclaim%2F<UID>`) and back. The page shows "Claim this
-  tag" with the UID. Sign in as the seed's demo user
-  (`lin@demo.withme.local` / `withme-demo-1`, or your rebranded identity)
-  and press "Claim tag": the page becomes that user's card ("This is your
-  tag."). From then on the encode URL shows that card to everyone else,
+  (`/login?returnTo=%2Fclaim%2F<UID>`). Sign in there as the seed's demo
+  user (`lin@demo.withme.local` / `withme-demo-1`, or your rebranded
+  identity), and you return to "Claim this tag" with the UID. Press "Claim
+  tag": the page becomes that user's card ("This is your tag."). From then on the encode URL shows that card to everyone else,
   with "Connect", and never offers a claim. A second account that presses
   "Claim tag" on a claim page it opened before the claim landed gets "This
   tag has already been claimed."
@@ -137,13 +136,27 @@ Production (owner's OK first; the keys file from go-live §1):
 REPO="$(git rev-parse --show-toplevel)"
 OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<n>"
 (
-  umask 077 && mkdir -p "$OUT"
-  set -a && source "$REPO/.env.demo-seed" && set +a
-  cd "$OUT" && SEED_ALLOW_REMOTE=1 bun run "$REPO/supabase/seed/provision.ts" \
+  set -e
+  umask 077
+  mkdir -p "$OUT"
+  set -a
+  source "$REPO/.env.demo-seed"
+  set +a
+  : "${SUPABASE_URL:?missing from .env.demo-seed}"
+  cd "$OUT"
+  SEED_ALLOW_REMOTE=1 bun run "$REPO/supabase/seed/provision.ts" \
     --count <n> --base-url https://<your-domain> > provision.log
 )
 head -1 "$OUT/provision.log"
 ```
+
+The subshell stops at the first failed line. That matters most for the
+keys file: if `source` fails (wrong directory, file never written), or the
+file has no `SUPABASE_URL`, the script would otherwise fall back to its
+local default and quietly provision the batch on your laptop's stack. One
+command per line is deliberate. Under `set -e`, zsh does not stop when a
+command fails partway through an `&&` chain, so
+`set -a && source … && set +a` would carry on with nothing loaded.
 
 **Checkpoint** (without printing the UIDs):
 
