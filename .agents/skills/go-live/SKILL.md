@@ -25,7 +25,7 @@ bills or writes to a production database.
 ```sh
 supabase orgs create "<Org Name>"            # new org = free plan
 DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
-echo "$DB_PASS" > .supabase-demo-db-password && chmod 600 .supabase-demo-db-password
+mkdir -p "$HOME/.config/<name>" && (umask 077 && printf '%s\n' "$DB_PASS" > "$HOME/.config/<name>/supabase-db-password")   # outside the repo
 supabase projects create <name> --org-id <org-id> --region us-east-1 --db-password "$DB_PASS"
 ```
 
@@ -33,8 +33,8 @@ Project provisioning takes 1–2 minutes; `supabase projects list` shows
 it. Then from the repo root:
 
 ```sh
-supabase link --project-ref <ref> -p "$(cat .supabase-demo-db-password)"
-supabase db push -p "$(cat .supabase-demo-db-password)"
+supabase link --project-ref <ref> -p "$(cat "$HOME/.config/<name>/supabase-db-password")"
+supabase db push -p "$(cat "$HOME/.config/<name>/supabase-db-password")"
 ```
 
 **Checkpoint:** `db push` lists every migration and ends `Finished
@@ -167,3 +167,4 @@ OK. Web: `bun run build && bunx wrangler deploy`. Mobile: a fresh
 | `eas update` fails non-interactively | Missing `--environment` |
 | Published app seems to point at localhost | You byte-grepped Hermes bytecode — use `--no-bytecode` to verify |
 | Demo DB unreachable weeks later | Free-tier project paused — wake it in the dashboard |
+| git status shows .supabase-demo-db-password, or the repo has one | an older copy of this runbook wrote it into the repo root (the starter's .gitignore now ignores the name; older forks do not): move it to $HOME/.config/<name>/ and never commit it |

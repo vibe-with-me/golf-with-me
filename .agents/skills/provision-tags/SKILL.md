@@ -1,0 +1,256 @@
+---
+name: provision-tags
+description: Use when an operator needs physical NFC tags ready to encode, sell, or hand out for a withme-starter app or fork — batch-provisioning unclaimed tag rows, the encode list of https://<domain>/t/{UID} URLs, and a printable sheet, locally or against production.
+---
+
+# provision-tags — make tags the app will recognize
+
+A tag is a row before it is a sticker. `public.tags` holds one row per UID;
+a row starts `unclaimed`, and the first signed-in person who opens its URL
+and presses "Claim tag" owns it (`claim_tag`). This runbook creates those
+rows in a batch, writes the URL each tag must carry, and prints a sheet to
+encode from. It pairs with the Merch pointer (`VITE_STORE_URL`): the store
+sells tags; this is how they come to exist.
+
+Distilled from golf-with-me `bee9c9d`, whose script ships in the starter as
+`supabase/seed/provision.ts` (`bun run db:provision`). The skill adds no
+code: every step runs the shipped script against the shipped schema.
+
+**REQUIRED BACKGROUND:** the safety discipline in `docs/the-slice.md` (no
+enumeration; operator actions on the service role only) and, for
+production, `.agents/skills/go-live/SKILL.md` §1 (the keys file, the
+owner's OK).
+
+## What is already in the starter (the map)
+
+| Piece | Where |
+| --- | --- |
+| The script | `supabase/seed/provision.ts`, wired as `db:provision` in the root `package.json` |
+| Its service-role client | `admin` from `packages/db/src/test-utils/index.ts` — reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, local defaults otherwise |
+| The row | `public.tags` in `supabase/migrations/20260610120000_initial_handshake_schema.sql`: `uid` CHECK `^[0-9A-F]{14}$`, `tags_state_consistent`, no anon policy, owner-only `tags_select_own` / `tags_update_own` |
+| First tap wins | `public.claim_tag`, same migration |
+| Unknown and unclaimed look alike | `public.resolve_tag` answers `unclaimed` for both (newest definition: the last migration that defines it) |
+| The tap | web `apps/web/src/routes/t.$uid.tsx` → `claim.$uid.tsx`; mobile `apps/mobile/app/t/[uid].tsx` → `claim/[uid].tsx` |
+| The in-app reader | `readTagUid` in `apps/mobile/lib/nfc.ts` — reads the chip's own UID, not the URL (§5) |
+| After the claim | the owner aims their own tags over `app.tags.listMine` / `app.tags.update` (destination only): today from a gathering's detail screen (web `_app.gatherings_.$id.tsx` `TagPointer`, mobile `app/gathering/[id].tsx`). The database also lets the owner disable a tag (`grant update (destination, status)`), but no client exposes that yet [[M3-CHECK: Profile → My tags on both platforms; confirm the section name and whether `app.tags.update` now accepts `status`]] |
+
+## The rules this runbook will not bend
+
+1. **UIDs come from the script, never from you.** It draws 6 bytes from
+   `crypto.getRandomValues` behind the NXP-style `04` prefix: 48 random bits
+   per tag. Never sequential, never hand-picked, never derived from an order
+   number or a customer. An unclaimed tag is claimed by whoever presents its
+   UID first, and the entropy is the only thing between a guesser and your
+   customer's tag: the API Worker rate-limits claims per user
+   (`apps/api/src/routers/public.ts`), but any signed-in client can call
+   `claim_tag` directly through PostgREST.
+2. **The encode list is a set of bearer capabilities** until each tag is
+   claimed. It goes to a directory outside the repo, readable only by you
+   (`umask 077`), never into git, an issue, a chat, or a shared drive. The
+   script writes `provisioned-tags.csv` and `.html` into its working
+   directory. The starter's `.gitignore` covers `provisioned-tags.*` as a
+   backstop (forks cut before it do not), but an ignored file in a checkout
+   is still a capability list sitting in a working tree — so every command
+   below runs the script from an output directory. Production batches also
+   send stdout to a file, so the UIDs stay out of terminal scrollback and
+   agent transcripts.
+3. **Provision what you are about to encode.** Unclaimed inventory is
+   claimable inventory: batches of tens, not thousands held in advance.
+4. **Provisioning is an operator action on the service-role key** — never an
+   endpoint, an RPC, a policy, or a button. Do not add a "provision" or
+   "list unclaimed tags" surface to the API or the apps: it would be an
+   enumeration surface for exactly the rows that can be stolen.
+5. **Production writes need the owner's explicit OK**, as in go-live. The
+   script refuses a non-local `SUPABASE_URL` unless `SEED_ALLOW_REMOTE=1`,
+   exiting 1 before any query with
+   `Refusing to provision against non-local Supabase at https://<ref>.supabase.co. Set SEED_ALLOW_REMOTE=1 to override.`
+6. **The domain you encode is forever.** Tags are locked read-only after
+   writing. Encode the web origin you will own for the life of the tags (a
+   custom domain), not a `*.workers.dev` URL tied to a worker name.
+
+## Inputs to collect before you start
+
+- Count: 1–1000 per run. The script enforces it: anything else prints
+  `--count must be an integer between 1 and 1000` and exits 1.
+- Base URL: the `https` web origin that serves `/t/<UID>`, no trailing
+  path (e.g. `https://tags.acme.com`); locally `http://localhost:3000`.
+- Target: the local stack, or production (needs `.env.demo-seed` from
+  go-live §1 and the owner's OK).
+- An output directory outside the repo, new for every batch (the script
+  overwrites `provisioned-tags.*` in place).
+
+## 1. Rehearse locally
+
+Stack up (`bun run db:start`). From the repo root:
+
+```sh
+REPO="$(git rev-parse --show-toplevel)"
+OUT="$HOME/withme-tags/local-$(date +%Y%m%d-%H%M%S)"
+(umask 077 && mkdir -p "$OUT" && cd "$OUT" && bun run "$REPO/supabase/seed/provision.ts" --count 3 --base-url http://localhost:3000)
+```
+
+Running the file directly instead of `bun run db:provision` is deliberate:
+the script writes into the current directory, and this keeps that
+directory out of the repo. Imports still resolve from the script's own
+folder. The `umask 077` subshell makes the new directories and both files
+readable only by you.
+
+**Checkpoint:**
+
+- stdout starts `Provisioned 3 unclaimed tags on http://127.0.0.1:55321`,
+  lists three `  04…  http://localhost:3000/t/04…` lines, and ends
+  `Wrote provisioned-tags.csv and provisioned-tags.html (printable).`
+- `ls -l "$OUT"` lists exactly `provisioned-tags.csv` and
+  `provisioned-tags.html`, both `-rw-------`;
+  `head -1 "$OUT/provisioned-tags.csv"` is `uid,encode_url`.
+- `git -C "$REPO" status --porcelain` prints nothing, and
+  `find "$REPO" -maxdepth 1 -name 'provisioned-tags.*'` prints nothing (the
+  ignore line would hide a stray copy from `git status`, so look for the
+  file; use `find`, not an `ls` glob, which zsh turns into a
+  `no matches found` error).
+- The rows exist and are unclaimed:
+
+  ```sh
+  DB="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' "$REPO/supabase/config.toml")"
+  UIDS=$(tail -n +2 "$OUT/provisioned-tags.csv" | cut -d, -f1 | sed "s/.*/'&'/" | paste -sd, -)
+  docker exec "$DB" psql -U postgres -tAc "select uid, status from public.tags where uid in ($UIDS) order by uid"
+  ```
+
+  prints three `04…|unclaimed` lines.
+- End to end, with both dev servers up (`cd apps/api && bun run dev` and
+  `cd apps/web && bun run dev`): open one encode URL. Signed out, `/t/<UID>`
+  goes to `/claim/<UID>`, which sends you to sign in
+  (`/login?returnTo=%2Fclaim%2F<UID>`) and back. The page shows "Claim this
+  tag" with the UID. Sign in as the seed's demo user
+  (`lin@demo.withme.local` / `withme-demo-1`, or your rebranded identity)
+  and press "Claim tag": the page becomes that user's card ("This is your
+  tag."). From then on the encode URL shows that card to everyone else,
+  with "Connect", and never offers a claim. A second account that presses
+  "Claim tag" on a claim page it opened before the claim landed gets "This
+  tag has already been claimed."
+
+## 2. Provision the real batch
+
+Production (owner's OK first; the keys file from go-live §1):
+
+```sh
+REPO="$(git rev-parse --show-toplevel)"
+OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<n>"
+(
+  umask 077 && mkdir -p "$OUT"
+  set -a && source "$REPO/.env.demo-seed" && set +a
+  cd "$OUT" && SEED_ALLOW_REMOTE=1 bun run "$REPO/supabase/seed/provision.ts" \
+    --count <n> --base-url https://<your-domain> > provision.log
+)
+head -1 "$OUT/provision.log"
+```
+
+**Checkpoint** (without printing the UIDs):
+
+- the first log line reads `Provisioned <n> unclaimed tags on https://<ref>.supabase.co`;
+- `tail -n +2 "$OUT/provisioned-tags.csv" | wc -l` prints `<n>` (macOS
+  pads it with spaces);
+- `tail -n +2 "$OUT/provisioned-tags.csv" | cut -d, -f2 | grep -vc '^https://<your-domain>/t/04[0-9A-F]\{12\}$'`
+  prints `0` (every URL is on your domain and well-formed). `grep -c` exits
+  1 when the count is 0; the printed `0` is the pass.
+
+Do not paste the CSV anywhere to check it.
+
+## 3. Encode, lock, verify
+
+For each row of `provisioned-tags.html` (print it or open it locally):
+
+1. Write the URL to the tag as an NDEF URI record (NXP TagWriter or any
+   NFC writer app).
+2. Read the tag back in the writer app and compare the URL with the sheet
+   row. Then lock the tag read-only — irreversible, so compare first.
+3. Tap it with a phone: the OS opens `https://<your-domain>/t/<UID>` and the
+   page shows "Claim this tag" with the UID (after a sign-in if that
+   browser is signed out) — compare it with the sheet. **Do not press
+   "Claim tag"** on a tag that is going to someone else: the first claim
+   owns it.
+
+## 4. Ship and retire the list
+
+Ship the tags. The encode list has then done its job: keep the CSV only if
+your fulfillment records need it — offline, access-limited — and otherwise
+delete the batch directory. A claimed tag's UID keeps resolving (that is
+the product) but can no longer be claimed.
+
+## 5. The chip's own UID (in-app reading)
+
+The mobile scanner's "Read NFC tag" (`readTagUid`) reads the chip's
+hardware UID, not the URL written on it. For a tag carrying a
+script-generated UID:
+
+- a tap through the phone's OS — the normal path — opens the URL and works;
+- the in-app reader resolves the chip's UID instead, which was never
+  provisioned, and lands on the claim screen for an unknown tag. Typing the
+  URL's UID into the scanner's manual field works.
+
+If in-app reading must work for a batch, provision the chips' own UIDs
+instead. Read each one with your writer app and write it as 14 uppercase
+hex characters with no separators (writer apps often show `04:A1:B2:…`).
+The `uid` CHECK rejects lowercase, separators, and any other length, so
+only 7-byte UIDs (NTAG21x and the like) fit; 4-byte MIFARE Classic UIDs do
+not. Then run:
+
+```sql
+insert into public.tags (uid) values ('04A1B2C3D4E5F6'), ('04A1B2C3D4E5F7')
+on conflict (uid) do nothing
+returning uid;
+```
+
+Each new row comes back under `returning`; a UID that already exists
+returns nothing and is left as it was.
+
+Locally: `docker exec "$DB" psql -U postgres -c "<that sql>"` (with `$DB`
+from §1). In production: the Supabase dashboard's SQL editor, with the
+owner's OK. Then encode `https://<your-domain>/t/<that UID>`.
+
+Know the cost: a chip UID is readable by anyone in NFC range and assigned
+in runs by the manufacturer, so one tag from a batch hints at its
+neighbours. Use chip UIDs only for tags claimed on the spot by whoever
+holds them (your staff, a demo), never for tags that sit unclaimed in a
+shipment. Both kinds of UID live in the same table.
+
+## What must not move
+
+- No API route, RPC, policy, or screen creates tags or lists unclaimed ones;
+  provisioning stays a service-role script run by an operator.
+- `resolve_tag` keeps answering `unclaimed` for an unknown UID exactly as
+  for a provisioned one: the public resolver must not reveal which UIDs
+  exist.
+- `claim_tag` stays atomic and first-claim-wins
+  (`update … where status = 'unclaimed'`). A fork that wants pre-assigned
+  tags (claim codes, binding to an order) builds that as its own slice with
+  RLS tests, not by loosening this.
+- `claim_tag` is the one place existence leaks, knowingly: it answers
+  `tag not found` (`P0003`) for an unknown UID and `tag is not claimable`
+  (`P0002`) for a claimed or disabled one. The risk is low: `resolve_tag`
+  already tells anyone that a UID is claimed or disabled, and a guess that
+  hits an unclaimed UID is a claim, not an oracle answer, so rule 1's
+  entropy is what protects it. That holds only while nothing lists
+  unclaimed UIDs, and this runbook never exposes such a list: it lives in
+  `$OUT`, on the operator's machine.
+- `tags.uid` stays immutable: the column grant
+  (`grant update (destination, status)`) is what stops an owner from
+  re-keying a row onto a future batch.
+- The service-role key never appears on a command line, in the repo, or in a
+  client bundle (go-live §1).
+- The seed's demo UIDs are public — the README prints them, and
+  `04AAAAAAAAAAAA` is seeded unclaimed (`supabase/seed/index.ts`). If you
+  seeded production for a demo, claim or delete that row before real users
+  arrive.
+
+## Scope notes
+
+- No QR codes, no label layout, no print service: the sheet is a plain table
+  for whoever writes the tags. A QR sheet puts the capability on paper; if
+  you add one, it inherits rule 2.
+- Re-pointing, disabling, and resetting a claimed tag belong to its owner
+  (what the apps expose today is in the map). The operator has no client
+  path to someone else's tag, by design.
+- The gate is unchanged: `bun run lint && bun run typecheck && bun run test`
+  stays green, because this runbook changes no code. A batch is proven by
+  §1's checkpoint locally and §2–§3's checkpoints in production.
