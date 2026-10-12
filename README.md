@@ -96,8 +96,9 @@ Supabase local. The tests are the spec.
 
 ### Local, zero cloud accounts
 
-Prereqs: [Bun](https://bun.sh), [Supabase CLI](https://supabase.com/docs/guides/cli),
-Docker.
+Prereqs: [Bun](https://bun.sh), [Supabase CLI](https://supabase.com/docs/guides/cli)
+2.118 or newer (older CLIs ship a PostgREST that sporadically rejects a fresh
+sign-in's token as "issued at future"), Docker.
 
 ```sh
 bun install
