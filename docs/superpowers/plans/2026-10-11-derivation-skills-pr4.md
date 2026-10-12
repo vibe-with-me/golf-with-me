@@ -2411,6 +2411,28 @@ bun install
 
 **Step 3:** Any deviation means: fix the SKILL.md in the M4 worktree, commit (`git commit -m "extend-profile: fixes from the fresh-clone run" …`), and repeat this task from Step 1. Close the window from the M4 worktree, with the hand-back to M3.
 
+**Done 2026-10-12** in two runs. Log: `/Users/alexeisele/dev/withme-scratch/notes/extend-profile-fresh.md`, screenshots `notes/fresh-ep-*.png`.
+- Run 1 (`069ec3a`, about 20 min with the simulator pass) went green everywhere, and found three places where a literal reader had to guess. All three were fixed as text in `0353083`:
+  - §1 said "beside the existing schemas", but `CardLineSchema` must sit above `ProfileSchema`, which uses it;
+  - §3 said `db:reset` "ends" with `Finished supabase db reset`, but outside a terminal a JSON line follows it;
+  - §7's cold check needs a tag that shows Connect, and the seed has none. It now says to claim `04AAAAAAAAAAAA` as Lin first. It also names where the Join path lands ("Join this gathering?", not the tag).
+- Run 2 (`0353083`, about 10.5 min) had no skill deviation, and every expected result passed:
+  - red at §2: 17 of 86 tests failed (the 14 new tests, the cascade test, the first `account.test.ts` test, and the enumeration anon sweep), on `PGRST205`/`PGRST204`;
+  - db went from 72 to 86 at §3;
+  - contract went from 31 to 36. That is +5, not the +4 above: the review added a fifth contract case, and the skill says five;
+  - nfc-sdk passed 48;
+  - lint and typecheck were green;
+  - API e2e passed 66 checks, the eight extend-profile lines among them, ending `handshake e2e: all checks passed`;
+  - `CI=1 bunx playwright test` passed 14.
+- The simulator checks used agent-device + Expo Go + simctl:
+  - a new account lands on Profile;
+  - relaunching with an incomplete profile lands on "Finish your profile";
+  - two connected accounts each see the other's contact in Connections;
+  - a resolve shows the affiliation and no contact;
+  - cold Connect returns to the tag, and cold Join returns to "Join this gathering?".
+- Run 2 did not re-check the relaunch gate or the two-sided contacts. The fixes were text-only, and run 1 had passed both.
+- Neither run saw `PGRST303`. Expo Go started each run signed in as an account the reset had deleted, so the run signed out first. The skill text is unchanged for these.
+
 ---
 
 ### Task 7d: Fresh-clone re-run: `make-it-yours`
