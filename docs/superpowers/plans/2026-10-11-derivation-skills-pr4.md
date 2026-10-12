@@ -662,6 +662,8 @@ Expected: all green. A Playwright failure on a profile-creating step means a `ge
 
 **Step 3:** `git add -A && git commit -m "scratch: extend-profile §6–§8"` (local only). Close the stack window with the hand-back.
 
+**Done 2026-10-12** on `7932548` + the 4a commits. Every §6–§8 checkpoint was green except §7's first lint (`no-shadow`, below). The seed block ran clean (Ada and Lin carry both tiers). Gate: db 86, contract 35, nfc 48; the API e2e ends "handshake e2e: all checks passed" with all eight extend-profile lines; Playwright 14 passed on the first run. The §8 grep found all 12 profile-creating fills (no Playwright miss). Confirmed: a Profile-page save with Contact empty writes a `profile_details` row with `contact_handle` null (a claim-page first profile writes none), and both render no line. Corrections went to §1 and §2 (null wording), §6 (the `ShellRoute` comment, the always-sent `details`), and §7 (the gate parenthetical, the `current` state, the claim title).
+
 ---
 
 ### Task 4c: `extend-profile` simulator pass (Phase B)
@@ -823,7 +825,10 @@ export function isProfileComplete(profile: Profile | null | undefined): profile 
 
 `packages/contract/src/schemas/connection.ts`: `ConnectionSchema` gains
 `details: ProfileDetailsSchema.nullable()` — a connection is the one place
-the other person's details travel; `null` when they shared nothing.
+the other person's details travel. It is `null` when they have no
+`profile_details` row, and `{ contact_handle: null }` when their row holds
+no handle (every Profile-page save writes the row, §6); clients read
+`details?.contact_handle`, so the two look the same.
 
 `packages/contract/src/contract/app.ts`: `getProfile`'s output becomes
 `z.object({ profile: ProfileSchema.nullable(), details: ProfileDetailsSchema.nullable() })`,
@@ -864,7 +869,7 @@ describe('profile tiers', () => {
     ).toBe(false);
   });
 
-  it('a connection always carries the details key, null when nothing is shared', () => {
+  it('a connection always carries the details key, null without a details row', () => {
     const connection = {
       id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
       created_at: '2026-10-11T00:00:00Z',
@@ -1088,7 +1093,7 @@ describe('connections tier', () => {
     }
   });
 
-  it('accept hands the new connection the requester details, null when there are none', async () => {
+  it('accept hands the new connection the requester details, null without a details row', async () => {
     const alice = await createTestUser('Alice');
     const bob = await createTestUser('Bob');
     const carol = await createTestUser('Carol');
@@ -1526,7 +1531,10 @@ be the typecheck: the parity assertions are type-level).
   sends a session without a profile to `/profile` with a `<Navigate>` —
   widens its `!profile` check. Keep it in the component: the comment above
   `ShellRoute` explains why a `throw redirect` from the loader blanks the
-  page. Import `isProfileComplete` from `@withme/contract`, then:
+  page. Import `isProfileComplete` from `@withme/contract`, then the two
+  edits below, and make that comment's opening line ("A session without a
+  profile is sent to create one") say "without a complete profile
+  (`isProfileComplete`)" and "create or finish one":
 
 ```ts
   loader: async () => {
@@ -1559,6 +1567,12 @@ const [contact, setContact] = useState(details?.contact_handle ?? '');
   affiliation: affiliation.trim() === '' ? null : affiliation.trim(),
   details: { contact_handle: contact.trim() === '' ? null : contact.trim() },
 ```
+
+  (`details` is always sent, so the first save here creates the
+  `profile_details` row even with Contact empty. From then on accept and
+  the connections list return `{ contact_handle: null }` for that person,
+  not `null`. Both render nothing: every reader goes through
+  `details?.contact_handle`. Do not special-case the empty field.)
 
   the `<h1>` becomes
   `{!profile ? 'Create your profile' : isProfileComplete(profile) ? 'Your profile' : 'Finish your profile'}`,
@@ -1634,8 +1648,8 @@ No new CSS: `.hint`, `.sub`, and `.field` exist. Tokens only.
 
 - `apps/mobile/app/t/[uid].tsx`, both card branches, after `<Title>`:
   `{result.profile.affiliation ? <Muted>{result.profile.affiliation}</Muted> : null}`.
-- **The gate**, `apps/mobile/app/(tabs)/_layout.tsx` (web's is the `_app`
-  loader): once per signed-in account, on entering the tabs.
+- **The gate**, `apps/mobile/app/(tabs)/_layout.tsx` (web's is `ShellRoute`
+  in `routes/_app.tsx`): once per signed-in account, on entering the tabs.
 
 ```tsx
 import { isProfileComplete } from '@withme/contract';
@@ -1674,7 +1688,14 @@ useEffect(() => {
   `details?.contact_handle`. `save` sends the same payload as web. For the
   `Title`, keep the loaded or saved `Profile` in state (`load` has it, and
   `api.app.profile.update` returns it) and apply web's rule with
-  `isProfileComplete`. After the Bio `Field`:
+  `isProfileComplete`. Do not name that state `profile`: `load`'s
+  destructure and `AvatarPicker`'s `onChange={(profile) => …}` would shadow
+  it, and `oxlint --deny-warnings` fails on `no-shadow`. Use
+  `const [current, setCurrent] = useState<Profile | null>(null);`, then
+  `setCurrent(profile)` in `load`, `setCurrent(saved.profile)` after the
+  update in `save`, and
+  `{!current ? 'Create your profile' : isProfileComplete(current) ? 'Your profile' : 'Finish your profile'}`.
+  After the Bio `Field`:
 
 ```tsx
 <Field
@@ -1698,7 +1719,8 @@ useEffect(() => {
   with Save disabled until name and affiliation are filled.
 - `apps/mobile/app/claim/[uid].tsx`: the Affiliation field in the
   first-profile form, sent with the name; Continue disabled until both are
-  filled.
+  filled; the `Title` "First, your name" becomes "First, your card", as on
+  web.
 - `PersonRow` in `apps/mobile/components/ui.tsx` (`name`, `path`, `sub`,
   children) gains `detail?: string | null`, rendered after the `sub` `Text`
   as a second `Text` with the same `numberOfLines={2}` and
