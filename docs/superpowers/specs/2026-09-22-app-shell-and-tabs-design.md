@@ -183,8 +183,15 @@ build-gathering §1 plus the `resolve_tag` replacement), `avatars.sql`
 - New `provision-tags`: distilled from golf-with-me `bee9c9d`.
 - New `extend-profile` (the roadmap's "onboarding"): distilled from
   tailgate-with-me `92d2aeb`, plus a real build of the connections-only
-  field-visibility tier before it is written down (touches `profiles_select`
-  and needs its own RLS tests).
+  field-visibility tier before it is written down. The tier is a sibling
+  table, `public.profile_details`, with its own select policy (the owner,
+  or an accepted connection with no block either way) and its own RLS
+  tests, proven narrower than `profiles_select`, which stays
+  byte-identical. *Amended 2026-10-12, approved by Alex 2026-10-11
+  (ENG-749): this line first said the tier "touches `profiles_select`".
+  RLS decides rows, not columns, so a connections-only column on
+  `profiles` would reach every viewer that policy admits (the
+  pending-request recipient, the gathering co-member, the blocker).*
 - Candidate, after the proof below: `add-marketing-site`.
 
 ## Testing

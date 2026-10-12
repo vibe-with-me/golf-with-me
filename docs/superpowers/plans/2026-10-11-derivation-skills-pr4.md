@@ -2192,6 +2192,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Commit:** `git commit -m "Docs: the derivation skills in the roadmap, the slice, the README, and the spec" …` (body: the two-tier rule now lives in the slice; README lists the skills and its tag-encoding section matches provision-tags; program status; the spec's extend-profile line amended to the sibling table Alex approved on 2026-10-11, ENG-749), ending with the Co-Authored-By line.
 
+
+**Done 2026-10-12.** Edits 1–6 applied, with these departures from the text above:
+- The spec amendment reads "*Amended 2026-10-12, approved by Alex 2026-10-11 (ENG-749)*": the amendment was made today; the approval date is the ENG-749 decision comment's.
+- The roadmap section also records go-live (§3's `VITE_STORE_URL`, §1's password file moved to `$HOME/.config/<name>/`) and the customize-gathering / add-destination-type fix (copy `resolve_tag`'s newest definition), and names `profile_details` and `isProfileComplete`. Its "re-run against a fresh clone" becomes true in Tasks 7b–7d, before the PR merges.
+- README "Encoding NFC tags": `{UID}` is "14 uppercase hex chars", with "`04` and 12 more" only for the random default (a chip UID from §5 need not start `04`).
+- program.md status adds the merge shas (`4fa6c98`, `7932548`) and M3's merge date.
+- Verify: `grep -n 'NTAG213' README.md` also hits line 21, the "How it works" diagram (`NTAG213 tag ──encodes──▶ …`). It names the tag type, not the UID, so it stays. Every other check passed: six skills; each of the four files names a new skill; `touches .profiles_select.` only inside the amendment note; `profile_details` once in the spec; no `M3-CHEC[K]` marker; `bun run lint` green.
+
 ---
 
 ### Task 7a: Static name check of every skill
