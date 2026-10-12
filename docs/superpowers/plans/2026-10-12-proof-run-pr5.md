@@ -353,6 +353,22 @@ Safety reviewer checks passed: no §3 mechanism touched, the original 17 tests c
 
 Safety reviewer checks: no §3 mechanism touched; of the original 17 tests only the anon test changed (the argument, plus the create expectation now written into §2.3). Fixes D1 and D3 change an expectation and a command, so a third run (the last allowed) is required, from a fresh `pre-customize-gathering` clone with 94361f8's skills, once Alex has restarted the stack under the new CLI.
 
+**Run 3 — Done 2026-10-12.** Before it, Alex restarted the shared stack under CLI 2.120.0 (PostgREST 16.4, storage-api v1.79.36, gotrue v2.197.0) and cleaned up stale images (Docker disk 99% → 77%). On `/Users/alexeisele/dev/withme-scratch/proof-runclub-customize-gathering-r3` (a fresh `pre-customize-gathering` clone with 40b8e70's skills; HEAD d8307db). START 22:24:35Z, END 22:34:12Z: about 10 min wall. Log: `$NOTES/3-customize-gathering-r3.md`. Every checkpoint and the gate were fully green: the §1 checkpoint (lint, typecheck 8/8, reset and seed, Playwright 14/14); contract 32, db 73, nfc 48; API e2e 59 `ok` lines ending "all checks passed" (including `gathering carries its route`); Playwright 14; typecheck 8/8. Deviations D1–D5 are fixed in b5772ed, all wording or paths:
+- D1, §1: the seed's `p_location` ('The roof, 14 Loom St') is vertical copy the sweep cannot catch; now listed next to `p_title` and the console text.
+- D2, §2.2: `db:types` prints "Generated TypeScript is unformatted" and CLI 2.120.0 adds `ComputedFields: never` to each of the 8 tables. Both are now named as expected (no formatter in the repo).
+- D3, §1 mobile URLs: `git mv … round/[id].tsx` needs `mkdir -p` first and leaves an empty `app/gathering/`; both commands are in the text now.
+- D4, §2.4: the web and mobile detail screens each declare a local `interface GatheringPatch`; now named next to `queries/gatherings.ts`.
+- D5, §2.5: the root `bun run typecheck` cannot be green until steps 6–7 (mobile create screen, then `handshake.e2e.ts`). It now runs after step 7; the nfc-sdk package typecheck stays at step 5.
+
+The run reached the gate green and the fixes are wording and paths only, so no re-run (and none is allowed: this was run 3). Observations for the report, no skill change:
+- O1: the `char_length(route_name) <= 120` CHECK admits `''`. "Required" lives in the contract's `min(1)` (API only) and in `create_gathering` always supplying it, so a host's direct PostgREST update could blank the field (the host's own row; no safety boundary crossed).
+- O2: the web "Join this run?" preview and mobile `gatheringHref` hints carry title and time only (from search params), so the route is not on that pre-join screen; the resolver card the tapper sees first does show it. The skill does not list these surfaces.
+- O3: comments still say "Events tab" / "Open gathering", left per "replace only inside string literals and JSX text". Environment: Playwright run as `CI=1 bunx playwright test`.
+
+Safety reviewer checks passed: the migration diff adds only the column, the column grant, the rebuilt `create_gathering`, and `resolve_tag` (its body differs from the avatars migration's only by the `'route_name'` key), so no §3 mechanism is touched; the new `create_gathering` carries `revoke execute … from public, anon` and `grant … to authenticated`; of the original 17 RLS tests only the anon test changed (the argument and the `42501` expectation §2.3 prescribes). The result is committed in that clone as 226c7ad ("customize-gathering: runclub") and tagged `pre-extend-profile`. The line is now `LINE=/Users/alexeisele/dev/withme-scratch/proof-runclub-customize-gathering-r3` at 226c7ad.
+
+Meanwhile PR #11 (5bdd81d) merged into `main`: ENG-750 is fixed by requiring PostgREST 16.3+. The forks are based on 511a26c and do not carry it.
+
 ---
 
 ### Task 4: extend-profile (both tiers, completion gate) (literal)
