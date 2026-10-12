@@ -173,7 +173,8 @@ but left alone it would also want to implement them. The skill holds it to
 the starter's design system (one accent on the primary action, eight
 tokens, the card idiom) and reduces the chosen direction to the inputs
 make-it-yours consumes, as `docs/brand-direction.md` in the fork, whose
-contrast table a shipped script checks. It also collects what the proof
+Colors table a shipped script checks, deriving every required contrast
+pair from it. It also collects what the proof
 run found make-it-yours never asks for: the copy lines and the icon
 artwork. Optional, skipped by a fork that already has a brand; its last
 step, `/design-sync`, gives the fork its own design-system project so
