@@ -2300,8 +2300,8 @@ grep -n "getByLabel('Name').fill" apps/web/e2e/*.ts                             
 grep -n 'export async function signUpWithProfile\|export async function claimFreshTag' apps/web/e2e/helpers.ts
 jq -r '.scripts["db:types"]' package.json
 grep -ln "'display_name', v_profile.display_name" supabase/migrations/*.sql
-grep -l 'function public.resolve_tag' supabase/migrations/*.sql | sort | tail -1
-grep -l 'function public.accept_connect_request' supabase/migrations/*.sql | sort | tail -1
+grep -lE 'create (or replace )?function public\.resolve_tag' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1              # the skill's finders (§3): 20261011120000_avatars.sql
+grep -lE 'create (or replace )?function public\.accept_connect_request' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1   # same file
 docker exec supabase_db_withme-starter psql -U postgres -tAc "select n.nspname || '.' || p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where (n.nspname, p.proname) in (('public','resolve_tag'),('public','accept_connect_request'),('public','create_gathering'),('public','join_gathering'),('public','claim_tag'),('public','send_connect_request'),('private','is_blocked'),('private','current_tenant_id'),('private','set_updated_at')) order by 1"   # 9 rows
 docker exec supabase_db_withme-starter psql -U postgres -tAc "select polname from pg_policy where polrelid = 'public.profiles'::regclass order by 1"   # includes profiles_select
 docker exec supabase_db_withme-starter psql -U postgres -tAc "select to_regclass('public.connections'), to_regclass('public.profile_details')"   # connections | (null) — the skill creates the second
@@ -2325,14 +2325,30 @@ grep -n 'headerHeight: 56' apps/mobile/lib/tokens.ts
 grep -n '719.98px' apps/web/src/styles/app.css apps/web/src/styles/tokens.css
 grep -n 'STORE_URL' apps/web/.env.example apps/mobile/.env.example apps/web/src/env.d.ts apps/web/playwright.config.ts
 grep -n 'VITE_STORE_URL' .agents/skills/go-live/SKILL.md
-grep -c 'cat "$HOME/.config/<name>/supabase-db-password"' .agents/skills/go-live/SKILL.md   # 2: link and push use the literal path
+grep -cF 'cat "$HOME/.config/<name>/supabase-db-password"' .agents/skills/go-live/SKILL.md   # 2: link and push use the literal path (-F: some greps read a mid-pattern $ as an anchor)
 grep -n 'PASS_FILE' .agents/skills/go-live/SKILL.md                                        # nothing
 grep -n '^## The safety discipline' docs/the-slice.md                                       # make-it-yours points here
+```
+
+**customize-gathering and add-destination-type** (only the lines `f22a9c4` changed: copy the newest card-function body)
+
+```bash
+for s in customize-gathering add-destination-type; do
+  git show f22a9c4 -- .agents/skills/$s/SKILL.md | grep '^+[^+]' | grep -oE '`[^`]+`' | sort -u > /Users/alexeisele/dev/withme-scratch/notes/tokens-$s-f22a9c4.txt
+done
+grep -lE 'create (or replace )?function public\.resolve_tag' supabase/migrations/*.sql | sort | tail -1   # 20261011120000_avatars.sql
+grep -n 'drop column avatar_url' supabase/migrations/20261011120000_avatars.sql                       # the column the older bodies emit
+grep -n 'v_gathering_json jsonb\|security definer\|search_path' supabase/migrations/20261011120000_avatars.sql | head -4   # the newest body keeps what customize-gathering edits
 ```
 
 Expected: no `MISSING`, every grep hits (the two marked "nothing" print nothing), and the `docker exec` lines return the commented rows. Any miss is fixed in the skill text (or, if the app moved, in the skill's description of it) before Step 3.
 
 **Step 3: Re-run the skills from fresh clones.** Tasks 7b–7d, one clone and one stack window each, in any order. Each starts from the M4 branch's committed state, so first: `git -C /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills status --porcelain` prints nothing.
+
+**Done 2026-10-12** at `de386d3`, the stack reset to `origin/main` (`7932548`) + seed. Log and token lists: `/Users/alexeisele/dev/withme-scratch/notes/7a.md`, `tokens-<skill>.txt`, `tokens-<skill>.classified.txt`.
+- Step 1: clean (no marker; only the allowed paths; `.gitignore` is the comment and the two names).
+- Step 2: 590 tokens across the four skills, plus the `f22a9c4` lines of customize-gathering and add-destination-type. Every token is checked, created by the skill, or an example, placeholder, expected output, or external reference. No skill text needed a fix. Every check hit and the `docker exec` lines returned the commented rows.
+- Three check lines changed here, not in the skills: the two extend-profile finders now match the skill's `grep -lE 'create (or replace )?function public\.…' | grep -v _extend_profile` (both still print `20261011120000_avatars.sql`). The go-live count is `grep -cF`, because a `grep` backed by ugrep read the mid-pattern `$` as an anchor and printed 0 (`/usr/bin/grep` printed 2). The `f22a9c4` block is new.
 
 ---
 
