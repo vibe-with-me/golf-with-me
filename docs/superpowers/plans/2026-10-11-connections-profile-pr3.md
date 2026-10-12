@@ -1393,11 +1393,12 @@ bun run --cwd supabase/seed typecheck && bun run lint
 - account: still `4 fail` (`PGRST202`).
 - The seed prints its usual summary; seed typecheck and lint are clean.
 - `bun run --cwd packages/db typecheck` errors only in `test/account.test.ts` (unknown `delete_my_account`). The rest of `packages/db` and the seed compile against the new types.
+- On the first green run, tighten the MIME and size refusal assertions in `avatars.test.ts` to the exact `statusCode`/message storage-api returns, and re-run.
 
 **Commit**
 
 ```bash
-git add supabase/migrations/20261011120000_avatars.sql packages/db/src/queries/handshake.ts packages/db/src/types/supabase.ts
+git add supabase/migrations/20261011120000_avatars.sql packages/db/src/queries/handshake.ts packages/db/src/types/supabase.ts packages/db/test/avatars.test.ts
 git commit -m "Add avatars: a public, unlistable bucket and a path-shaped avatar_path
 
 private.is_avatar_path is the one shape (<owner>/<uuid>.(webp|jpg)), used by
@@ -1430,6 +1431,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 -- blocks, hosted gatherings and memberships by FK; claimed tags reset to
 -- unclaimed and their scans erased by private.on_profile_deleted. The
 -- rate-limit ledger has no FK, so its rows go here too.
+-- No test pins that delete: test-utils has no SQL path into `private`.
 --
 -- Avatar files are NOT touched here: the API removes them through the
 -- Storage API, with the caller's own JWT, before calling this (a SQL delete

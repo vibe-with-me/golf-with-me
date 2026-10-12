@@ -28,11 +28,43 @@ describe('delete_my_account', () => {
     const carol = await createTestUser('Carol');
     const dave = await createTestUser('Dave');
     const uid = await provisionTag();
-    await alice.client.rpc('claim_tag', { p_uid: uid });
-    await anonClient().rpc('log_scan', { p_uid: uid, p_user_agent: 'delete-test' });
+    expect((await alice.client.rpc('claim_tag', { p_uid: uid })).error).toBeNull();
+    expect(
+      (await anonClient().rpc('log_scan', { p_uid: uid, p_user_agent: 'delete-test' })).error,
+    ).toBeNull();
     await connectUsers(alice, bob);
-    await alice.client.rpc('send_connect_request', { p_recipient: carol.id });
-    await alice.client.from('blocks').insert({ blocker_id: alice.id, blocked_id: dave.id });
+    expect(
+      (await alice.client.rpc('send_connect_request', { p_recipient: carol.id })).error,
+    ).toBeNull();
+    expect(
+      (await alice.client.from('blocks').insert({ blocker_id: alice.id, blocked_id: dave.id }))
+        .error,
+    ).toBeNull();
+
+    // the starting state, so nothing below can pass on rows that never existed
+    const before = await admin.from('tags').select('claimed_by').eq('uid', uid).single();
+    expect(before.error).toBeNull();
+    expect(before.data).toEqual({ claimed_by: alice.id });
+    const scans = await admin.from('tag_scans').select('id').eq('tag_uid', uid);
+    expect(scans.error).toBeNull();
+    expect(scans.data).toHaveLength(1);
+    const blocks = await admin
+      .from('blocks')
+      .select('blocked_id')
+      .eq('blocker_id', alice.id)
+      .eq('blocked_id', dave.id);
+    expect(blocks.error).toBeNull();
+    expect(blocks.data).toHaveLength(1);
+    const requests = await admin
+      .from('connect_requests')
+      .select('status')
+      .eq('requester_id', alice.id)
+      .eq('recipient_id', carol.id);
+    expect(requests.error).toBeNull();
+    expect(requests.data).toEqual([{ status: 'pending' }]);
+    const connections = await bob.client.from('connections').select('user_a, user_b');
+    expect(connections.error).toBeNull();
+    expect(connections.data).toHaveLength(1);
 
     const { error } = await alice.client.rpc('delete_my_account');
     expect(error).toBeNull();
@@ -44,7 +76,7 @@ describe('delete_my_account', () => {
         .from('avatars')
         .upload(`${user.id}/${crypto.randomUUID()}.jpg`, photo, { contentType: 'image/jpeg' });
     expect((await uploadAs(bob)).error).toBeNull(); // control: a live account can
-    expect((await uploadAs(alice)).error).not.toBeNull();
+    expect((await uploadAs(alice)).error?.message).toContain('row-level security');
 
     const { data: auth } = await admin.auth.admin.getUserById(alice.id);
     expect(auth.user).toBeNull();
@@ -73,14 +105,26 @@ describe('delete_my_account', () => {
     });
     expect(created.error).toBeNull();
     const hosted = created.data as { id: string };
-    await bob.client.rpc('join_gathering', { p_gathering_id: hosted.id });
+    expect((await bob.client.rpc('join_gathering', { p_gathering_id: hosted.id })).error).toBeNull();
     const other = await carol.client.rpc('create_gathering', {
       p_title: 'Carol hosts',
       p_starts_at: tomorrow(),
     });
     expect(other.error).toBeNull();
     const joined = other.data as { id: string };
-    await alice.client.rpc('join_gathering', { p_gathering_id: joined.id });
+    expect(
+      (await alice.client.rpc('join_gathering', { p_gathering_id: joined.id })).error,
+    ).toBeNull();
+
+    // the starting state: two members in each gathering
+    for (const gathering of [hosted, joined]) {
+      const members = await admin
+        .from('gathering_members')
+        .select('profile_id')
+        .eq('gathering_id', gathering.id);
+      expect(members.error).toBeNull();
+      expect(members.data).toHaveLength(2);
+    }
 
     expect((await alice.client.rpc('delete_my_account')).error).toBeNull();
 
@@ -106,10 +150,11 @@ describe('delete_my_account', () => {
     expect((await alice.client.rpc('delete_my_account')).error).toBeNull();
 
     expect((await admin.auth.admin.getUserById(bob.id)).data.user?.id).toBe(bob.id);
-    expect((await admin.from('profiles').select('id').in('id', [bob.id, carol.id])).data).toHaveLength(
-      2,
-    );
-    const { data: remaining } = await bob.client.from('connections').select('user_a, user_b');
+    const profiles = await admin.from('profiles').select('id').in('id', [bob.id, carol.id]);
+    expect(profiles.error).toBeNull();
+    expect(profiles.data).toHaveLength(2);
+    const { data: remaining, error } = await bob.client.from('connections').select('user_a, user_b');
+    expect(error).toBeNull();
     expect(remaining).toHaveLength(1); // bob and carol, untouched
   });
 

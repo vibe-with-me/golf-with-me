@@ -24,6 +24,9 @@ const pathFor = (owner: string, ext: 'jpg' | 'webp' = 'jpg') =>
 
 const publicUrl = (path: string) => `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
 
+// Postgres's wording for a policy refusal, which storage-api passes through.
+const RLS = 'row-level security';
+
 function upload(
   client: Db,
   path: string,
@@ -58,7 +61,7 @@ describe('the avatars bucket', () => {
     expect((await upload(alice.client, pathFor(alice.id))).error).toBeNull();
 
     const { error } = await upload(bob.client, pathFor(alice.id));
-    expect(error).not.toBeNull();
+    expect(error?.message).toContain(RLS);
   });
 
   it("a user cannot delete or replace another user's avatar, and nobody overwrites in place", async () => {
@@ -67,14 +70,22 @@ describe('the avatars bucket', () => {
     const path = pathFor(alice.id);
     expect((await upload(alice.client, path)).error).toBeNull();
 
-    await bob.client.storage.from('avatars').remove([path]); // RLS matches nothing
-    expect((await upload(bob.client, path, WEBP, 'image/webp', true)).error).not.toBeNull();
+    expectEmpty(await bob.client.storage.from('avatars').remove([path])); // RLS matches nothing
+    expect((await upload(bob.client, path, WEBP, 'image/webp', true)).error?.message).toContain(RLS);
     // not even the owner: replacing a photo is a new path (no update policy)
-    expect((await upload(alice.client, path, WEBP, 'image/webp', true)).error).not.toBeNull();
+    expect((await upload(alice.client, path, WEBP, 'image/webp', true)).error?.message).toContain(
+      RLS,
+    );
 
     const res = await fetch(publicUrl(path));
     expect(res.status).toBe(200);
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(JPEG);
+
+    // control: the owner's own delete goes through, and the file is no longer served
+    const { data: removed, error } = await alice.client.storage.from('avatars').remove([path]);
+    expect(error).toBeNull();
+    expect(removed).toHaveLength(1);
+    expect((await fetch(publicUrl(path))).status).not.toBe(200);
   });
 
   it('anon can neither upload nor list, and nobody lists a folder but its owner', async () => {
@@ -93,7 +104,8 @@ describe('the avatars bucket', () => {
     expectEmpty(await bob.client.storage.from('avatars').list());
     const anon = anonClient();
     expectEmpty(await anon.storage.from('avatars').list(alice.id));
-    expect((await upload(anon, pathFor(alice.id))).error).not.toBeNull();
+    expectEmpty(await anon.storage.from('avatars').list());
+    expect((await upload(anon, pathFor(alice.id))).error?.message).toContain(RLS);
   });
 
   it('names must be <own-uid>/<uuid>.(webp|jpg)', async () => {
@@ -108,7 +120,7 @@ describe('the avatars bucket', () => {
       `${alice.id}/nested/${crypto.randomUUID()}.jpg`, // off-folder depth
       `${alice.id.toUpperCase()}/${crypto.randomUUID()}.jpg`, // not the canonical id
     ]) {
-      expect((await upload(alice.client, path)).error).not.toBeNull();
+      expect((await upload(alice.client, path)).error?.message).toContain(RLS);
     }
   });
 
