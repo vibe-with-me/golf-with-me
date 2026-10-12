@@ -174,3 +174,66 @@ describe('scan privacy', () => {
     expect(count).toBe(60);
   });
 });
+
+/** Invisible means an empty, error-free result: a policy error is not invisibility. */
+function expectEmpty(result: { data: unknown[] | null; error: unknown }): void {
+  expect(result.error).toBeNull();
+  expect(result.data).toEqual([]);
+}
+
+describe('my tags (what app.tags.listMine and app.tags.update rest on)', () => {
+  it('the owner lists every tag they claimed, disabled ones included; a stranger and anon list none', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const live = await provisionTag();
+    const off = await provisionTag();
+    await alice.client.rpc('claim_tag', { p_uid: live });
+    await alice.client.rpc('claim_tag', { p_uid: off });
+    await alice.client.from('tags').update({ status: 'disabled' }).eq('uid', off);
+
+    const { data: mine, error } = await alice.client
+      .from('tags')
+      .select('uid, status')
+      .in('uid', [live, off]);
+    expect(error).toBeNull();
+    expect(new Map(mine?.map((tag) => [tag.uid, tag.status]))).toEqual(
+      new Map([
+        [live, 'claimed'],
+        [off, 'disabled'],
+      ]),
+    );
+    expectEmpty(await bob.client.from('tags').select('uid').in('uid', [live, off]));
+    expectEmpty(await anonClient().from('tags').select('uid').in('uid', [live, off]));
+  });
+
+  it('the owner re-points and switches a tag off in one update; a stranger matches zero rows', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const uid = await provisionTag();
+    await alice.client.rpc('claim_tag', { p_uid: uid });
+
+    expectEmpty(
+      await bob.client.from('tags').update({ status: 'disabled' }).eq('uid', uid).select('uid'),
+    );
+
+    const { data, error } = await alice.client
+      .from('tags')
+      .update({ destination: { type: 'profile' }, status: 'disabled' })
+      .eq('uid', uid)
+      .select('uid, status, destination')
+      .single();
+    expect(error).toBeNull();
+    expect(data).toEqual({ uid, status: 'disabled', destination: { type: 'profile' } });
+  });
+
+  it('an owner cannot release a tag by setting it unclaimed', async () => {
+    const alice = await createTestUser('Alice');
+    const uid = await provisionTag();
+    await alice.client.rpc('claim_tag', { p_uid: uid });
+
+    const { error } = await alice.client.from('tags').update({ status: 'unclaimed' }).eq('uid', uid);
+    expect(error?.message).toContain('tags_state_consistent');
+    const { data } = await admin.from('tags').select('status, claimed_by').eq('uid', uid).single();
+    expect(data).toEqual({ status: 'claimed', claimed_by: alice.id });
+  });
+});
