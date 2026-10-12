@@ -70,7 +70,8 @@ works). The claim pages ask for the required fields themselves (§6, §7).
 
 ## 1. Contract
 
-`packages/contract/src/schemas/profile.ts`, beside the existing schemas:
+`packages/contract/src/schemas/profile.ts`, above `ProfileSchema` (which
+uses `CardLineSchema`):
 
 ```ts
 /** Card tier: a free-text line on the card. Crosses the anonymous resolve boundary. DB CHECK mirrors it. */
@@ -721,7 +722,9 @@ dropped.
 bun run db:reset && bun run db:seed && bun run db:types
 ```
 
-**Checkpoint (green):** `db:reset` ends `Finished supabase db reset`;
+**Checkpoint (green):** `db:reset` prints `Finished supabase db reset on
+branch …` (outside a terminal, a JSON line with `"Reset local database."`
+follows it);
 `cd packages/db && bun test` is all green, fourteen more than before;
 `git diff packages/db/src/types/supabase.ts` shows `affiliation` and a
 `profile_details` table with a one-to-one `profile_details_profile_id_fkey`
@@ -1113,8 +1116,13 @@ contact in Connections; a tag resolve shows the affiliation and no contact;
 and, cold, Connect returns to the tag: signed out, open a tag link whose
 card shows Connect (`/t/<uid>`), tap Connect, sign up, and back on the tag
 tap Connect again; Profile opens, and Save after filling it lands on the
-tag again, not on Profile. (The seeded tag points at a gathering, so it
-shows Join, which takes the same path through `gathering/[id].tsx`.)
+tag again, not on Profile. The seed has no tag that shows Connect: first
+sign in as Lin and claim `04AAAAAAAAAAAA` (`/t/04AAAAAAAAAAAA` opens the
+claim flow), then sign out and use that tag. The seeded `04BBBBBBBBBBBB`
+points at Ada's gathering, so it shows Join, which takes the same path
+through `gathering/[id].tsx`: sign-up lands on its "Join this gathering?"
+screen rather than the tag, Join opens Profile, and Save returns to "Join
+this gathering?", not to Profile.
 
 On the local stack a brand-new sign-up can land on Events instead. The
 first API calls made within a second of sign-up can hit PostgREST's
