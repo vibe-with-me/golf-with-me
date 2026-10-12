@@ -1,10 +1,13 @@
+import type { Profile } from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
+import { AvatarField } from '../components/AvatarField.tsx';
 import { shellStates } from '../components/CalmStates.tsx';
 import { api } from '../lib/api.ts';
 import { safeReturnTo } from '../lib/auth-guard.ts';
 import { getSupabase } from '../lib/supabase.ts';
 
+/** Profile: identity (photo, name, bio), My tags, Account. */
 export const Route = createFileRoute('/_app/profile')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Your profile — withme' }] }),
@@ -16,8 +19,16 @@ export const Route = createFileRoute('/_app/profile')({
 });
 
 function ProfilePage() {
-  // Fetched once by the layout; invalidated after save.
+  // Fetched once by the layout; invalidated after a save or a photo change.
   const { profile } = useLoaderData({ from: '/_app' });
+  return (
+    <div className="stack">
+      <IdentityForm profile={profile} />
+    </div>
+  );
+}
+
+function IdentityForm({ profile }: { profile: Profile | null }) {
   const { returnTo } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate();
@@ -58,6 +69,8 @@ function ProfilePage() {
   return (
     <form className="card" onSubmit={save}>
       <h1>{profile ? 'Your profile' : 'Create your profile'}</h1>
+      {/* The photo lives on the profile row: it needs the row to exist first. */}
+      {profile ? <AvatarField profile={profile} /> : null}
       <div className="field">
         <label htmlFor="display_name">Name</label>
         <input
