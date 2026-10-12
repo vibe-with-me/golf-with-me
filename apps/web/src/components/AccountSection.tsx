@@ -24,15 +24,35 @@ export function AccountSection() {
   const trigger = useRef<HTMLButtonElement>(null);
   const keep = useRef<HTMLButtonElement>(null);
   const confirmButton = useRef<HTMLButtonElement>(null);
+  const signOutButton = useRef<HTMLButtonElement>(null);
+  const [signOutFailed, setSignOutFailed] = useState(false);
 
   async function signOut() {
-    await getSupabase().auth.signOut();
+    // Cleared first, so a second failure is announced again.
+    flushSync(() => setSignOutFailed(false));
+    let failed: boolean;
+    try {
+      // auth-js reports a network failure as { error } and keeps the session.
+      const { error } = await getSupabase().auth.signOut();
+      failed = error !== null;
+    } catch {
+      failed = true;
+    }
+    if (failed) {
+      // Still signed in: stay here rather than leave a session on the landing page.
+      setSignOutFailed(true);
+      signOutButton.current?.focus();
+      return;
+    }
     navigate({ to: '/' });
   }
 
   function askToConfirm() {
     // Lands on the safe choice; the group's name and description are read with it.
-    flushSync(() => setMode('confirm'));
+    flushSync(() => {
+      setSignOutFailed(false);
+      setMode('confirm');
+    });
     keep.current?.focus();
   }
 
@@ -52,8 +72,15 @@ export function AccountSection() {
     }
     // The auth change clears the router cache and blanks the shell at once
     // (account-scope.ts), so the deleted account's data never shows again.
-    await getSupabase().auth.signOut({ scope: 'local' });
-    navigate({ to: '/', replace: true });
+    // The account is gone server-side either way: leave even if dropping the
+    // local copy fails, rather than stick on "Deleting…".
+    try {
+      await getSupabase().auth.signOut({ scope: 'local' });
+    } catch {
+      // Nothing to recover: the session it held no longer exists.
+    } finally {
+      navigate({ to: '/', replace: true });
+    }
   }
 
   return (
@@ -61,6 +88,7 @@ export function AccountSection() {
       <h2 className="section-title">Account</h2>
       <div className="card">
         <button
+          ref={signOutButton}
           className="btn btn--quiet"
           type="button"
           disabled={mode === 'deleting'}
@@ -108,7 +136,9 @@ export function AccountSection() {
         )}
         {/* Always mounted: a live region created with its message is not announced. */}
         <div role="alert">
-          {mode === 'failed' ? <p className="form-error">That didn’t go through. Try again.</p> : null}
+          {mode === 'failed' || signOutFailed ? (
+            <p className="form-error">That didn’t go through. Try again.</p>
+          ) : null}
         </div>
       </div>
     </>
