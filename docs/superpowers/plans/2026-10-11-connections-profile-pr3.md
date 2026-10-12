@@ -3442,9 +3442,15 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:** Modify `apps/web/src/routes/t.$uid.tsx`.
 
-**Step 1:** At the call site, `hostId={result.profile.id}` becomes `ownerId={result.profile.id}`: it is the tag owner, a member of the gathering (resolve_tag only shows a gathering its owner belongs to), not necessarily the host. Then replace `GatheringInvite` with:
+**Step 1:** At the call site, `hostId={result.profile.id}` becomes `ownerId={result.profile.id}`: it is the tag owner, a member of the gathering (resolve_tag only shows a gathering its owner belongs to), not necessarily the host. Import `useHydrated` from `@tanstack/react-router`, render `<GatheringLine gathering={result.gathering} />` in place of `<p className="hint">{gatheringLine(result.gathering)}</p>` (the Worker renders in UTC/en-US, so a server-rendered time would flip on hydration and trip React #418; after a client-side navigation `useHydrated` is already true, so there is no flash), and replace `GatheringInvite` with:
 
 ```tsx
+/** The server knows neither the viewer's timezone nor locale: the title alone until hydrated. */
+function GatheringLine({ gathering }: { gathering: GatheringSummary }) {
+  const hydrated = useHydrated();
+  return <p className="hint">{hydrated ? gatheringLine(gathering) : gathering.title}</p>;
+}
+
 /**
  * The Join link lands on the detail route under the shell, carrying
  * display-only hints. A signed-out tapper is sent through login by the
@@ -3457,6 +3463,8 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
   const [viewer, setViewer] = useState<'loading' | 'member' | 'other'>('loading');
   useEffect(() => {
     let cancelled = false;
+    // A new tag or gathering: the previous verdict does not carry over.
+    setViewer('loading');
     (async (): Promise<'member' | 'other'> => {
       const userId = await getSessionUserId();
       if (userId === null) return 'other';
@@ -3468,9 +3476,12 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
         () => 'member' as const,
         () => 'other' as const,
       );
-    })().then((next) => {
-      if (!cancelled) setViewer(next);
-    });
+    })()
+      // A failed session read falls back to the safe default, never a stuck card.
+      .catch(() => 'other' as const)
+      .then((next) => {
+        if (!cancelled) setViewer(next);
+      });
     return () => {
       cancelled = true;
     };

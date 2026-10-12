@@ -1,5 +1,5 @@
 import type { GatheringSummary } from '@withme/contract';
-import { createFileRoute, Link, notFound, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound, redirect, useHydrated, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
 import { ProfileCard } from '../components/ProfileCard.tsx';
@@ -67,7 +67,7 @@ function ResolvePage() {
     return (
       <main className="page">
         <ProfileCard profile={result.profile} settle>
-          <p className="hint">{gatheringLine(result.gathering)}</p>
+          <GatheringLine gathering={result.gathering} />
           <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
         </ProfileCard>
         <WordmarkFooter />
@@ -97,6 +97,12 @@ function WordmarkFooter() {
   );
 }
 
+/** The server knows neither the viewer's timezone nor locale: the title alone until hydrated. */
+function GatheringLine({ gathering }: { gathering: GatheringSummary }) {
+  const hydrated = useHydrated();
+  return <p className="hint">{hydrated ? gatheringLine(gathering) : gathering.title}</p>;
+}
+
 /**
  * The Join link lands on the detail route under the shell, carrying
  * display-only hints. A signed-out tapper is sent through login by the
@@ -109,6 +115,8 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
   const [viewer, setViewer] = useState<'loading' | 'member' | 'other'>('loading');
   useEffect(() => {
     let cancelled = false;
+    // A new tag or gathering: the previous verdict does not carry over.
+    setViewer('loading');
     (async (): Promise<'member' | 'other'> => {
       const userId = await getSessionUserId();
       if (userId === null) return 'other';
@@ -120,9 +128,12 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
         () => 'member' as const,
         () => 'other' as const,
       );
-    })().then((next) => {
-      if (!cancelled) setViewer(next);
-    });
+    })()
+      // A failed session read falls back to the safe default, never a stuck card.
+      .catch(() => 'other' as const)
+      .then((next) => {
+        if (!cancelled) setViewer(next);
+      });
     return () => {
       cancelled = true;
     };
