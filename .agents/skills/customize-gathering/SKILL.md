@@ -85,7 +85,10 @@ use of the tab label.
   which other specs share);
   then `cd apps/web && bunx vite build` regenerates `routeTree.gen.ts`.
 - Mobile: rename `(tabs)/gatherings.tsx` → `(tabs)/rounds.tsx` and
-  `gathering/[id].tsx` → `round/[id].tsx`; update the `Tabs.Screen` name,
+  `gathering/[id].tsx` → `round/[id].tsx` (`git mv` does not create the
+  folder: `mkdir -p apps/mobile/app/round` first, then
+  `rmdir apps/mobile/app/gathering`, which the move leaves empty, after);
+  update the `Tabs.Screen` name,
   the root `Stack.Screen` name, and every `pathname` / `href` /
   `dismissTo('/gatherings')` / `redirect` string (`index.tsx`, `login.tsx`,
   `(tabs)/merch.tsx`, `t/[uid].tsx`, the detail, and the renamed list
@@ -100,10 +103,11 @@ without containing "gathering"; rewrite it for your vertical too:
   in `apps/web/src/routes/_app.gatherings.tsx` and
   `apps/mobile/app/(tabs)/gatherings.tsx` (or the files you renamed);
 - the seed's gathering, in `supabase/seed/index.ts`: its `p_title`
-  (`'Rooftop listening session'`) and the console text it prints
+  (`'Rooftop listening session'`), its `p_location`
+  (`'The roof, 14 Loom St'`), and the console text it prints
   ("hosts a gathering Lin joined", "inviting you to her gathering"). §2
   step 2 edits the same `create_gathering` call when a field is added,
-  so the title can change there in the same edit.
+  so the title and location can change there in the same edit.
 
 The API's REST paths (`/gatherings…` in `packages/contract/src/contract/app.ts`)
 are internal identifiers: leave them.
@@ -180,11 +184,15 @@ In slice order:
    so add `p_course_name: '…'` there now (without it the seed fails with
    `PGRST202 Could not find the function public.create_gathering(…)`).
    Then `bun run db:reset && bun run db:seed && bun run db:types` and commit
-   `packages/db/src/types/supabase.ts`. A Supabase CLI version other than
+   `packages/db/src/types/supabase.ts`. The CLI may print "Generated
+   TypeScript is unformatted": harmless, the repo has no formatter, so
+   leave the file as generated. A Supabase CLI version other than
    the one that last generated it can reformat that file wholesale, so a
    large `git diff --stat` is not by itself a problem: check that what
-   changed semantically is only the new column (`Row`/`Insert`/`Update`)
-   and the new `p_` argument (`grep -n course_name` on the file).
+   changed semantically is the new column (`Row`/`Insert`/`Update`)
+   and the new `p_` argument (`grep -n course_name` on the file), plus
+   anything that newer generator adds to every table alike (CLI 2.120.0
+   adds `ComputedFields: never` to each).
 3. **Tests.** Every db test that calls the RPC passes the new argument —
    the caller grep under the map lists them. In core:
    `gatherings.test.ts`'s `createGathering()` helper; the anon call in
@@ -207,13 +215,14 @@ In slice order:
    if one does not, you moved a safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
+   The two detail screens each declare their own local
+   `interface GatheringPatch` (web `_app.gatherings_.$id.tsx`, mobile
+   `gathering/[id].tsx`, or the files you renamed in §1); step 6 adds the
+   field to both.
 5. **SDK.** If the summary changed, mirror it in
    `packages/nfc-sdk/src/client.ts` `GatheringSummary`.
    `bun run --cwd packages/nfc-sdk typecheck` fails until you do; the vitest
-   run would not catch it (type-level assertions). Then run the root
-   `bun run typecheck`, not only the package's: the API e2e imports the
-   built `@withme/nfc/client`, and the root task's `^build` rebuilds it
-   (until then the e2e sees the old `GatheringSummary`).
+   run would not catch it (type-level assertions).
 6. **Screens.** Web: a `field` in the create form and `EditForm`, the row
    `sub` line, the detail header; the resolver line comes from
    `gatheringLine()` in `lib/format-time.ts`. Mobile mirrors in
@@ -236,6 +245,12 @@ In slice order:
    `grep -rn "getByLabel('Title')" apps/web/e2e` finds them
    (`gatherings.spec.ts` and `profile.spec.ts` in core). The seed was
    done in step 2, and that edit can carry §1's new seed title too.
+
+Now run the root `bun run typecheck`, not only the packages': the API e2e
+imports the built `@withme/nfc/client`, and the root task's `^build`
+rebuilds it (until then the e2e sees the old `GatheringSummary`). Run
+earlier, it is red in the expected places: the mobile create screen until
+step 6, and `handshake.e2e.ts` until step 7.
 
 Then the verification gate from `docs/the-slice.md`.
 
