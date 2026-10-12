@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Button, Card, ErrorText, Field, Muted, Title } from '../../components/ui';
+import { Button, Card, ErrorText, Field, Muted, PersonRow, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import {
   formatStartsAt,
@@ -21,7 +21,7 @@ import {
 } from '../../lib/format-time';
 import { gatheringHref } from '../../lib/gathering-link';
 import { supabase } from '../../lib/supabase';
-import { fonts, radius, space, useTokens } from '../../lib/tokens';
+import { fonts, space, useTokens } from '../../lib/tokens';
 
 type ScreenState =
   | { kind: 'loading' }
@@ -167,7 +167,11 @@ function GatheringDetail({
   const isHost = userId === gathering.host_id;
   const isMember = userId !== null && members.some((member) => member.profile.id === userId);
 
-  async function run(work: () => Promise<unknown>, then: 'reload' | 'list') {
+  async function run(
+    work: () => Promise<unknown>,
+    then: 'reload' | 'list',
+    failure = "That didn't go through. Try again.",
+  ) {
     setBusy(true);
     setActionError(null);
     try {
@@ -181,7 +185,7 @@ function GatheringDetail({
       await reload();
       setEditing(false);
     } catch {
-      setActionError("That didn't go through. Try again.");
+      setActionError(failure);
     } finally {
       setBusy(false);
     }
@@ -219,7 +223,12 @@ function GatheringDetail({
               busy={busy}
               onCancel={() => setEditing(false)}
               onSave={(patch) =>
-                run(() => api.app.gatherings.update({ id: gathering.id, ...patch }), 'reload')
+                run(
+                  () => api.app.gatherings.update({ id: gathering.id, ...patch }),
+                  'reload',
+                  // A form save says check the fields, as on web; one-tap actions keep the default.
+                  'Could not save. Check the fields and try again.',
+                )
               }
             />
           ) : (
@@ -250,23 +259,13 @@ function GatheringDetail({
 
         <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's coming</Text>
         {members.map((member) => (
-          <View
+          <PersonRow
             key={member.profile.id}
-            style={[styles.row, { backgroundColor: t.surface, borderColor: t.border }]}
-          >
-            <Avatar name={member.profile.display_name} path={member.profile.avatar_path} size={44} />
-            <View style={styles.rowBody}>
-              <Text style={[styles.rowName, { color: t.ink }]}>{member.profile.display_name}</Text>
-              {member.profile.bio ? (
-                <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
-                  {member.profile.bio}
-                </Text>
-              ) : null}
-            </View>
-            {member.profile.id === gathering.host_id ? (
-              <Text style={[styles.rowSub, { color: t.inkMuted }]}>Host</Text>
-            ) : null}
-          </View>
+            name={member.profile.display_name}
+            path={member.profile.avatar_path}
+            // Web's convention: "Host" takes the sub line; the row's right side is for actions.
+            sub={member.profile.id === gathering.host_id ? 'Host' : member.profile.bio}
+          />
         ))}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -399,16 +398,4 @@ const styles = StyleSheet.create({
   page: { flex: 1, justifyContent: 'center', padding: space.s5 },
   content: { padding: space.s5, gap: space.s3 },
   sectionTitle: { fontFamily: fonts.display, fontSize: 20, letterSpacing: -0.2, marginTop: space.s4 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s3,
-    borderWidth: 1,
-    borderRadius: radius.control,
-    paddingVertical: space.s3,
-    paddingHorizontal: space.s4,
-  },
-  rowBody: { flex: 1, minWidth: 0 },
-  rowName: { fontFamily: fonts.bodySemiBold, fontSize: 16 },
-  rowSub: { fontFamily: fonts.body, fontSize: 14 },
 });
