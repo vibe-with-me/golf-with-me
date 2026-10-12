@@ -128,14 +128,25 @@ describe('the avatars bucket', () => {
     const alice = await createTestUser('Alice');
     expect((await upload(alice.client, pathFor(alice.id))).error).toBeNull();
 
-    // never HTML or SVG on the project's origin
-    expect((await upload(alice.client, pathFor(alice.id), JPEG, 'text/html')).error).not.toBeNull();
-    expect(
-      (await upload(alice.client, pathFor(alice.id), JPEG, 'image/svg+xml')).error,
-    ).not.toBeNull();
+    // never HTML or SVG on the project's origin: the bucket's allowed_mime_types
+    for (const contentType of ['text/html', 'image/svg+xml']) {
+      const { error } = await upload(alice.client, pathFor(alice.id), JPEG, contentType);
+      expect(error).toMatchObject({
+        statusCode: '415',
+        message: `mime type ${contentType} is not supported`,
+      });
+    }
+
+    // the bucket's file_size_limit: exactly 1 MiB goes in, one byte more does not
+    const atLimit = new Uint8Array(1_048_576);
+    atLimit.set(JPEG);
+    expect((await upload(alice.client, pathFor(alice.id), atLimit)).error).toBeNull();
     const oversized = new Uint8Array(1_048_577);
     oversized.set(JPEG);
-    expect((await upload(alice.client, pathFor(alice.id), oversized)).error).not.toBeNull();
+    expect((await upload(alice.client, pathFor(alice.id), oversized)).error).toMatchObject({
+      statusCode: '413',
+      message: 'The object exceeded the maximum allowed size',
+    });
   });
 });
 
