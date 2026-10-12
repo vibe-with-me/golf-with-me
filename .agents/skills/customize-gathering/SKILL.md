@@ -27,13 +27,25 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
 | Migration | `supabase/migrations/20261008120000_add_gatherings.sql` |
-| RLS tests | `packages/db/test/gatherings.test.ts` (17) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (17); `account.test.ts` also creates gatherings |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
-| Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `components/AppShell.tsx` (`navItems[0]`) |
-| Mobile | `apps/mobile/app/(tabs)/gatherings.tsx`, `app/gathering/[id].tsx`, the branch in `app/t/[uid].tsx`, `lib/format-time.ts`, `lib/gathering-link.ts`, `(tabs)/_layout.tsx` |
-| E2E | `apps/api/e2e/handshake.e2e.ts` §12–17; `apps/web/e2e/gatherings.spec.ts` |
+| Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `components/AppShell.tsx` (`navItems[0]`) |
+| Mobile | `apps/mobile/app/(tabs)/gatherings.tsx`, `app/gathering/[id].tsx`, the branch in `app/t/[uid].tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `lib/gathering-link.ts`, `(tabs)/_layout.tsx` |
+| E2E | `apps/api/e2e/handshake.e2e.ts` §12–17; `apps/web/e2e/gatherings.spec.ts`; `profile.spec.ts` and `helpers.ts` also visit or create one |
 | Seed | `supabase/seed/index.ts` (Ada hosts one; her live tag points at it) |
+
+Every caller of the create RPC, whichever layer it sits in (a new
+argument must reach all of them):
+
+```sh
+grep -rn --exclude-dir={node_modules,dist,.turbo,.expo,.wrangler} \
+  'create_gathering\|gatherings\.create' packages apps supabase/seed
+```
+
+In core that prints the two db test files, the API handler, both create
+screens, the API e2e (§12 and §17), the seed, and the generated
+`packages/db/src/types/supabase.ts` (rewritten by `db:types`).
 
 ## 1. Nouns
 
@@ -42,14 +54,22 @@ says "Events"), and the URL segment (`/rounds`).
 
 **Copy.** The user-facing word is "gathering" everywhere except the tab
 label. Sweep with
-`grep -rn -i 'gathering' apps/web/src/routes apps/web/src/components apps/mobile/app apps/mobile/components apps/web/e2e --include='*.tsx' --include='*.ts'`
+`grep -rn -i 'gathering' apps/web/src apps/web/e2e apps/mobile/app apps/mobile/components apps/mobile/lib --include='*.tsx' --include='*.ts' | grep -v routeTree.gen.ts`
 and replace only inside string literals and JSX text — never identifiers
 (`api.app.gatherings`, `GatheringSchema`, the `'/gathering/[id]'` pathname
-are code). The tab label lives in `AppShell.tsx` (`label: 'Events'`) and
+are code). Most hits are identifiers and comments; the copy is in the
+routes, the components, and both apps' `lib/my-tags.ts` (the Profile
+tab's My tags lines, e.g. "A tap invites people to a gathering.").
+The tab label lives in `AppShell.tsx` (`label: 'Events'`) and
 `(tabs)/_layout.tsx` (`title: 'Events'`); page titles are each route's
-`head()` (the list's is `'Events — withme'`). The Playwright specs select by
-copy, including the tab label (`'Events'` in `shell.spec.ts` and
-`gatherings.spec.ts`), so update their strings in the same sweep.
+`head()` (the list's is `'Events — <wordmark>'`, `'Events — withme'`
+before make-it-yours; the detail's `'Gathering — <wordmark>'`). The
+Playwright files select by copy, including the tab label, so update their
+strings in the same sweep: every file under `apps/web/e2e`, the shared
+`helpers.ts` included, not only `shell.spec.ts` and `gatherings.spec.ts`
+(`profile.spec.ts` clicks "Create gathering").
+`grep -rn 'Events' apps/web/src apps/web/e2e apps/mobile/app` lists every
+use of the tab label.
 
 **URLs (optional).** To make `/rounds` the path:
 - Web: `git mv` `_app.gatherings.tsx` → `_app.rounds.tsx` and
@@ -58,8 +78,11 @@ copy, including the tab label (`'Events'` in `shell.spec.ts` and
   (`AppShell.tsx`, `index.tsx`, `login.tsx`, `auth.callback.tsx`,
   `t.$uid.tsx`, the list's row link, the detail's leave/delete
   navigations), the `startsWith('/gatherings/')` check behind the login
-  page's invitation line, the `NavItem.to` union, and the URL assertions in
-  `shell.spec.ts` / `gatherings.spec.ts`;
+  page's invitation line, the `NavItem.to` union, and every URL in the
+  Playwright files — `grep -rn '/gatherings' apps/web/e2e` (the
+  `shell.spec.ts` and `gatherings.spec.ts` assertions, `profile.spec.ts`'s
+  `goto`, and the `waitForURL` in `helpers.ts`'s `signUpWithProfile`,
+  which other specs share);
   then `cd apps/web && bunx vite build` regenerates `routeTree.gen.ts`.
 - Mobile: rename `(tabs)/gatherings.tsx` → `(tabs)/rounds.tsx` and
   `gathering/[id].tsx` → `round/[id].tsx`; update the `Tabs.Screen` name,
@@ -86,16 +109,30 @@ in, rows and the detail header show it, and the resolver summary carries it.
 In slice order:
 
 1. **Contract.** `schemas/gathering.ts`: add it to `GatheringSchema`,
-   `CreateGatheringInputSchema`, `UpdateGatheringInputSchema` (and its
-   `.refine`, which requires at least one field to update), and — only if a
-   tapper should see it before joining — to `GatheringSummarySchema`'s
-   `pick`. Add a negative case to `packages/contract/test/schemas.test.ts`.
+   `CreateGatheringInputSchema`, `UpdateGatheringInputSchema` (optional
+   there, and in its `.refine`, which requires at least one field to
+   update), and — only if a tapper should see it before joining — to
+   `GatheringSummarySchema`'s `pick`. "Required" binds the inputs, not
+   the outputs: the inputs take `z.string().trim().min(1).max(120)`
+   (`.optional()` on the update), while `GatheringSchema` takes
+   `z.string().max(120)` with no `min`, because the migration's
+   `default ''` (step 2) gives every row that predates the column `''`,
+   and the API validates what it returns against `GatheringSchema`.
+   Screens show nothing for `''`.
+   In `packages/contract/test/schemas.test.ts`, add a negative case
+   (missing, blank, oversized), and add the field to the existing
+   fixtures and expectations that build a whole gathering, a summary, or a
+   create input — a required key breaks them. `grep -n starts_at
+   packages/contract/test/schemas.test.ts` finds them (in core: the
+   resolve output's `gathering`, the `gathering` fixture, the summary-keys
+   list, and the create-trim `toEqual`).
    The summary crosses the anonymous resolve boundary: never put private
    data in it.
 2. **Migration (additive).** New file:
    `alter table public.gatherings add column course_name text not null default '' check (char_length(course_name) <= 120);`
-   (the default lets existing rows pass; drop it afterwards if creates must
-   supply it). Then rebuild `public.create_gathering`. The signature
+   Keep the default: it lets existing rows pass, `create_gathering`
+   always supplies the value, and the contract requires it on every
+   create and edit (step 1). Then rebuild `public.create_gathering`. The signature
    changes, and `create or replace function` cannot change one: run
    `drop function public.create_gathering(text, timestamptz, text);`
    then
@@ -106,8 +143,13 @@ In slice order:
    Insert the column, add it to the `jsonb_build_object` the function
    returns (the API validates that object against `GatheringSchema`), and
    re-issue the grants for the new signature:
-   `revoke execute on function public.create_gathering(text, timestamptz, text, text) from public;`
+   `revoke execute on function public.create_gathering(text, timestamptz, text, text) from public, anon;`
    `grant execute on function public.create_gathering(text, timestamptz, text, text) to authenticated;`.
+   Revoke from `anon` by name: Supabase's default privileges grant `anon`
+   execute on every new function directly, so a revoke from `public`
+   alone leaves it callable by anon (core's own older RPCs have the same
+   gap, tracked as ENG-754; the body's `'authentication required'` still
+   refuses, but the grant should say so too).
    If the summary carries the field, also
    `create or replace function public.resolve_tag(p_uid text) returns jsonb`
    (copy the whole body of its **newest** definition,
@@ -119,25 +161,46 @@ In slice order:
    `language plpgsql stable security definer set search_path = ''`; the
    same signature keeps its existing grants). Re-issue the whole host column grant:
    `grant update (title, starts_at, location, course_name) on public.gatherings to authenticated;`.
+   Before seeding, give the seed the new argument:
+   `supabase/seed/index.ts` calls `create_gathering` by named arguments,
+   so add `p_course_name: '…'` there now (without it the seed fails with
+   `PGRST202 Could not find the function public.create_gathering(…)`).
    Then `bun run db:reset && bun run db:seed && bun run db:types` and commit
    `packages/db/src/types/supabase.ts`.
-3. **Tests.** `gatherings.test.ts`: `createGathering()` passes the new
-   argument; a field with a CHECK gets a rejected-at-the-boundary case. The
-   seventeen existing tests pass untouched — if one does not, you moved a
-   safety mechanism.
+3. **Tests.** Every db test that calls the RPC passes the new argument —
+   the caller grep under the map lists them. In core:
+   `gatherings.test.ts`'s `createGathering()` helper; the anon call in
+   its 'anon can neither create nor join' (PostgREST resolves a function
+   by its named arguments, so without the new one it answers PGRST202
+   instead of reaching the body's `'authentication required'`); and
+   `account.test.ts`'s two calls. A field with a CHECK gets a
+   rejected-at-the-boundary case (create and host edit, with a positive
+   control). Adding an assertion for the new field to an existing test
+   (e.g. the anonymous resolve summary) is fine. Beyond the new argument,
+   the seventeen existing tests pass untouched — if one does not, you
+   moved a safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
 5. **SDK.** If the summary changed, mirror it in
    `packages/nfc-sdk/src/client.ts` `GatheringSummary`.
    `bun run --cwd packages/nfc-sdk typecheck` fails until you do; the vitest
-   run would not catch it (type-level assertions).
+   run would not catch it (type-level assertions). Then run the root
+   `bun run typecheck`, not only the package's: the API e2e imports the
+   built `@withme/nfc/client`, and the root task's `^build` rebuilds it
+   (until then the e2e sees the old `GatheringSummary`).
 6. **Screens.** Web: a `field` in the create form and `EditForm`, the row
    `sub` line, the detail header; the resolver line comes from
    `gatheringLine()` in `lib/format-time.ts`. Mobile mirrors in
-   `(tabs)/gatherings.tsx`, `gathering/[id].tsx`, `lib/format-time.ts`.
-7. **E2E + seed.** `apps/api/e2e/handshake.e2e.ts` §12 creates with the
-   field; `apps/web/e2e/gatherings.spec.ts` fills it; `supabase/seed/index.ts`
-   seeds it.
+   `(tabs)/gatherings.tsx`, `gathering/[id].tsx` (or the files you renamed
+   in §1), `lib/format-time.ts`.
+7. **E2E.** `apps/api/e2e/handshake.e2e.ts`: every
+   `gatherings.create` the caller grep lists (§12 and §17 in core) passes
+   the field, and §12 asserts it on the created gathering and on the
+   anonymous summary. In `apps/web/e2e`, a required field needs a fill in
+   every Playwright step that creates a gathering, or the create fails:
+   `grep -rn "getByLabel('Title')" apps/web/e2e` finds them
+   (`gatherings.spec.ts` and `profile.spec.ts` in core). The seed was
+   done in step 2.
 
 Then the verification gate from `docs/the-slice.md`.
 

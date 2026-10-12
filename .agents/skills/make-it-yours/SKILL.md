@@ -90,8 +90,10 @@ Do not introduce a second accent, and keep the accent off links, chrome,
 and any border outside that primary-action button — restraint is the
 design system. Keep the WCAG notes in `tokens.css` honest: accent/accent-ink
 ≥ 4.5:1, `--color-border-input` ≥ 3:1 against `--color-surface` (WCAG
-1.4.11), in both light and dark — recompute the ratios cited in the
-comments with a contrast checker; don't leave stale numbers. The
+1.4.11), in both light and dark — measure with a contrast checker and
+cite four ratios in the comments: the accent pair (accent vs. accent-ink)
+in each theme, and the input border against the surface in each theme.
+Don't leave stale numbers. The
 starter's shipped light `--color-border-input` measures 2.97:1 (ENG-753):
 until that is fixed upstream, raise it in both files, e.g. opacity
 0.46 → 0.47 (3.06:1).
@@ -165,8 +167,9 @@ plain strings tsc can NOT validate — compare its values against the
 
 The brand renders in these places. Use the **wordmark** in the first
 eight (they render it as a mark) and in the README title, and the
-**display name** inside prose sentences (the `nfcPermission` string,
-README prose):
+**display name** inside prose sentences (the `nfcPermission` string, and
+any README sentence that names the product — the starter's README prose
+names no brand, so there only the title and badge change):
 
 - `apps/web/src/routes/index.tsx` — the `<h1 className="wordmark">`.
 - `apps/web/src/components/AppShell.tsx` — the header wordmark link.
@@ -178,8 +181,8 @@ README prose):
   mark a stranger who tapped a tag sees.
 - Page titles: `apps/web/src/routes/__root.tsx`, `login.tsx`,
   `claim.$uid.tsx`, `_app.connections.tsx`, `_app.gatherings.tsx`,
-  `_app.gatherings_.$id.tsx`, `_app.profile.tsx`, `_app.merch.tsx` (each
-  route's `head()`).
+  `_app.gatherings_.$id.tsx` (or your renamed route files),
+  `_app.profile.tsx`, `_app.merch.tsx` (each route's `head()`).
 - `apps/mobile/components/Header.tsx` — the wordmark `<Text>`.
 - `apps/mobile/app/t/[uid].tsx` — the `user_agent` prefix
   (`withme-mobile/…`).
