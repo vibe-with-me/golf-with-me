@@ -81,7 +81,10 @@ owner's OK).
 
 ## 1. Rehearse locally
 
-Stack up (`bun run db:start`). From the repo root:
+A checkout set up as the README Quickstart does it: the env files copied
+(`apps/api/.dev.vars`, `apps/web/.env`), the stack up (`bun run db:start`),
+and seeded (`bun run db:seed`: the end-to-end check below signs in as a
+demo user; the seed is local-only and safe to re-run). From the repo root:
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
@@ -101,7 +104,8 @@ readable only by you.
   lists three `  04…  http://localhost:3000/t/04…` lines, and ends
   `Wrote provisioned-tags.csv and provisioned-tags.html (printable).`
 - `ls -l "$OUT"` lists exactly `provisioned-tags.csv` and
-  `provisioned-tags.html`, both `-rw-------`;
+  `provisioned-tags.html`, both `-rw-------` (macOS may print
+  `-rw-------@`: the `@` marks extended attributes, not a permission);
   `head -1 "$OUT/provisioned-tags.csv"` is `uid,encode_url`.
 - `git -C "$REPO" status --porcelain` prints nothing, and
   `find "$REPO" -maxdepth 1 -name 'provisioned-tags.*'` prints nothing (the
