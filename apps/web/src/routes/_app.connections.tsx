@@ -19,8 +19,11 @@ type Tab = 'requests' | 'blocked';
 export const Route = createFileRoute('/_app/connections')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Connections — withme' }] }),
-  validateSearch: (search): { tab?: Tab } =>
-    search.tab === 'requests' || search.tab === 'blocked' ? { tab: search.tab } : {},
+  // Always returns the key: a route's search is the parent's spread under
+  // this result, so leaving `tab` out would let a raw ?tab=foo through.
+  validateSearch: (search): { tab?: Tab } => ({
+    tab: search.tab === 'requests' || search.tab === 'blocked' ? search.tab : undefined,
+  }),
   loader: async () => {
     const [pending, connections, blocks] = await asSignedInAccount(() =>
       Promise.all([
@@ -75,9 +78,9 @@ function ConnectionsPage() {
     <div className="stack">
       <h1 className="section-title">Connections</h1>
       <nav className="segments" aria-label="Connections lists">
-        <SegmentLink label="Connections" />
-        <SegmentLink tab="requests" label="Requests" count={requestCount} />
-        <SegmentLink tab="blocked" label="Blocked" />
+        <SegmentLink current={tab} label="Connections" />
+        <SegmentLink current={tab} tab="requests" label="Requests" count={requestCount} />
+        <SegmentLink current={tab} tab="blocked" label="Blocked" />
       </nav>
       {actionError ? (
         <p className="form-error" role="alert">
@@ -188,17 +191,35 @@ function ConnectionsPage() {
   );
 }
 
-/** One segment. Active = ink weight and a 2px ink underline, never the accent. */
-function SegmentLink({ tab, label, count = 0 }: { tab?: Tab; label: string; count?: number }) {
+/**
+ * One segment. Active = ink and a 2px ink underline, never the accent.
+ * Active follows the validated tab, not the raw URL: a stale ?tab=foo (or
+ * any extra param) still shows Connections, so Connections is current.
+ */
+function SegmentLink({
+  current,
+  tab,
+  label,
+  count = 0,
+}: {
+  current: Tab | undefined;
+  tab?: Tab;
+  label: string;
+  count?: number;
+}) {
+  const active = tab === current;
   return (
     <Link
       to="/connections"
       search={tab ? { tab } : {}}
       replace
-      className="segments__item"
-      // exact: "Connections" (no search) must not match ?tab=requests
+      className={active ? 'segments__item segments__item--active' : 'segments__item'}
+      aria-current={active ? 'page' : undefined}
+      // exact keeps the router's own active marking (it adds aria-current
+      // when the raw search matches) from ever disagreeing: without it,
+      // "Connections" would partially match ?tab=requests too.
       activeOptions={{ exact: true }}
-      activeProps={{ 'aria-current': 'page' }}
+      activeProps={{}}
       // Named outright: a hidden ", N pending" span inside this flex link is
       // blockified, and the computed name would read "Requests , N pending".
       aria-label={count > 0 ? `${label}, ${count} pending` : undefined}

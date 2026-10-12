@@ -129,7 +129,7 @@
    - **Relation to the M2 detail page.** The gathering detail's "Point my tags at this gathering" stays: a bulk shortcut over the same endpoint, for claimed tags only. My tags is the per-tag control. No new policy is needed. The new RLS tests pin the existing `tags_select_own` / `tags_update_own` + `(destination, status)` grant that these endpoints rest on, so they are green on arrival, honestly labelled as pins.
 
 8. **Segments.**
-   - **Web.** Links in a `<nav aria-label="Connections lists">`, URL-addressable as `/connections`, `?tab=requests` and `?tab=blocked` (`validateSearch`). They are links, not ARIA tabs: they change the URL, so they are navigation, and ARIA tab semantics would promise arrow-key behaviour links do not have. Switching uses `replace` (a segment switch is not a history step), and the active state comes from TanStack's `aria-current` with `activeOptions={{ exact: true }}`.
+   - **Web.** Links in a `<nav aria-label="Connections lists">`, URL-addressable as `/connections`, `?tab=requests` and `?tab=blocked` (`validateSearch`). They are links, not ARIA tabs: they change the URL, so they are navigation, and ARIA tab semantics would promise arrow-key behaviour links do not have. Switching uses `replace` (a segment switch is not a history step). The active segment follows the validated `tab` from `Route.useSearch()`, and the page sets `aria-current="page"` and the active class itself, so a stale `?tab=foo` still marks Connections. TanStack's own matching compares the raw search; it keeps `activeOptions={{ exact: true }}` only so that it never disagrees. Every segment has one font weight, so switching never shifts its siblings, and the row wraps at narrow widths.
    - **Mobile.** Local state through a `SegmentedTabs` primitive (`accessibilityRole="tablist"`/`"tab"`), since there is no URL to address.
    - **The badge.** Its source is the same `listPending` result the Requests list shows. It is an ink pill (never the accent), capped at "99+"; web reads it as "Requests, N pending". It is the caller's own inbox, so it is not an aggregate of anyone else. A silently-dropped request is never stored, so it can never be counted.
    - **Copy:**
@@ -2324,8 +2324,11 @@ type Tab = 'requests' | 'blocked';
 export const Route = createFileRoute('/_app/connections')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Connections — withme' }] }),
-  validateSearch: (search): { tab?: Tab } =>
-    search.tab === 'requests' || search.tab === 'blocked' ? { tab: search.tab } : {},
+  // Always returns the key: a route's search is the parent's spread under
+  // this result, so leaving `tab` out would let a raw ?tab=foo through.
+  validateSearch: (search): { tab?: Tab } => ({
+    tab: search.tab === 'requests' || search.tab === 'blocked' ? search.tab : undefined,
+  }),
   loader: async () => {
     const [pending, connections, blocks] = await asSignedInAccount(() =>
       Promise.all([
@@ -2380,9 +2383,9 @@ function ConnectionsPage() {
     <div className="stack">
       <h1 className="section-title">Connections</h1>
       <nav className="segments" aria-label="Connections lists">
-        <SegmentLink label="Connections" />
-        <SegmentLink tab="requests" label="Requests" count={requestCount} />
-        <SegmentLink tab="blocked" label="Blocked" />
+        <SegmentLink current={tab} label="Connections" />
+        <SegmentLink current={tab} tab="requests" label="Requests" count={requestCount} />
+        <SegmentLink current={tab} tab="blocked" label="Blocked" />
       </nav>
       {actionError ? (
         <p className="form-error" role="alert">
@@ -2493,17 +2496,35 @@ function ConnectionsPage() {
   );
 }
 
-/** One segment. Active = ink weight and a 2px ink underline, never the accent. */
-function SegmentLink({ tab, label, count = 0 }: { tab?: Tab; label: string; count?: number }) {
+/**
+ * One segment. Active = ink and a 2px ink underline, never the accent.
+ * Active follows the validated tab, not the raw URL: a stale ?tab=foo (or
+ * any extra param) still shows Connections, so Connections is current.
+ */
+function SegmentLink({
+  current,
+  tab,
+  label,
+  count = 0,
+}: {
+  current: Tab | undefined;
+  tab?: Tab;
+  label: string;
+  count?: number;
+}) {
+  const active = tab === current;
   return (
     <Link
       to="/connections"
       search={tab ? { tab } : {}}
       replace
-      className="segments__item"
-      // exact: "Connections" (no search) must not match ?tab=requests
+      className={active ? 'segments__item segments__item--active' : 'segments__item'}
+      aria-current={active ? 'page' : undefined}
+      // exact keeps the router's own active marking (it adds aria-current
+      // when the raw search matches) from ever disagreeing: without it,
+      // "Connections" would partially match ?tab=requests too.
       activeOptions={{ exact: true }}
-      activeProps={{ 'aria-current': 'page' }}
+      activeProps={{}}
       // Named outright: a hidden ", N pending" span inside this flex link is
       // blockified, and the computed name would read "Requests , N pending".
       aria-label={count > 0 ? `${label}, ${count} pending` : undefined}
@@ -2545,9 +2566,13 @@ function PersonRow({
 ```css
 /* --- in-page segments (Connections) — active = ink, never the accent ------ */
 
+/* Wraps rather than overflows: three segments and a "99+" badge do not fit
+ * on one line at 320px. */
 .segments {
   display: flex;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  column-gap: var(--space-1);
+  row-gap: var(--space-1);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -2568,12 +2593,13 @@ function PersonRow({
   color: var(--color-ink);
 }
 
-.segments__item[aria-current='page'] {
+/* One weight for every segment: a bolder active label would widen it and
+ * shift its siblings on each switch. Active is ink plus the underline. */
+.segments__item--active {
   color: var(--color-ink);
-  font-weight: 600;
 }
 
-.segments__item[aria-current='page']::after {
+.segments__item--active::after {
   content: '';
   position: absolute;
   left: var(--space-3);

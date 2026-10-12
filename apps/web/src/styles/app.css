@@ -313,9 +313,13 @@ a {
 
 /* --- in-page segments (Connections) — active = ink, never the accent ------ */
 
+/* Wraps rather than overflows: three segments and a "99+" badge do not fit
+ * on one line at 320px. */
 .segments {
   display: flex;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  column-gap: var(--space-1);
+  row-gap: var(--space-1);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -336,12 +340,13 @@ a {
   color: var(--color-ink);
 }
 
-.segments__item[aria-current='page'] {
+/* One weight for every segment: a bolder active label would widen it and
+ * shift its siblings on each switch. Active is ink plus the underline. */
+.segments__item--active {
   color: var(--color-ink);
-  font-weight: 600;
 }
 
-.segments__item[aria-current='page']::after {
+.segments__item--active::after {
   content: '';
   position: absolute;
   left: var(--space-3);
