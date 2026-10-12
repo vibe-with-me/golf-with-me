@@ -79,6 +79,7 @@
 - **Known local issues that are not skill defects:** log them when they bite, do not "fix" the skill for them, and leave the time they cost in the timing with a note.
   - **ENG-750.** A brand-new sign-up's first API calls can get `PGRST303` ("JWT issued at future"). The completion gate fails open (the account lands on Runs, not Profile). Relaunch, and it lands on Profile.
   - **ENG-751.** On a clone's first `vite dev` session, a server-side load of a claimed card (`/t/<claimed UID>`) can hang with 0 bytes after sign-in and claim. Restart `apps/web`'s `bun run dev`.
+  - **Supabase CLI upgrade mid-run (2026-10-12).** Homebrew upgraded the `supabase` CLI 2.116.0 → 2.120.0 at 22:04:13Z, during customize-gathering run 2 (no one in this program ran brew). Resets under 2.120.0 write a newer storage schema (storage migration 72, `drop-bucketid-objname-index`) than the running `storage-api:v1.70.3` container expects, so every Storage upload fails with `42P10` until the stack is restarted under the new CLI. That restart is Alex's (an environment fix; `db:stop` is off-limits to the run). `db:reset` also stopped printing "… on branch main". `db:types` under 2.120.0 reformats `packages/db/src/types/supabase.ts` wholesale.
   - **ENG-752.** The db package's test utils have no remote guard, so a shell with `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` exported would run the RLS suite against production. Never source `.env.demo-seed` outside a subshell, and never run `bun run test` / `bun test` in a shell or terminal tab that ever held production keys. Phase B checks `env | grep -c SUPABASE_SERVICE_ROLE_KEY` prints `0` before any local test.
 - **No remote services in Phase A.** No `supabase link` / `projects` / `orgs`, no `wrangler deploy` or `login`, no `eas`.
   - Package installs (`bun install`, `bun add`) and the GitHub clone are fine: they are what a forker does.
@@ -335,6 +336,22 @@ The step 8 sweep command changed, so a re-run is required (run 2, from a fresh `
 - D12: environment (`CI=1`; `supabase.ts` not committed per the run rules). No change.
 
 Safety reviewer checks passed: no §3 mechanism touched, the original 17 tests changed only by the new argument (plus one added `route_name` assertion), and the summary carries `route_name` only. Commands and steps changed, so a re-run is required (run 2, from a fresh `pre-customize-gathering` clone with 77ec5f1's skills).
+
+**Run 2 (2026-10-12).** On `/Users/alexeisele/dev/withme-scratch/proof-runclub-customize-gathering-r2` (a fresh `pre-customize-gathering` clone with 77ec5f1's skills; HEAD 9b9ec75). START 21:59:52Z, END 22:12:03Z: about 12 min wall. Log: `$NOTES/3-customize-gathering-r2.md`. The result is uncommitted in that clone's working tree, with `supabase/migrations/20261012220349_add_gathering_route_name.sql` untracked.
+- Green, for everything the run touched: the §1 checkpoint (lint, typecheck, Playwright 14/14 after a reset and seed); contract 34; db 73/73 at step 3, before the CLI upgrade; API e2e §1–§17, including the new route checks (`gathering carries its route`, `… summary, route included`); typecheck 8/8; Playwright's `gatherings.spec.ts` (route on the detail header and on the anonymous resolver) and `profile.spec.ts`'s create-a-run.
+- Red, environment, not skill: Homebrew upgraded the Supabase CLI 2.116.0 → 2.120.0 at 22:04:13Z, mid-run (see the known local issues). The gate's reset under 2.120.0 left the running storage container on an older schema, so every upload failed with Storage `42P10`: 7 db tests (6 in the avatars bucket suite, plus `delete_my_account`'s avatar upload; db 66/73 at the gate), API e2e from §18 on (the first `uploadAvatar`), and Playwright's `a photo replaces the initial` (13/14). Nothing gathering- or route-related failed.
+- Deviations, fixed in 94361f8 except where noted:
+  - D1, §2.2/§2.3: with `revoke … from public, anon`, anon's create gets `42501 permission denied for function create_gathering` before the body's `'authentication required'`, so the "untouched" anon test failed. §2.3 now changes that one create assertion to `expect(createError?.code).toBe('42501')` and calls it an argument-and-expectation change, not a safety change. The join assertion and the "everything else untouched" rule stay.
+  - D2, §1: the mobile URL list left out the list screen, which `router.push`es `/gathering/[id]` for its rows. It is named now.
+  - D3, §1: the checkpoint had no reset before Playwright. It now runs `bun run db:reset && bun run db:seed` first.
+  - D4, §2.2: `db:types` under a different CLI rewrote `supabase.ts` (275+/415-). The text now says to check the new field semantically (grep for it), not the diff size. Environment cause: the CLI upgrade.
+  - D5: the CLI upgrade itself. Environment; recorded under the known local issues (this commit), not in the skill.
+  - D6, §1: vertical copy without the word "gathering": the create form's title placeholder (web and mobile), and the seed's title and console text. §1 now lists them with their files, and points at §2.2's seed edit for the title.
+  - D7, §1: test titles counted as string literals. That reading matches the text. No change.
+  - D8, §2.6: how the field joins the display lines. §2.6 now says the lines are composed in both apps' `lib/format-time.ts` and gives the run's pattern (a `…WhenAndWhere()` helper, "Route · when · where", used by rows and the detail header; `gatheringLine()` uses it, "Title · Route · when · where").
+  - Also logged, no change: §2.5 was accurate (nfc-sdk typecheck failed before the mirror, clean after); two perl one-liners failed on brace delimiters (tooling).
+
+Safety reviewer checks: no §3 mechanism touched; of the original 17 tests only the anon test changed (the argument, plus the create expectation now written into §2.3). Fixes D1 and D3 change an expectation and a command, so a third run (the last allowed) is required, from a fresh `pre-customize-gathering` clone with 94361f8's skills, once Alex has restarted the stack under the new CLI.
 
 ---
 
