@@ -576,3 +576,8 @@ a {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
+
+/* An empty, always-mounted status region takes no gap in a flex column. */
+.hint[role='status']:empty {
+  position: absolute;
+}

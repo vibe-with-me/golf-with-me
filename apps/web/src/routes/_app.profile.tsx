@@ -91,11 +91,10 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
           onChange={(e) => setBio(e.target.value)}
         />
       </div>
-      {status ? (
-        <p className="hint" role="status">
-          {status}
-        </p>
-      ) : null}
+      {/* Always mounted: a live region created with its message is not announced. */}
+      <p className="hint" role="status">
+        {status}
+      </p>
       <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
         {busy ? 'Saving…' : 'Save'}
       </button>

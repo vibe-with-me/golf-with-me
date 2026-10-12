@@ -81,7 +81,7 @@
    - `UpdateProfileInputSchema` loses its avatar key entirely; unknown keys are stripped. A path is chosen only by the API.
 
 5. **Client resize: 512px square on both platforms.**
-   - **Web.** `createImageBitmap(file)` (EXIF orientation applied by default), a centre crop to a square, then `drawImage` onto a 512×512 canvas filled first with `--color-surface`, so a transparent PNG never turns black as JPEG. Then `toBlob('image/webp', 0.85)`. Safari silently returns PNG for WebP, so if the blob's type is not `image/webp`, it re-encodes as `image/jpeg` at 0.85. The result is wrapped as a `File`, and the server sniffs it anyway.
+   - **Web.** `createImageBitmap(file)` (EXIF orientation applied by default), a centre crop to a square, then `drawImage` onto a 512×512 canvas filled first with a fixed `#fffdf9` (`PHOTO_FILL`, the light `--color-surface` value from `tokens.css`, not read at upload time), so a transparent PNG never turns black as JPEG and the baked background never depends on the uploader's theme. Then `toBlob('image/webp', 0.85)`. Safari silently returns PNG for WebP, so if the blob's type is not `image/webp`, it re-encodes as `image/jpeg` at 0.85. The result is wrapped as a `File`, and the server sniffs it anyway.
    - **Mobile.** `expo-image-picker` (`launchImageLibraryAsync`, `allowsEditing: true`, `aspect: [1, 1]`; no permission request is needed for the system picker) plus `expo-image-manipulator`'s SDK 52+ API (`ImageManipulator.manipulate(uri).crop(…).resize({ width: 512, height: 512 }).renderAsync()` → `saveAsync({ format: SaveFormat.JPEG, compress: 0.85 })`). JPEG, because it is universal across iOS and Android. Both modules ship in Expo Go SDK 56, so no native build is needed. They are installed with `bunx expo install`; image-picker's config plugin goes in `app.json` with a brand-free photos string, and camera and microphone set to `false`, for future dev builds.
    - **Getting the bytes to the API on mobile.** Each link of this chain was checked in this repo's `node_modules`:
      - RN cannot build a `Blob` from bytes: `BlobManager.createFromParts` throws on `ArrayBuffer`, and Expo's global `fetch().blob()` builds one exactly that way. So the saved file URI is read with `XMLHttpRequest` and `responseType = 'blob'`, which gives a native-backed RN `Blob`.
@@ -2686,6 +2686,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```ts
 const SIZE = 512;
 
+/**
+ * The background baked under a transparent photo. The baked background must
+ * not depend on the uploader's theme: every viewer sees the same file. It
+ * mirrors the light --color-surface token in styles/tokens.css.
+ */
+const PHOTO_FILL = '#fffdf9';
+
 function encode(canvas: HTMLCanvasElement, type: 'image/webp' | 'image/jpeg'): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.85));
 }
@@ -2705,10 +2712,8 @@ export async function squareAvatar(source: Blob): Promise<File> {
     canvas.height = SIZE;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas unavailable');
-    // Flatten transparency onto the card surface, so a PNG never turns black as JPEG.
-    context.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue('--color-surface')
-      .trim();
+    // Flatten transparency onto a fixed light fill, so a PNG never turns black as JPEG.
+    context.fillStyle = PHOTO_FILL;
     context.fillRect(0, 0, SIZE, SIZE);
     context.imageSmoothingQuality = 'high';
     context.drawImage(

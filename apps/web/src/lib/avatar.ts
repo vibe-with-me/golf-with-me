@@ -13,6 +13,13 @@ export function avatarSrc(path: string | null): string | null {
 
 const SIZE = 512;
 
+/**
+ * The background baked under a transparent photo. The baked background must
+ * not depend on the uploader's theme: every viewer sees the same file. It
+ * mirrors the light --color-surface token in styles/tokens.css.
+ */
+const PHOTO_FILL = '#fffdf9';
+
 function encode(canvas: HTMLCanvasElement, type: 'image/webp' | 'image/jpeg'): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.85));
 }
@@ -32,10 +39,8 @@ export async function squareAvatar(source: Blob): Promise<File> {
     canvas.height = SIZE;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas unavailable');
-    // Flatten transparency onto the card surface, so a PNG never turns black as JPEG.
-    context.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue('--color-surface')
-      .trim();
+    // Flatten transparency onto a fixed light fill, so a PNG never turns black as JPEG.
+    context.fillStyle = PHOTO_FILL;
     context.fillRect(0, 0, SIZE, SIZE);
     context.imageSmoothingQuality = 'high';
     context.drawImage(
