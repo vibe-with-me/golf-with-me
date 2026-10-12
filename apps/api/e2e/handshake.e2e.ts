@@ -243,4 +243,130 @@ assert(
   'a tag pointed at a deleted gathering degrades to the profile card',
 );
 
+// === profile: the photo, my tags' status, account deletion ===
+const { AVATAR_MAX_BYTES, avatarPublicUrl } = await import('@withme/contract');
+const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const codeOf = (e: { code?: string }) => e.code ?? 'error';
+// Leading bytes only: the API sniffs magic numbers; Storage never decodes.
+const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
+const webpBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x1a, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x4c]);
+const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+// 18. upload: stored under the caller's folder, public by path, carried by the card
+const uploaded = await aliceApp.profile.uploadAvatar({
+  file: new File([jpegBytes], 'me.jpg', { type: 'image/jpeg' }),
+});
+const firstPath = uploaded.profile.avatar_path;
+assert(
+  firstPath !== null && new RegExp(`^${alice.id}/[0-9a-f-]{36}\\.jpg$`).test(firstPath),
+  `the photo is stored under the caller's folder (got ${firstPath})`,
+);
+const served = await fetch(avatarPublicUrl(SUPABASE_URL, firstPath!));
+assert(
+  served.ok && new Uint8Array(await served.arrayBuffer()).length === jpegBytes.length,
+  'the photo is publicly readable by its path',
+);
+const withAvatar = await anon.resolve(uid);
+assert(
+  withAvatar.status === 'claimed' && withAvatar.profile.avatar_path === firstPath,
+  'the resolved card carries avatar_path',
+);
+const replaced = await aliceApp.profile.uploadAvatar({
+  file: new File([webpBytes], 'me.webp', { type: 'image/webp' }),
+});
+assert(replaced.profile.avatar_path?.endsWith('.webp') === true, 'a WebP replaces the photo');
+assert(!(await fetch(avatarPublicUrl(SUPABASE_URL, firstPath!))).ok, 'the replaced file is deleted');
+const png = await aliceApp.profile
+  .uploadAvatar({ file: new File([pngBytes], 'me.png', { type: 'image/png' }) })
+  .then(() => 'stored', codeOf);
+assert(png === 'BAD_REQUEST', `a PNG is refused (got ${png})`);
+const huge = await aliceApp.profile
+  .uploadAvatar({
+    file: new File([new Uint8Array(AVATAR_MAX_BYTES + 1)], 'big.jpg', { type: 'image/jpeg' }),
+  })
+  .then(() => 'stored', codeOf);
+assert(huge === 'BAD_REQUEST', `an oversized file is refused (got ${huge})`);
+// Past the cap plus the framing slack, bodyLimit refuses by the declared Content-Length, before reading.
+const tooLarge = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
+  method: 'POST',
+  headers: {
+    authorization: `Bearer ${session.session?.access_token ?? ''}`,
+    'content-type': 'multipart/form-data; boundary=e2e',
+  },
+  body: new Uint8Array(AVATAR_MAX_BYTES + 65_537),
+});
+assert(tooLarge.status === 413, `an oversized declared length is a 413 before the body is read (got ${tooLarge.status})`);
+// A stream body goes out with Transfer-Encoding: chunked and no Content-Length (as React Native may
+// send), so bodyLimit has nothing declared to judge and counts the streamed bytes instead. One byte
+// past the limit, so the count trips on the last chunk: under wrangler dev, chunks left unread when
+// the 413 goes out wreck the next request on the dev server.
+const chunkedSize = AVATAR_MAX_BYTES + 65_537;
+let streamed = 0;
+const tooLargeChunked = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
+  method: 'POST',
+  headers: {
+    authorization: `Bearer ${session.session?.access_token ?? ''}`,
+    'content-type': 'multipart/form-data; boundary=e2e',
+  },
+  body: new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (streamed === chunkedSize) return controller.close();
+      const size = Math.min(65_536, chunkedSize - streamed);
+      streamed += size;
+      controller.enqueue(new Uint8Array(size));
+    },
+  }),
+  duplex: 'half',
+}).then((r) => r.status, codeOf);
+assert(
+  tooLargeChunked === 413,
+  `an oversized chunked body is a 413 once the count passes the limit (got ${tooLargeChunked})`,
+);
+const secondPath = replaced.profile.avatar_path!;
+const cleared = await aliceApp.profile.removeAvatar();
+assert(
+  cleared.profile.avatar_path === null &&
+    !(await fetch(avatarPublicUrl(SUPABASE_URL, secondPath))).ok,
+  'removing the photo clears the path and deletes the file',
+);
+
+// 19. my tags: off and back on through the same update
+await aliceApp.tags.update({ uid: gatheringUid, status: 'disabled' });
+assert((await anon.resolve(gatheringUid)).status === 'disabled', 'tags.update turns a tag off');
+const backOn = await aliceApp.tags.update({ uid: gatheringUid, status: 'claimed' });
+assert(
+  backOn.tag.status === 'claimed' && (await anon.resolve(gatheringUid)).status === 'claimed',
+  'and back on',
+);
+const release = await aliceApp.tags
+  .update({ uid: gatheringUid, status: 'unclaimed' as 'claimed' })
+  .then(() => 'updated', codeOf);
+assert(release === 'BAD_REQUEST', `an owner cannot release a tag (got ${release})`);
+
+// 20. account deletion: pointer cleared, files swept (Storage API, own JWT), then the definer RPC
+const carol = await createTestUser('E2E Carol');
+const { data: carolSession } = await carol.client.auth.getSession();
+const carolToken = carolSession.session?.access_token ?? '';
+const carolApp = appClientFor(carolToken);
+const carolUid = await provisionTag();
+await new NfcClient({ baseUrl: API_URL, getAuthToken: () => carolToken }).claim(carolUid);
+const carolPhoto = (
+  await carolApp.profile.uploadAvatar({ file: new File([jpegBytes], 'c.jpg', { type: 'image/jpeg' }) })
+).profile.avatar_path!;
+await carolApp.requests.send({ recipient_id: bob.id });
+assert(
+  (await bobApp.requests.listPending()).requests.some((r) => r.requester.id === carol.id),
+  "carol's request reaches bob",
+);
+const deleted = await carolApp.profile.deleteAccount();
+assert(deleted.ok, 'deleteAccount acks');
+const released = await anon.resolve(carolUid);
+assert(released.status === 'unclaimed', `her tag is released (got ${released.status})`);
+assert(!(await fetch(avatarPublicUrl(SUPABASE_URL, carolPhoto))).ok, 'her photo file is gone');
+assert(
+  !(await bobApp.requests.listPending()).requests.some((r) => r.requester.id === carol.id),
+  'her pending request is gone',
+);
+assert((await carolApp.profile.get()).profile === null, 'her still-valid token reads no profile');
+
 console.log('\nhandshake e2e: all checks passed');

@@ -177,7 +177,7 @@
     | db (RLS + storage) | 57 | 72 (tags +3 pins, avatars +8, account +4) |
     | contract | 24 | 31 |
     | Playwright | 10 | 14 (`connections.spec.ts` +1, `profile.spec.ts` +3) |
-    | API e2e checks | 39 | 57 (§18–20) |
+    | API e2e checks | 39 | 58 (§18–20) |
 
     The `nfc-sdk` count is unchanged.
 
@@ -1995,7 +1995,7 @@ assert((await carolApp.profile.get()).profile === null, 'her still-valid token r
 - `bun run --cwd apps/api typecheck` covers `e2e/`.
 
 **Expected:**
-- 57 `ok:` lines.
+- 58 `ok:` lines.
 - The run ends `handshake e2e: all checks passed`.
 
 **Commit**
@@ -4775,7 +4775,7 @@ cd apps/api && bun run e2e; cd ../..   # needs `bun run dev` for the API in anot
 - contract `31 pass`;
 - nfc-sdk unchanged and green;
 - Playwright `14 passed`;
-- API e2e: 57 `ok:` lines ending `handshake e2e: all checks passed`.
+- API e2e: 58 `ok:` lines ending `handshake e2e: all checks passed`.
 
 Paste the summary lines into the PR body.
 
