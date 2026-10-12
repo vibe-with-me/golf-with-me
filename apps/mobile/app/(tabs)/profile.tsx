@@ -21,7 +21,6 @@ export default function ProfileScreen() {
   const [exists, setExists] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export default function ProfileScreen() {
           setExists(true);
           setDisplayName(profile.display_name);
           setBio(profile.bio ?? '');
-          setAvatarUrl(profile.avatar_url ?? '');
         }
         setLoaded(true);
       })
@@ -54,7 +52,6 @@ export default function ProfileScreen() {
       await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
-        avatar_url: avatarUrl.trim() === '' ? null : avatarUrl.trim(),
       });
       const redirect = safeRedirect(params.redirect);
       if (redirect) {
@@ -66,7 +63,7 @@ export default function ProfileScreen() {
       setExists(true);
       setStatus('Saved.');
     } catch {
-      setError('Could not save. Avatar URLs must be https, and names 80 characters or less.');
+      setError('Could not save. Check the fields and try again.');
     } finally {
       setBusy(false);
     }
@@ -104,14 +101,6 @@ export default function ProfileScreen() {
             maxLength={280}
             multiline
             placeholder="A line or two about you"
-          />
-          <Field
-            label="Avatar URL"
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            autoCapitalize="none"
-            placeholder="https://…"
-            keyboardType="url"
           />
           {status ? (
             <Text accessibilityRole="text" style={{ color: t.inkMuted }}>

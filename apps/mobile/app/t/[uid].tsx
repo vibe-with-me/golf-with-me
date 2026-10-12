@@ -99,7 +99,7 @@ export default function ResolveScreen() {
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card settle>
-          <Avatar name={result.profile.display_name} url={result.profile.avatar_url} />
+          <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
           <Title>{result.profile.display_name}</Title>
           {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
           <Muted>{gatheringLine(result.gathering)}</Muted>
@@ -112,7 +112,7 @@ export default function ResolveScreen() {
   return (
     <View style={[styles.page, { backgroundColor: t.bg }]}>
       <Card settle>
-        <Avatar name={result.profile.display_name} url={result.profile.avatar_url} />
+        <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
         <Title>{result.profile.display_name}</Title>
         {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
         <ConnectAction profileId={result.profile.id} uid={result.uid} />

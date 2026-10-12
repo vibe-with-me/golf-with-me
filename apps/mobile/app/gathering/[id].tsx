@@ -254,7 +254,7 @@ function GatheringDetail({
             key={member.profile.id}
             style={[styles.row, { backgroundColor: t.surface, borderColor: t.border }]}
           >
-            <Avatar name={member.profile.display_name} url={member.profile.avatar_url} size={44} />
+            <Avatar name={member.profile.display_name} path={member.profile.avatar_path} size={44} />
             <View style={styles.rowBody}>
               <Text style={[styles.rowName, { color: t.ink }]}>{member.profile.display_name}</Text>
               {member.profile.bio ? (

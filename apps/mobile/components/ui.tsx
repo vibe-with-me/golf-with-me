@@ -10,6 +10,7 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
+import { avatarSrc } from '../lib/avatar';
 import { fonts, radius, space, TAP_TARGET, useTokens } from '../lib/tokens';
 
 /** The card surface. `settle` plays the one animation in the motion budget. */
@@ -143,14 +144,15 @@ export function Field({
 
 export function Avatar({
   name,
-  url,
+  path,
   size = 76,
 }: {
   name: string;
-  url: string | null;
+  path: string | null;
   size?: number;
 }) {
   const t = useTokens();
+  const url = avatarSrc(path);
   if (url) {
     return (
       <Image

@@ -2,13 +2,10 @@ import type { ConnectRequest, Connection } from '@withme/contract';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Button, ErrorText, Muted } from '../../components/ui';
-import { api } from '../../lib/api';
+import { api, type Api } from '../../lib/api';
 import { fonts, radius, space, useTokens } from '../../lib/tokens';
 
-interface BlockRow {
-  user: { id: string; display_name: string; avatar_url: string | null; bio: string | null };
-  created_at: string;
-}
+type BlockRow = Awaited<ReturnType<Api['app']['blocks']['list']>>['blocks'][number];
 
 export default function ConnectionsScreen() {
   const t = useTokens();
@@ -60,7 +57,7 @@ export default function ConnectionsScreen() {
 
   const row = (key: string, profile: BlockRow['user'], actions: React.ReactNode) => (
     <View key={key} style={[styles.row, { backgroundColor: t.surface, borderColor: t.border }]}>
-      <Avatar name={profile.display_name} url={profile.avatar_url} size={44} />
+      <Avatar name={profile.display_name} path={profile.avatar_path} size={44} />
       <View style={styles.rowBody}>
         <Text style={[styles.rowName, { color: t.ink }]}>{profile.display_name}</Text>
         {profile.bio ? (
