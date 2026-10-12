@@ -507,6 +507,27 @@ The fixes are wording only and the run was green end to end, so no re-run is nee
 
 **Then:** the deviation procedure. There is no clone commit: provisioning changes no files in the fork. Tag `pre-gate` anyway.
 
+**Run 1 (2026-10-12).** On `$LINE` at `pre-provision-tags` (8929ce9). START 23:28:38Z, END 23:35:15Z: about 7 min wall. Log: `$NOTES/5-provision-tags-r1.md`. The follower reset and seeded the stack first for a clean start, piped every UID-printing command through `tee` to the log and a redacting `sed`, and wrote the dev-server logs into the batch directory. Every expected result came out:
+- §1's stdout word for word; exactly the two files, both `-rw-------`, CSV header `uid,encode_url`; `git status --porcelain` empty and no `provisioned-tags.*` at the fork root; three `|unclaimed` rows.
+- End to end: signed out, the encode URL went to `/login?returnTo=%2Fclaim%2F…`; Lin signed in and claimed, and the page became Lin's card with `6:15/km` and without `@lin.runs` (the cross-skill check passed). A signed-out viewer, and a signed-in non-owner, saw Lin's card with "Connect" and no claim offer. A stale claim got "This tag has already been claimed."
+- §5: the insert returned the UID (`INSERT 0 1`); a re-run returned `(0 rows)` / `INSERT 0 0`; the row is `unclaimed`; `/t/<chip>` gave `307` to `/claim/<chip>`.
+- §4's retirement: the batch directory (CSV, HTML, dev-server logs) deleted, and its empty parent. Then a reset and seed; the fork's tree clean.
+
+One ENG-751 hang: the signed-out SSR of the newly claimed card never returned under `vite dev`; a restart of `apps/web`'s dev server fixed it (1.7 s after). Because of it the stale-claim race was repeated on the second batch UID.
+
+App observation for the report (not the skill): vite logged a React hydration mismatch on `/login?returnTo=/claim/…`. The server rendered the loading `div` (`aria-busy`), the client the form.
+
+Deviations, fixed in d81acb5 except where noted:
+- D8, §5: `$DB` "from §1" was set only inside a checkpoint snippet. §1 now names it as a normal step, and §5 derives it again for a fresh shell.
+- D10, §5: the `307` to `/claim` proves nothing, since unknown UIDs redirect the same way. §5 now checks a count of the `unclaimed` row (`1`).
+- D2/D3, §1: the local command prints the UIDs, and so do the `psql` checkpoint, the pages and the dev-server logs. An agent now sends stdout to `provision.log`, reads a redacted view, and puts the dev-server logs in `$OUT` so the retirement deletes them.
+- D6, §1: a brand-new account meets "First, your card" (with the required profile fields) before "Claim this tag". Now said; the seeded identity is complete.
+- D4, §1: the ENG-751 hang and its restart are now named in the end-to-end check.
+- D11, §4: removing the batch directory's empty parent is now allowed in one phrase.
+- D1 (the reset before seeding), D5 (the race repeated on another UID), D7 (the fork's identity, covered by "or your rebranded identity"), D9 (the chip UID came from the brief): follower choices or environment, no change.
+
+§5's `$DB` is a command change, so a re-run is required: run 2 of at most 3, on `$LINE` with d81acb5's skill.
+
 ---
 
 ### Task 6: The full gate on the finished fork (program manager or a verification subagent; not literal-following)
