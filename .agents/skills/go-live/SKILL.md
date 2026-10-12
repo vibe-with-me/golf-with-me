@@ -102,6 +102,7 @@ VITE_API_URL=https://<api-worker>.workers.dev
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 VITE_DEMO_CREDENTIALS=<demo email> / <demo password>
+VITE_STORE_URL=https://<your-store>        # optional: the Merch tab
 ```
 
 ```sh
