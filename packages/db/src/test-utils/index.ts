@@ -5,7 +5,7 @@ import type { Db } from '../index.ts';
 // Local-stack shared defaults (supabase start prints these; they are the same
 // on every machine). Override via env for any other target.
 export const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321';
-const ANON_KEY =
+export const ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
