@@ -43,7 +43,9 @@ The worked example: a card-tier `affiliation` ("Riverside GC", "Chiefs",
 "Acme Corp"; 1–80 chars; required for completion) and a connections-tier
 `contact_handle` (1–120 chars; optional). Rename both to your vertical's
 words before you start and keep the shapes. A fork with only one tier skips
-the other tier's lines.
+the other tier's lines. Connections-only: still redefine
+`accept_connect_request` (for `details`), skip `resolve_tag`. Card-only:
+skip `details` everywhere, including `ConnectionSchema`.
 
 ## The map
 
@@ -60,15 +62,11 @@ the other tier's lines.
 | Gate | `isProfileComplete` (contract) → web `routes/_app.tsx` (`ShellRoute`), mobile `app/(tabs)/_layout.tsx` | — |
 | Seed / e2e | `supabase/seed/index.ts`; `apps/api/e2e/handshake.e2e.ts`; every profile-creating step in `apps/web/e2e/` (`helpers.ts`, `handshake.spec.ts`, `gatherings.spec.ts`, `shell.spec.ts`) | same seed block and API e2e; `apps/web/e2e/handshake.spec.ts` |
 
-Outside the tabs, `apps/mobile/app/gathering/[id].tsx` (join),
-`apps/mobile/app/t/[uid].tsx` (connect), and `apps/web/src/routes/t.$uid.tsx`
-(connect) also call `app.profile.get`, and check only that a profile exists
-(`!profile`) before acting. (`claim.$uid.tsx` on both platforms calls it
-too, and asks for the required fields itself: §6, §7.) They
-intentionally skip the completion gate: it is a UX gate on entering the
-shell, not a check every screen repeats, and an incomplete profile is
-still a valid card. Their `const { profile } = …` keeps working with the
-new `{ profile, details }` output; leave the checks as they are.
+Outside the tabs, mobile `gathering/[id].tsx` (join) and `t/[uid].tsx`
+(connect) and web `t.$uid.tsx` (connect) check only `!profile` before
+acting: the gate is for entering the shell, and an incomplete profile is
+still a valid card. Leave them as they are (`const { profile } = …` still
+works). The claim pages ask for the required fields themselves (§6, §7).
 
 ## 1. Contract
 
@@ -112,20 +110,25 @@ export const REQUIRED_PROFILE_FIELDS = ['display_name', 'affiliation'] as const 
 export function isProfileComplete(profile: Profile | null | undefined): profile is Profile {
   if (!profile) return false;
   return REQUIRED_PROFILE_FIELDS.every((field) => {
-    const value = profile[field];
-    return typeof value === 'string' && value.trim() !== '';
+    const value: unknown = profile[field];
+    return typeof value === 'string' ? value.trim() !== '' : value !== null && value !== undefined;
   });
 }
 ```
 
-`packages/contract/src/schemas/connection.ts`: `ConnectionSchema` gains
+A string counts once it is not blank; any other type (a numeric handicap,
+an enum) counts once it is set, so a handicap of 0 completes.
+
+`packages/contract/src/schemas/connection.ts` (add `ProfileDetailsSchema`
+to its import from `./profile.ts`): `ConnectionSchema` gains
 `details: ProfileDetailsSchema.nullable()` — a connection is the one place
 the other person's details travel. It is `null` when they have no
 `profile_details` row, and `{ contact_handle: null }` when their row holds
 no handle (every Profile-page save writes the row, §6); clients read
 `details?.contact_handle`, so the two look the same.
 
-`packages/contract/src/contract/app.ts`: `getProfile`'s output becomes
+`packages/contract/src/contract/app.ts` (add `ProfileDetailsSchema` to its
+import from `../schemas/profile.ts`): `getProfile`'s output becomes
 `z.object({ profile: ProfileSchema.nullable(), details: ProfileDetailsSchema.nullable() })`,
 and `updateProfile`'s becomes
 `z.object({ profile: ProfileSchema, details: ProfileDetailsSchema.nullable() })`.
@@ -186,6 +189,11 @@ describe('profile tiers', () => {
     expect(isProfileComplete({ display_name: 'Alex', affiliation: '  ' } as Profile)).toBe(false);
     expect(isProfileComplete({ display_name: 'Alex', affiliation: 'Riverside GC' } as Profile)).toBe(true);
   });
+
+  it('a typed required value counts when present, even 0', () => {
+    // A fork's numeric field (a handicap) in REQUIRED_PROFILE_FIELDS completes at 0.
+    expect(isProfileComplete({ display_name: 'Alex', affiliation: 0 } as unknown as Profile)).toBe(true);
+  });
 });
 ```
 
@@ -193,7 +201,7 @@ describe('profile tiers', () => {
 file's import from `'../src/index.ts'`; `PublicProfileSchema` and
 `UpdateProfileInputSchema` are already there).
 
-**Checkpoint:** `cd packages/contract && bun test` — all green, four more
+**Checkpoint:** `cd packages/contract && bun test` — all green, five more
 than before.
 
 ## 2. RLS tests, red first
@@ -494,8 +502,8 @@ assertion passes against a table that does not exist, which is a false
 red-phase green.
 
 - `enumeration.test.ts`, "anon cannot select any rows from any handshake
-  table": do not add `'profile_details'` to the loop's list (its
-  `data ?? []` would pass on a missing table). After the loop, add:
+  table": do not add `'profile_details'` to the loop's list. After the
+  loop, add:
 
   ```ts
       // Connections tier: anon holds Supabase's default select grant and no
@@ -548,6 +556,8 @@ red-phase green.
   `delete_my_account`, the `app.profile.deleteAccount` comment, or either
   client's `DELETE_COPY` (`components/AccountSection.tsx`): the details
   row is part of "your profile" and goes with it.
+
+Have the local stack up (`bun run db:start`), then `bun run db:reset`.
 
 **Checkpoint (red):** `cd packages/db && bun test` — the fourteen new
 tests, the cascade test, the first `delete_my_account` test in
@@ -655,14 +665,23 @@ grep -ln "'display_name', v_profile.display_name" supabase/migrations/*.sql
 ```
 
 It lists every file that ever defined a card builder, not only the newest
-(in the starter: the initial schema, `add_gatherings`, and `avatars`). In
-the starter the functions are `public.resolve_tag` and
+(in the starter: the initial schema, `add_gatherings`, and `avatars`). To
+read the function names, list each hit with the function definitions
+around it; every `'display_name'` line belongs to the nearest
+`function public.…` line above it:
+
+```sh
+grep -nE "create (or replace )?function public\.|'display_name', v_profile\.display_name" \
+  $(grep -l "'display_name', v_profile.display_name" supabase/migrations/*.sql)
+```
+
+In the starter the functions are `public.resolve_tag` and
 `public.accept_connect_request`. Find each one's **newest** definition,
 the last file that defines it:
 
 ```sh
-grep -l 'function public.resolve_tag' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
-grep -l 'function public.accept_connect_request' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
+grep -lE 'create (or replace )?function public\.resolve_tag' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
+grep -lE 'create (or replace )?function public\.accept_connect_request' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
 ```
 
 In the starter both print `supabase/migrations/20261011120000_avatars.sql`.
@@ -684,8 +703,11 @@ plpgsql`, `stable` or `volatile`, `security definer`, `set search_path =
     -- connections tier is the new connection's to read. No row: stays null.
     select jsonb_build_object('contact_handle', d.contact_handle) into v_details
       from public.profile_details d
-     where d.profile_id = v_req.requester_id;
+     where d.profile_id = v_req.requester_id
+       and d.tenant_id = v_req.tenant_id;
   ```
+
+  (A definer function bypasses RLS, so it states the tenant seam itself.)
 
   and add `'details', v_details` beside `'profile'` in the returned object.
 
@@ -837,9 +859,7 @@ them. `uploadAvatar`, `removeAvatar`, and `deleteAccount` need none either:
 the photo endpoints keep returning `{ profile }` alone.
 
 **Checkpoint:** `bunx turbo run typecheck --continue` — `@withme/api` and
-`@withme/db` green; `@withme/nfc` red until §5. (Plain `bun run typecheck`
-stops scheduling at the first failure: uncached, `@withme/nfc` fails and
-`@withme/api` never runs.)
+`@withme/db` green; `@withme/nfc` red until §5.
 
 ## 5. SDK mirror (card tier only)
 
@@ -988,14 +1008,20 @@ No new CSS: `.hint`, `.sub`, and `.field` exist. Tokens only.
 
 ```tsx
 import { isProfileComplete } from '@withme/contract';
-import { router, Tabs } from 'expo-router';
-import { useEffect } from 'react';
+import { router, Tabs, usePathname } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { api } from '../../lib/api';
 import { useSession } from '../../lib/use-session';
 
 // inside TabsLayout, before the return:
 const { session } = useSession();
 const userId = session?.user.id;
+// Like web's `pathname !== '/profile'`: navigating to the screen you are on
+// replaces its params and would drop `redirect`. A ref, so the async check
+// reads the current path.
+const pathname = usePathname();
+const pathRef = useRef(pathname);
+pathRef.current = pathname;
 // A failed check never locks anyone out: the screens' own states handle errors.
 useEffect(() => {
   if (!userId) return;
@@ -1003,7 +1029,9 @@ useEffect(() => {
   api.app.profile
     .get()
     .then(({ profile }) => {
-      if (live && !isProfileComplete(profile)) router.navigate('/profile');
+      if (live && !isProfileComplete(profile) && pathRef.current !== '/profile') {
+        router.navigate('/profile');
+      }
     })
     .catch(() => undefined);
   return () => {
@@ -1012,30 +1040,36 @@ useEffect(() => {
 }, [userId]);
 ```
 
+Like web's `pathname !== '/profile'`: navigating to the screen you are on
+replaces its params and would drop `redirect`. Connect (`t/[uid].tsx`) and
+Join (`gathering/[id].tsx`) push `/profile` with a `redirect` for a user
+with no profile; when the tabs were not mounted yet, that push mounts them,
+the gate fires, and without the path check Save stays on Profile instead
+of returning to the tag.
+
 - `apps/mobile/app/(tabs)/profile.tsx`. The screen is one identity `Card`
   (`Title`, `AvatarPicker` once a profile exists, the Name and Bio
   `Field`s, the status and error lines, the Save `Button`), then
-  `<MyTags />`, then `<AccountSection />`; only the `Card` changes. Add
-  `affiliation` and `contact` state. `load` reads
-  `({ profile, details }: { profile: Profile | null; details: ProfileDetails | null })`
-  (its annotation today names `profile` alone) and sets `affiliation` from
-  `profile.affiliation` inside its `if (profile)`, and `contact` from
-  `details?.contact_handle ?? ''` after it. The imports become
-  `import { isProfileComplete, type Profile, type ProfileDetails } from '@withme/contract'`,
-  and `Muted` joins the `../../components/ui` import. `save` sends the same
-  payload as web, keeping the result:
-  `const saved = await api.app.profile.update({ … })`. Leave the `exists`
-  state alone: `AvatarPicker` and `MyTags` still key on it. For the
-  `Title`, keep the loaded or saved `Profile` in state (`load` has it, and
-  `api.app.profile.update` returns it) and apply web's rule with
-  `isProfileComplete`. Do not name that state `profile`: `load`'s
-  destructure and `AvatarPicker`'s `onChange={(profile) => …}` would shadow
-  it, and `oxlint --deny-warnings` fails on `no-shadow`. Use
-  `const [current, setCurrent] = useState<Profile | null>(null);`, then
-  `setCurrent(profile)` in `load`, `setCurrent(saved.profile)` after the
-  update in `save`, and
-  `{!current ? 'Create your profile' : isProfileComplete(current) ? 'Your profile' : 'Finish your profile'}`.
-  After the Bio `Field`:
+  `<MyTags />`, then `<AccountSection />`; only the `Card` changes.
+  - Imports: `import { isProfileComplete, type Profile, type ProfileDetails } from '@withme/contract'`;
+    `Muted` joins the `../../components/ui` import.
+  - State: `affiliation` and `contact` (strings), and
+    `const [current, setCurrent] = useState<Profile | null>(null);` for the
+    loaded or saved row. Not named `profile`: `load`'s destructure and
+    `AvatarPicker`'s `onChange={(profile) => …}` would shadow it, and
+    `oxlint --deny-warnings` fails on `no-shadow`. Leave `exists` alone:
+    `AvatarPicker` and `MyTags` still key on it.
+  - `load` reads
+    `({ profile, details }: { profile: Profile | null; details: ProfileDetails | null })`;
+    inside its `if (profile)`, `setCurrent(profile)` and
+    `setAffiliation(profile.affiliation ?? '')`; after it,
+    `setContact(details?.contact_handle ?? '')`.
+  - `save`: `const saved = await api.app.profile.update({ … })` with the
+    same payload as web, then `setCurrent(saved.profile)`.
+  - `Title`:
+    `{!current ? 'Create your profile' : isProfileComplete(current) ? 'Your profile' : 'Finish your profile'}`.
+  - Save: `disabled={busy || !displayName.trim() || !affiliation.trim()}`.
+  - After the Bio `Field`:
 
 ```tsx
 <Field
@@ -1056,7 +1090,6 @@ useEffect(() => {
 <Muted>Only your connections see your contact.</Muted>
 ```
 
-  with Save disabled until name and affiliation are filled.
 - `apps/mobile/app/claim/[uid].tsx`: an `affiliation` state and the
   Affiliation `Field` (same props as above) after Name in the first-profile
   form, sent with the name as on web; Continue disabled until both are
@@ -1076,7 +1109,12 @@ useEffect(() => {
 (`cd apps/mobile && bunx expo start --ios --clear`, API dev server up): a
 new account lands on Profile and cannot be left incomplete without being
 sent back on the next tabs mount; two connected accounts see each other's
-contact in Connections; a tag resolve shows the affiliation and no contact.
+contact in Connections; a tag resolve shows the affiliation and no contact;
+and, cold, Connect returns to the tag: signed out, open a tag link whose
+card shows Connect (`/t/<uid>`), tap Connect, sign up, and back on the tag
+tap Connect again; Profile opens, and Save after filling it lands on the
+tag again, not on Profile. (The seeded tag points at a gathering, so it
+shows Join, which takes the same path through `gathering/[id].tsx`.)
 
 On the local stack a brand-new sign-up can land on Events instead. The
 first API calls made within a second of sign-up can hit PostgREST's
@@ -1112,7 +1150,7 @@ for (const [user, affiliation, contact_handle] of [
 
 `apps/api/e2e/handshake.e2e.ts`:
 
-- after §8 (profile round-trip):
+- after the `// 8. profile get/update round-trip` block:
 
 ```ts
 // 8b. extend-profile: the card tier rides every card, the connections tier only a connection
@@ -1129,14 +1167,15 @@ assert(
 await aliceApp.profile.update({ details: { contact_handle: '@e2e.alice' } });
 ```
 
-- in §9, after the inbox assertions:
+- in the `// 9. consent flow: bob -> alice, alice accepts` block, after
+  the inbox assertions:
 
 ```ts
 assert(inbox.requests[0]?.requester.affiliation === 'E2E Club', 'the requester card carries the card tier');
 assert(!JSON.stringify(inbox).includes('@e2e.bob'), 'a pending request never carries the connections tier');
 ```
 
-- in §9, after `accepted` and the two lists:
+- in the same `// 9.` block, after `accepted` and the two lists:
 
 ```ts
 assert(accepted.connection.details?.contact_handle === '@e2e.bob', 'accept hands the new connection the details');
@@ -1174,7 +1213,7 @@ The verification gate from `docs/the-slice.md`, then
 `cd apps/api && bun run e2e` (API dev server in another shell) ending
 `handshake e2e: all checks passed`, with the eight new extend-profile lines
 among the checks, and `cd apps/web && bun run test:e2e`. In the build this
-was distilled from: db fourteen and contract four over the baseline, the
+was distilled from: db fourteen and contract five over the baseline, the
 API e2e green, and every Playwright spec green on the first run.
 
 ## What must not move
@@ -1186,11 +1225,13 @@ API e2e green, and every Playwright spec green on the first run.
    `resolve_tag`, a pending request, a gathering member list, or a block
    list.
 3. `profile_details_select` admits the owner, or an accepted connection
-   with no block in either direction — nothing else. A gathering, request,
-   or "nearby" clause makes the field card tier: move the field instead.
+   with no block in either direction — nothing else, and no policy
+   `to anon` or `to public` on `profile_details`. A gathering, request, or
+   "nearby" clause makes the field card tier: move the field instead.
 4. Writes are the owner's own row only; `profile_id` and `tenant_id` stay
    out of the update grant; there is no delete policy (account deletion
-   cascades through the foreign key).
+   cascades through the foreign key). Never `.upsert()` `profile_details`,
+   and never widen the update grant to make it work.
 5. Exactly one definer function reads `profile_details`:
    `accept_connect_request`, after it has inserted the connection.
    `resolve_tag` never does.
@@ -1201,11 +1242,24 @@ API e2e green, and every Playwright spec green on the first run.
    pre-existing row stay valid. `isProfileComplete` is the only definition;
    both clients import it from the contract.
 8. The new table carries the tenant seam, and every policy predicates on it.
+9. Any later migration that redefines `resolve_tag` or
+   `accept_connect_request` copies the newest definition (this migration
+   once it exists). An older body silently drops the card tier and the
+   `details` hand-off.
 
 ## Scope notes
 
 - Typed fields (a numeric handicap, an enum) take the same steps; the CHECK
   mirrors the zod rule (golf-with-me used a numeric range CHECK).
+  `isProfileComplete` already accepts a set non-string value.
+- A required field (in `REQUIRED_PROFILE_FIELDS`) also needs its input and
+  its `disabled` condition in both Profile forms and both claim forms;
+  otherwise the gate sends people to a form that cannot complete them.
+- On a fork with live users, every existing account lands on "Finish your
+  profile" once after the deploy that makes a new field required. If that
+  is unwelcome, backfill the column in the migration, or ship the field
+  optional first and add it to `REQUIRED_PROFILE_FIELDS` in a later
+  release.
 - Per-field visibility toggles — the owner choosing a tier per field — are a
   third tier with their own policy and tests; not in this skill.
 - A multi-step onboarding flow: point the gate at a focused route outside
