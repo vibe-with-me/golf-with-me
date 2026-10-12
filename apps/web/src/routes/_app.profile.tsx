@@ -1,6 +1,7 @@
 import type { Profile } from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
+import { AccountSection } from '../components/AccountSection.tsx';
 import { AvatarField } from '../components/AvatarField.tsx';
 import { shellStates } from '../components/CalmStates.tsx';
 import { MyTags } from '../components/MyTags.tsx';
@@ -8,7 +9,6 @@ import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { safeReturnTo } from '../lib/auth-guard.ts';
 import { settled } from '../lib/loaded.ts';
-import { getSupabase } from '../lib/supabase.ts';
 
 /** Profile: identity (photo, name, bio), My tags, Account. */
 export const Route = createFileRoute('/_app/profile')({
@@ -39,6 +39,8 @@ function ProfilePage() {
     <div className="stack">
       <IdentityForm profile={profile} />
       {profile ? <MyTags tags={tags} gatherings={gatherings} /> : null}
+      {/* For every visitor: a session without a profile can still sign out or delete. */}
+      <AccountSection />
     </div>
   );
 }
@@ -76,11 +78,6 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
     }
   }
 
-  async function signOut() {
-    await getSupabase().auth.signOut();
-    navigate({ to: '/' });
-  }
-
   return (
     <form className="card" onSubmit={save}>
       <h1>{profile ? 'Your profile' : 'Create your profile'}</h1>
@@ -112,9 +109,6 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
       </p>
       <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
         {busy ? 'Saving…' : 'Save'}
-      </button>
-      <button className="btn btn--quiet" type="button" onClick={signOut}>
-        Sign out
       </button>
     </form>
   );
