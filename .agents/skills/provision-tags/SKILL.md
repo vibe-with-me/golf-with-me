@@ -89,7 +89,7 @@ demo user; the seed is local-only and safe to re-run). From the repo root:
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
-OUT="$HOME/withme-tags/local-$(date +%Y%m%d-%H%M%S)"
+OUT="$HOME/<wordmark>-tags/local-$(date +%Y%m%d-%H%M%S)"
 (
   set -e
   umask 077
@@ -99,6 +99,10 @@ OUT="$HOME/withme-tags/local-$(date +%Y%m%d-%H%M%S)"
   bun run "$REPO/supabase/seed/provision.ts" --count 3 --base-url http://localhost:3000
 )
 ```
+
+`<wordmark>` is your brand's lowercase wordmark (make-it-yours): the
+starter's is `withme`, so its batches land under `$HOME/withme-tags/`,
+and a rebranded fork's under its own name. §2 uses the same parent.
 
 Running the file directly instead of `bun run db:provision` is deliberate:
 the script writes into the current directory, and this keeps that
@@ -160,7 +164,10 @@ view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
   the profile step ("First, your card", with any required profile fields)
   before "Claim this tag"; fill it in, or use a second seeded user.
   If `/t/<UID>` hangs after the claim under `vite dev` (a known dev-server
-  SSR hang, ENG-751), restart `apps/web`'s dev server and load it again.
+  SSR hang, ENG-751), restart `apps/web`'s dev server: stop the running
+  `bun run dev` (Ctrl-C in its shell, or kill the `vite` process and its
+  `bun` parent), start it again the same way (an agent appends to the same
+  log: `>> "$OUT/web-dev.log" 2>&1`), and load the page again.
 
 ## 2. Provision the real batch
 
@@ -179,7 +186,7 @@ A yes to another ref, count, or domain is not a yes to this batch. Then:
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
-OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<k>"
+OUT="$HOME/<wordmark>-tags/$(date +%Y%m%d)-batch-<k>"
 (
   set -e
   umask 077
@@ -237,7 +244,9 @@ For each row of `provisioned-tags.html` (print it or open it locally):
 
 Ship the tags. The encode list has then done its job: keep the CSV only if
 your fulfillment records need it — offline, access-limited — and otherwise
-delete the batch directory (and its parent, if that leaves it empty). If
+delete the batch directory (and its parent, if that leaves it empty).
+After a §1 rehearsal, stop both dev servers first: their logs live in
+`$OUT` and carry the UIDs, and a running server keeps writing them. If
 you keep the CSV, delete `provisioned-tags.html` and `provision.log` from
 the batch directory: both carry the same UIDs. A printed sheet is the
 same bearer list on paper: shred it once the batch has shipped.
