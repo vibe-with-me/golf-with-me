@@ -1,51 +1,76 @@
 import type { ConnectRequest, Connection } from '@withme/contract';
-import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Avatar, Button, ErrorText, Muted } from '../../components/ui';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import {
+  Button,
+  ErrorText,
+  ListLadder,
+  PersonRow,
+  SegmentedTabs,
+  type ListState,
+} from '../../components/ui';
 import { api, type Api } from '../../lib/api';
-import { fonts, radius, space, useTokens } from '../../lib/tokens';
+import { space, useTokens } from '../../lib/tokens';
 
 type BlockRow = Awaited<ReturnType<Api['app']['blocks']['list']>>['blocks'][number];
+type Segment = 'connections' | 'requests' | 'blocked';
 
+/** Settle one list into its ladder state; a failure stays on that list. */
+async function settleInto<T>(load: () => Promise<T[]>, set: (state: ListState<T>) => void) {
+  try {
+    set({ status: 'ready', items: await load() });
+  } catch {
+    set({ status: 'error' });
+  }
+}
+
+/**
+ * Connections: three lists behind in-page segments, mirroring the web tab.
+ * Each list loads and fails on its own and climbs the same ladder.
+ * Reloaded on focus: a request may have arrived while you were elsewhere.
+ */
 export default function ConnectionsScreen() {
   const t = useTokens();
-  const [pending, setPending] = useState<ConnectRequest[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [blocks, setBlocks] = useState<BlockRow[]>([]);
+  const [segment, setSegment] = useState<Segment>('connections');
+  const [pending, setPending] = useState<ListState<ConnectRequest>>({ status: 'loading' });
+  const [connections, setConnections] = useState<ListState<Connection>>({ status: 'loading' });
+  const [blocks, setBlocks] = useState<ListState<BlockRow>>({ status: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [p, c, b] = await Promise.all([
-        api.app.requests.listPending(),
-        api.app.connections.list(),
-        api.app.blocks.list(),
-      ]);
-      setPending(p.requests);
-      setConnections(c.connections);
-      setBlocks(b.blocks);
-    } catch {
-      setError('Could not load. Pull to retry.');
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
+  const loadPending = useCallback(
+    () => settleInto(async () => (await api.app.requests.listPending()).requests, setPending),
+    [],
+  );
+  const loadConnections = useCallback(
+    () => settleInto(async () => (await api.app.connections.list()).connections, setConnections),
+    [],
+  );
+  const loadBlocks = useCallback(
+    () => settleInto(async () => (await api.app.blocks.list()).blocks, setBlocks),
+    [],
+  );
+  const loadAll = useCallback(
+    () => Promise.all([loadPending(), loadConnections(), loadBlocks()]),
+    [loadPending, loadConnections, loadBlocks],
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [loadAll]),
+  );
 
   async function act(id: string, work: () => Promise<unknown>) {
     setBusyIds((prev) => new Set(prev).add(id));
-    setError(null);
+    setActionError(null);
     try {
       await work();
-      await load();
+      await loadAll();
     } catch {
-      setError("That didn't go through. Try again.");
+      setActionError("That didn't go through. Try again.");
     } finally {
       setBusyIds((prev) => {
         const next = new Set(prev);
@@ -55,24 +80,10 @@ export default function ConnectionsScreen() {
     }
   }
 
-  const row = (key: string, profile: BlockRow['user'], actions: React.ReactNode) => (
-    <View key={key} style={[styles.row, { backgroundColor: t.surface, borderColor: t.border }]}>
-      <Avatar name={profile.display_name} path={profile.avatar_path} size={44} />
-      <View style={styles.rowBody}>
-        <Text style={[styles.rowName, { color: t.ink }]}>{profile.display_name}</Text>
-        {profile.bio ? (
-          <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
-            {profile.bio}
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.rowActions}>{actions}</View>
-    </View>
-  );
-
   const quiet = (label: string, id: string, work: () => Promise<unknown>) => (
-    <Button label={label} kind="quiet" disabled={busyIds.has(id)} onPress={() => act(id, work)} />
+    <Button inline label={label} kind="quiet" disabled={busyIds.has(id)} onPress={() => act(id, work)} />
   );
+  const requestCount = pending.status === 'ready' ? pending.items.length : 0;
 
   return (
     <ScrollView
@@ -83,72 +94,99 @@ export default function ConnectionsScreen() {
           refreshing={refreshing}
           onRefresh={async () => {
             setRefreshing(true);
-            await load();
+            await loadAll();
             setRefreshing(false);
           }}
         />
       }
     >
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <SegmentedTabs
+        items={[
+          { key: 'connections', label: 'Connections' },
+          { key: 'requests', label: 'Requests', count: requestCount, countNoun: 'pending' },
+          { key: 'blocked', label: 'Blocked' },
+        ]}
+        active={segment}
+        onChange={setSegment}
+      />
+      {actionError ? <ErrorText>{actionError}</ErrorText> : null}
 
-      {pending.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, { color: t.ink }]}>Requests</Text>
-          {pending.map((request) =>
-            row(
-              request.id,
-              request.requester,
-              <>
+      {segment === 'requests' ? (
+        <ListLadder
+          state={pending}
+          what="your requests"
+          empty="No requests right now."
+          onRetry={() => {
+            setPending({ status: 'loading' });
+            loadPending();
+          }}
+        >
+          {(requests) =>
+            requests.map((request) => (
+              <PersonRow
+                key={request.id}
+                name={request.requester.display_name}
+                path={request.requester.avatar_path}
+                sub={request.requester.bio}
+              >
                 {/* Accepting completes the handshake — the accent's job. */}
                 <Button
+                  inline
                   label="Accept"
                   kind="connect"
                   disabled={busyIds.has(request.id)}
-                  onPress={() =>
-                    act(request.id, () => api.app.requests.accept({ id: request.id }))
-                  }
+                  onPress={() => act(request.id, () => api.app.requests.accept({ id: request.id }))}
                 />
                 {quiet('Decline', request.id, () => api.app.requests.decline({ id: request.id }))}
-              </>,
-            ),
-          )}
-        </>
-      ) : null}
-
-      <Text style={[styles.sectionTitle, { color: t.ink }]}>Connections</Text>
-      {!loaded ? null : connections.length === 0 ? (
-        <Muted>No connections yet. Tap someone's tag to start.</Muted>
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
+      ) : segment === 'blocked' ? (
+        <ListLadder
+          state={blocks}
+          what="your block list"
+          empty="No one is blocked."
+          onRetry={() => {
+            setBlocks({ status: 'loading' });
+            loadBlocks();
+          }}
+        >
+          {(list) =>
+            list.map((block) => (
+              <PersonRow key={block.user.id} name={block.user.display_name} path={block.user.avatar_path}>
+                {quiet('Unblock', block.user.id, () => api.app.blocks.unblock({ user_id: block.user.id }))}
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
       ) : (
-        connections.map((connection) =>
-          row(
-            connection.id,
-            connection.profile,
-            <>
-              {quiet('Remove', connection.id, () =>
-                api.app.connections.remove({ id: connection.id }),
-              )}
-              {quiet('Block', connection.id, () =>
-                api.app.blocks.block({ user_id: connection.profile.id }),
-              )}
-            </>,
-          ),
-        )
+        <ListLadder
+          state={connections}
+          what="your connections"
+          empty="No connections yet. Tap someone's tag to start."
+          onRetry={() => {
+            setConnections({ status: 'loading' });
+            loadConnections();
+          }}
+        >
+          {(list) =>
+            list.map((connection) => (
+              <PersonRow
+                key={connection.id}
+                name={connection.profile.display_name}
+                path={connection.profile.avatar_path}
+                sub={connection.profile.bio}
+              >
+                {quiet('Remove', connection.id, () => api.app.connections.remove({ id: connection.id }))}
+                {quiet('Block', connection.id, () =>
+                  api.app.blocks.block({ user_id: connection.profile.id }),
+                )}
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
       )}
-
-      {blocks.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, { color: t.ink }]}>Blocked</Text>
-          {blocks.map((block) =>
-            row(
-              block.user.id,
-              block.user,
-              quiet('Unblock', block.user.id, () =>
-                api.app.blocks.unblock({ user_id: block.user.id }),
-              ),
-            ),
-          )}
-        </>
-      ) : null}
     </ScrollView>
   );
 }
@@ -156,37 +194,6 @@ export default function ConnectionsScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: space.s5,
-    paddingTop: space.s5,
     gap: space.s3,
-  },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    letterSpacing: -0.2,
-    marginTop: space.s4,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s3,
-    borderWidth: 1,
-    borderRadius: radius.control,
-    paddingVertical: space.s3,
-    paddingHorizontal: space.s4,
-  },
-  rowBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rowName: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
-  },
-  rowSub: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-  },
-  rowActions: {
-    flexDirection: 'row',
   },
 });
