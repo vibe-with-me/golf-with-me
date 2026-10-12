@@ -74,7 +74,7 @@ points at remains yours to change forever.
 - **Privacy-default scans.** `tag_scans` stores a user-agent string and a
   timestamp. No GPS, no IP, no fingerprinting — the columns don't exist.
 - **Avatars are paths, not URLs.** A photo is uploaded through the API into
-  the uploader's own folder of a public bucket that nobody can list;
+  the uploader's own folder of a public bucket no one else can list;
   profiles store only `<user>/<file>` and every client builds the URL from
   its own Supabase URL, so an avatar can never point off-origin. The real
   boundary is the bucket's limits (JPEG or WebP, 1 MiB) plus the
@@ -83,15 +83,14 @@ points at remains yours to change forever.
   which stays safe because the bucket only ever holds and serves images. A
   photo's public URL works for anyone holding it until the photo changes
   (caches may keep serving it for up to an hour after that).
-- **Deletion cascades.** Deleting an account (Profile → Account;
-  `delete_my_account()`) removes connections, requests, blocks, and the
-  gatherings you host, resets claimed tags to unclaimed, erases their scan
-  history, and deletes your photo files.
+- **Deletion cascades.** Deleting an account (Profile → Account, which
+  clears your photo files and then calls `delete_my_account()`) removes
+  connections, requests, blocks, and the gatherings you host, resets
+  claimed tags to unclaimed, and erases their scan history.
 
 All of the above is RLS + security-definer functions, covered by 72 policy
 tests (`packages/db/test`, Storage policies included) that run against
-Supabase local. The tests are the
-spec.
+Supabase local. The tests are the spec.
 
 ## Quickstart
 
