@@ -462,6 +462,21 @@ Deviations, fixed in f319943 except where noted:
 
 D16 changes the order of the steps, so a re-run is required: run 2 of at most 3, from a fresh `pre-extend-profile` clone with f319943's skills.
 
+**Run 2 — Done 2026-10-12.** On `/Users/alexeisele/dev/withme-scratch/proof-runclub-extend-profile-r2` (a fresh `pre-extend-profile` clone with f319943's skills; HEAD 4e532e5). START 23:02:22Z, END 23:27:44Z: about 25 min wall, including the simulator pass. Log: `$NOTES/4-extend-profile-r2.md`. Every predicted count matched:
+- contract 32 → 4 red → 37;
+- db 73 → 17 red at §2 (14 × `PGRST205`, 2 × `PGRST204`, and the format test) → 87 at §3;
+- typecheck after §3 red only in `@withme/api` and `@withme/nfc`; after §4 only nfc; `nfc-sdk` typecheck clean after §5;
+- the gate: lint 0, typecheck 8/8, contract 37, db 87, nfc 48; API e2e 67 `ok` lines including the 8 new; Playwright 14 on the first try;
+- the simulator pass 5/5 with the reordered seed (D16): Lin lands complete in the tabs and both cards show pace; the cold Connect returns to the tag and the cold Join returns to "Join this run?".
+
+No `PGRST303` seen. Safety reviewer checks passed: `profiles_select` appears in the new migration only in comments; `CARD_COLUMNS` is `id, display_name, avatar_path, bio, pace`; `strava_handle` is not in the SDK.
+
+Deviations 1–8: the wording ones are fixed in 6ea5df3. That covers 2 (the SQL pattern matches the zod regex's classes and anchors; JavaScript-only escapes like `\/` drop out), 3 (`resolve_tag`'s newest can be customize-gathering's migration, so the grep decides, and the new timestamp must sort after every existing one), and 5 (`autoCapitalize="none"` on a mobile format field that needs exact case). The same commit says that showing the card tier on Requests, Blocked, and a gathering's member list is optional (6, 8: the fork showed pace on Requests and Blocked, not on the member list). The rest were fork choices or environment: 1 (`pace` sorts last, not first), 4 (no commit in the fork, the run rules), 7 (Metro + agent-device in place of `expo start --ios`).
+
+Incident (the simulator driver, not the app or the skill): a mis-tap on the Profile tab hit "Delete account". It was dismissed with "Keep my account" and nothing was deleted.
+
+The fixes are wording only and the run was green end to end, so no re-run is needed. The line is now `LINE=/Users/alexeisele/dev/withme-scratch/proof-runclub-extend-profile-r2`, committed as 8929ce9 ("extend-profile: runclub") and tagged `pre-provision-tags`.
+
 ---
 
 ### Task 5: provision-tags, local only (literal)
