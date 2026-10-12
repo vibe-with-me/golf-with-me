@@ -163,8 +163,8 @@ covers using the chip's own 7-byte NTAG213 UID instead, and what that
 costs. Use any NFC writer app (e.g. NXP TagWriter) to write the URL as an
 NDEF URI record, then **lock the tag to read-only**. The heavy lookup happens in the API Worker —
 the tag itself is just a pointer that never changes. Destinations stay
-mutable server-side: claim, re-point, disable, or reset without touching the
-physical tag again.
+mutable server-side: claim, re-point, or turn off without touching the
+physical tag again. Deleting an account releases its tags to unclaimed.
 
 ## Extending a fork
 

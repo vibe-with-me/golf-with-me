@@ -134,19 +134,32 @@ readable only by you.
 
 ## 2. Provision the real batch
 
-Production (owner's OK first; the keys file from go-live §1):
+Production needs the keys file from go-live §1 and the owner's explicit OK.
+
+**Stop first.** Show the owner what this batch will write, and wait for a
+clear yes before running anything below:
+
+- the project ref, from the keys file without the key:
+  `sed -n 's|^SUPABASE_URL=https://\([^.]*\)\.supabase\.co.*|\1|p' "$(git rev-parse --show-toplevel)/.env.demo-seed"`;
+- the count (`<n>` below);
+- the `--base-url`, and that its domain cannot change once the tags are
+  locked (rule 6).
+
+A yes to another ref, count, or domain is not a yes to this batch. Then:
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
-OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<n>"
+OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<k>"
 (
   set -e
   umask 077
-  mkdir -p "$OUT"
+  mkdir -p "$(dirname "$OUT")"
+  mkdir "$OUT"
   set -a
   source "$REPO/.env.demo-seed"
   set +a
   : "${SUPABASE_URL:?missing from .env.demo-seed}"
+  : "${SUPABASE_SERVICE_ROLE_KEY:?missing from .env.demo-seed}"
   cd "$OUT"
   SEED_ALLOW_REMOTE=1 bun run "$REPO/supabase/seed/provision.ts" \
     --count <n> --base-url https://<your-domain> > provision.log
@@ -154,10 +167,13 @@ OUT="$HOME/<brand>-tags/$(date +%Y%m%d)-batch-<n>"
 head -1 "$OUT/provision.log"
 ```
 
-The subshell stops at the first failed line. That matters most for the
-keys file: if `source` fails (wrong directory, file never written), or the
-file has no `SUPABASE_URL`, the script would otherwise fall back to its
-local default and quietly provision the batch on your laptop's stack. One
+`<k>` numbers the batch; `<n>` is the count the owner agreed to. The
+subshell stops at the first failed line. `mkdir "$OUT"` (no `-p`) fails if
+the directory exists, so a reused batch name stops before the script can
+overwrite an earlier list. The keys file matters most: if `source` fails
+(wrong directory, file never written), or the file has no `SUPABASE_URL`
+or `SUPABASE_SERVICE_ROLE_KEY`, the script would otherwise fall back to its
+local defaults and quietly provision the batch on your laptop's stack. One
 command per line is deliberate. Under `set -e`, zsh does not stop when a
 command fails partway through an `&&` chain, so
 `set -a && source … && set +a` would carry on with nothing loaded.
@@ -191,8 +207,32 @@ For each row of `provisioned-tags.html` (print it or open it locally):
 
 Ship the tags. The encode list has then done its job: keep the CSV only if
 your fulfillment records need it — offline, access-limited — and otherwise
-delete the batch directory. A claimed tag's UID keeps resolving (that is
-the product) but can no longer be claimed.
+delete the batch directory. If you keep the CSV, delete
+`provisioned-tags.html` and `provision.log` from the batch directory: both
+carry the same UIDs. A printed sheet is the same bearer list on paper:
+shred it once the batch has shipped.
+
+If a `provisioned-tags.*` file was ever committed, deleting it does not
+remove it from history: every UID in it that is still unclaimed is
+compromised. With the owner's OK (the stop in §2), run in the project's SQL
+editor, with exactly the UIDs from that file:
+
+```sql
+delete from public.tags
+where uid in ('04A1B2C3D4E5F6', '04A1B2C3D4E5F7') and status = 'unclaimed'
+returning uid;
+```
+
+Or `update public.tags set status = 'disabled' where …` with the same
+`where`, to keep the rows. Either way nobody can claim those tags any
+more; replace them from a new batch.
+
+A claimed tag's UID keeps resolving (that is the product) but can no
+longer be claimed — until its owner deletes their account, which releases
+the tag to `unclaimed`. By then everyone who tapped it has seen its UID, so
+rule 1's entropy no longer protects it: whoever claims it next owns it. If
+that matters for your fork, retire the physical tag, or disable its row
+with the same `update`, scoped to that UID and `status = 'unclaimed'`.
 
 ## 5. The chip's own UID (in-app reading)
 
@@ -222,8 +262,11 @@ Each new row comes back under `returning`; a UID that already exists
 returns nothing and is left as it was.
 
 Locally: `docker exec "$DB" psql -U postgres -c "<that sql>"` (with `$DB`
-from §1). In production: the Supabase dashboard's SQL editor, with the
-owner's OK. Then encode `https://<your-domain>/t/<that UID>`.
+from §1). In production, stop first, as in §2: show the owner the project
+ref, each UID you are inserting, and the domain you will encode (it cannot
+change once the tags are locked), and wait for a clear yes. Then run it in
+that project's SQL editor in the Supabase dashboard, and encode
+`https://<your-domain>/t/<that UID>`.
 
 Know the cost: a chip UID is readable by anyone in NFC range and assigned
 in runs by the manufacturer, so one tag from a batch hints at its
@@ -263,8 +306,9 @@ shipment. Both kinds of UID live in the same table.
 ## Scope notes
 
 - No QR codes, no label layout, no print service: the sheet is a plain table
-  for whoever writes the tags. A QR sheet puts the capability on paper; if
-  you add one, it inherits rule 2.
+  for whoever writes the tags. Printed, that table already puts the
+  capability on paper, and so would a QR sheet if you add one: both inherit
+  rule 2 and §4 (shred once the batch has shipped).
 - Re-pointing and turning off a claimed tag belong to its owner (Profile →
   My tags, in the map); a tag goes back to `unclaimed` only when its owner
   deletes their account. The operator has no client path to someone else's

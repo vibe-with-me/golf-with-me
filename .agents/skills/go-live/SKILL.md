@@ -33,9 +33,13 @@ Project provisioning takes 1–2 minutes; `supabase projects list` shows
 it. Then from the repo root:
 
 ```sh
-supabase link --project-ref <ref> -p "$(cat "$HOME/.config/<name>/supabase-db-password")"
+SUPABASE_DB_PASSWORD="$(cat "$HOME/.config/<name>/supabase-db-password")" supabase link --project-ref <ref>
 supabase db push -p "$(cat "$HOME/.config/<name>/supabase-db-password")"
 ```
+
+`supabase link` reads the password from `SUPABASE_DB_PASSWORD` (the CLI
+reference says so), which keeps it off that command line; `db push`
+documents only `-p`.
 
 **Checkpoint:** `db push` lists every migration and ends `Finished
 supabase db push`.
@@ -62,8 +66,23 @@ with open('.env.demo-seed', 'w') as f:
 Seed (a production write — owner's OK first):
 
 ```sh
-set -a && source .env.demo-seed && set +a && SEED_ALLOW_REMOTE=1 bun run db:seed
+(
+  set -e
+  set -a
+  source .env.demo-seed
+  set +a
+  : "${SUPABASE_URL:?missing from .env.demo-seed}"
+  : "${SUPABASE_SERVICE_ROLE_KEY:?missing from .env.demo-seed}"
+  SEED_ALLOW_REMOTE=1 bun run db:seed
+)
 ```
+
+Every block that sources the keys file does it in a subshell like this one,
+so the keys never stay exported in your shell: the db package's test utils
+read `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and a later
+`cd packages/db && bun test` would run the RLS suite against production
+with the service role (a code guard is tracked as ENG-752). One command per
+line: under `set -e`, zsh does not stop partway through an `&&` chain.
 
 Auth note: hosted signups hit email confirmation, and the default
 Supabase SMTP only delivers to org members — seeded demo credentials are
@@ -82,10 +101,17 @@ prints the workers.dev URL. Then config goes in as SECRETS via stdin
 (vars in wrangler.jsonc would be clobbered on every deploy):
 
 ```sh
-set -a && source ../../.env.demo-seed && set +a
-printf '%s' "$SUPABASE_URL"      | bunx wrangler secret put SUPABASE_URL
-printf '%s' "$SUPABASE_ANON_KEY" | bunx wrangler secret put SUPABASE_PUBLISHABLE_KEY
-printf '%s' 'https://<web-worker>.workers.dev' | bunx wrangler secret put CORS_ORIGIN
+(
+  set -e
+  set -a
+  source ../../.env.demo-seed
+  set +a
+  : "${SUPABASE_URL:?missing from .env.demo-seed}"
+  : "${SUPABASE_ANON_KEY:?missing from .env.demo-seed}"
+  printf '%s' "$SUPABASE_URL"      | bunx wrangler secret put SUPABASE_URL
+  printf '%s' "$SUPABASE_ANON_KEY" | bunx wrangler secret put SUPABASE_PUBLISHABLE_KEY
+  printf '%s' 'https://<web-worker>.workers.dev' | bunx wrangler secret put CORS_ORIGIN
+)
 ```
 
 **Checkpoint:** `curl https://<api-worker>.workers.dev/health` returns
@@ -102,7 +128,7 @@ VITE_API_URL=https://<api-worker>.workers.dev
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 VITE_DEMO_CREDENTIALS=<demo email> / <demo password>
-VITE_STORE_URL=https://<your-store>        # optional: the Merch tab
+# VITE_STORE_URL=https://<your-store>   # optional: the Merch tab
 ```
 
 ```sh
@@ -168,4 +194,4 @@ OK. Web: `bun run build && bunx wrangler deploy`. Mobile: a fresh
 | `eas update` fails non-interactively | Missing `--environment` |
 | Published app seems to point at localhost | You byte-grepped Hermes bytecode — use `--no-bytecode` to verify |
 | Demo DB unreachable weeks later | Free-tier project paused — wake it in the dashboard |
-| git status shows .supabase-demo-db-password, or the repo has one | an older copy of this runbook wrote it into the repo root (the starter's .gitignore now ignores the name; older forks do not): move it to $HOME/.config/<name>/ and never commit it |
+| git status shows .supabase-demo-db-password, or the repo has one | an older copy of this runbook wrote it into the repo root (the starter's .gitignore now ignores the name; older forks do not): move it to $HOME/.config/<name>/ and never commit it. If it was ever committed, moving it does not remove it from history: reset the database password (Dashboard → Project Settings → Database) and write the new one to `$HOME/.config/<name>/supabase-db-password` |

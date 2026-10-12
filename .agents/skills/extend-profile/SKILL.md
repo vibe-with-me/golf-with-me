@@ -842,6 +842,8 @@ const getProfile = appProcedure.profile.get.handler(async ({ context }) => {
 const updateProfile = appProcedure.profile.update.handler(async ({ input, context }) => {
   const userId = requireUser(context);
   const { details, ...patch } = input;
+  // Two writes, not a transaction, by design: a failure surfaces and a retry
+  // is idempotent. Never "fix" it with a definer RPC that loosens the grants.
   // The profile first: the details row references it.
   const profile = await run(context, () =>
     Object.keys(patch).length > 0
@@ -1248,7 +1250,9 @@ API e2e green, and every Playwright spec green on the first run.
 7. Completion is UX: no policy, RPC, or constraint reads it, and the
    columns stay nullable, so the claim flow's first profile and every
    pre-existing row stay valid. `isProfileComplete` is the only definition;
-   both clients import it from the contract.
+   both clients import it from the contract. The mobile gate checks once per
+   user per tabs mount, while web's `ShellRoute` re-checks on every render;
+   either way completion is UX, never a boundary.
 8. The new table carries the tenant seam, and every policy predicates on it.
 9. Any later migration that redefines `resolve_tag` or
    `accept_connect_request` copies the newest definition (this migration

@@ -2325,7 +2325,7 @@ grep -n 'headerHeight: 56' apps/mobile/lib/tokens.ts
 grep -n '719.98px' apps/web/src/styles/app.css apps/web/src/styles/tokens.css
 grep -n 'STORE_URL' apps/web/.env.example apps/mobile/.env.example apps/web/src/env.d.ts apps/web/playwright.config.ts
 grep -n 'VITE_STORE_URL' .agents/skills/go-live/SKILL.md
-grep -cF 'cat "$HOME/.config/<name>/supabase-db-password"' .agents/skills/go-live/SKILL.md   # 2: link and push use the literal path (-F: some greps read a mid-pattern $ as an anchor)
+grep -cF 'cat "$HOME/.config/<name>/supabase-db-password"' .agents/skills/go-live/SKILL.md   # 2: link (via SUPABASE_DB_PASSWORD) and push (-p) use the literal path (-F: some greps read a mid-pattern $ as an anchor)
 grep -n 'PASS_FILE' .agents/skills/go-live/SKILL.md                                        # nothing
 grep -n '^## The safety discipline' docs/the-slice.md                                       # make-it-yours points here
 ```
@@ -2526,6 +2526,8 @@ The body includes:
 End with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 
 **Step 4:** Request review with `superpowers:requesting-code-review`. Handle findings with `superpowers:receiving-code-review`, resolving CodeRabbit comments on their merits. Merge with a merge commit once CI and CodeRabbit are clean. Report the milestone to the program manager for Alex and the Linear update.
+
+**Final review fixes 2026-10-12.** Skills and docs only, no app code. provision-tags: an explicit owner stop (project ref, count, base URL) before §2's batch and §5's production insert; `batch-<k>` for the batch, `<n>` for the count; `mkdir "$OUT"` refuses a reused directory; the `SUPABASE_SERVICE_ROLE_KEY:?` guard; §4 retires printed sheets, `provisioned-tags.html` and `provision.log`, says what to do when a list was committed (delete or disable those unclaimed rows), and that account deletion releases a tag whose UID is already known. go-live: the seed and secrets blocks source `.env.demo-seed` in a subshell, so the service role never stays exported for a later `bun test` in `packages/db` (code guard: ENG-752); `supabase link` takes the password from `SUPABASE_DB_PASSWORD` (documented in the CLI reference; `db push` documents only `-p`, so it keeps `-p`); a committed password file means a password reset; `VITE_STORE_URL` is commented out in the example. extend-profile: the gate's cadence per platform in "What must not move" item 7, and why `updateProfile`'s two writes are not a transaction. README: owners claim, re-point, or turn off; account deletion releases tags. program.md: milestone 4 names PR #10.
 
 ---
 
