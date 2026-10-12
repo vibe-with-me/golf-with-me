@@ -4817,8 +4817,14 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
     <Button
       kind={isMember ? 'default' : 'connect'}
       label={isMember ? 'Open gathering' : 'Join this gathering'}
-      onPress={() => {
-        if (viewer === 'anon') {
+      onPress={async () => {
+        // Decided at tap time, not from the mount verdict: a session read that
+        // failed then fell back to 'other', and a signed-out push to the
+        // protected detail would bounce and lose the id.
+        const { data } = await supabase.auth
+          .getSession()
+          .catch(() => ({ data: { session: null } }));
+        if (!data.session) {
           router.push({
             pathname: '/login',
             params: { redirect: gatheringHref(gathering.id, gathering) },
