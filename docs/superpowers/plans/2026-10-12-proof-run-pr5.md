@@ -438,6 +438,30 @@ Meanwhile PR #11 (5bdd81d) merged into `main`: ENG-750 is fixed by requiring Pos
 
 **Then:** the reviewer checks, the deviation procedure, and a commit tagged `pre-provision-tags`.
 
+**Run 1 (2026-10-12).** On `$LINE` at `pre-extend-profile` (226c7ad). START 22:35:06Z, END 22:58:18Z: about 23 min wall, including the simulator pass. Log: `$NOTES/4-extend-profile-r1.md`. The result is uncommitted in `$LINE`'s working tree, with `packages/db/test/profile-fields.test.ts` and `supabase/migrations/20261012223915_extend_profile.sql` untracked. Every checkpoint came out as predicted:
+- contract 32 → 28 pass / 4 red (the four fixtures the text names) → 37;
+- db 73 → 70 pass / 17 red at §2 (the 14 new, cascade, the first `account.test.ts` test, the enumeration anon sweep; `PGRST205` / `PGRST204`) → 87 at §3;
+- typecheck after §3 red only in `@withme/api` and `@withme/nfc`; after §4 only nfc; `nfc-sdk` typecheck clean after §5; lint and typecheck 8/8 after §6 and §7;
+- API e2e 67 `ok` lines ending "all checks passed", including the 8 new; Playwright 14 passed on the first try; the Name grep found 12;
+- the simulator pass 5/5, including the cold Connect returning to the tag and Join returning to "Join this run?".
+
+§3's greps found two different newest files and the follower copied each: `resolve_tag` from customize-gathering's migration (`route_name` kept) and `accept_connect_request` from `avatars`. Watch list O1 (the `create_gathering` comment) worked: the follower passed `p_route_name`. No `PGRST303` seen (PostgREST 16.4).
+
+Safety reviewer checks passed: `profiles_select` appears in the new migration only in comments; `strava_handle` is not in `CARD_COLUMNS` or the SDK; `route_name` is in the `resolve_tag` copy; `profile_details_select` is the skill's policy with the column renamed.
+
+Deviations, fixed in f319943 except where noted:
+- D16, §7/§8 (order): the simulator pass ran before §8 seeded the new fields, so seeded Lin was sent to "Finish your profile" and Ada's card showed no pace. The seed edit, with a reset and seed, now comes in §7 before the simulator checkpoint; §8 keeps the e2e. The simulator text now says Lin lands in the tabs and both cards show the card tier.
+- D1/D3/D4/D9, §1/§2/§3/§6 (a field with a format rule): new note after the worked example. Use a dedicated zod schema whose regex matches the SQL CHECK class for class (`[0-9]`, not `\d`). The length tests become format tests, with malformed values and valid controls. Inputs get a format `placeholder`. A malformed value gets the generic save error. §1, §2, §3 and §6 point to the note.
+- D2, §1: "it goes first" was specific to `affiliation`; now "your field in its alphabetical place".
+- D5, §3: `db:reset` prints `Finished supabase db reset` with or without `on branch …` depending on the CLI version.
+- D6, §2: at the red checkpoint `@withme/api` and `@withme/nfc` may already be red too.
+- D8, §4: the connections-tier block goes right after `upsertOwnProfile`.
+- D11/D15, map/§7/§8: "renamed if you ran customize-gathering's URL step" notes for `gathering/[id].tsx`, `gatherings.spec.ts`, and "Join this gathering?".
+- D12, §7: mobile `setCurrent(saved.profile)` goes right after the update, before the `redirect` branch's `dismissTo`.
+- D10/D13/D18 (labels, ids, the `Muted` line, the seed comment): one "in your vertical's words" note in §6, §7 and the seed. D7 (do not commit `supabase.ts`, the run rules), D14, D17, D19: environment, no change.
+
+D16 changes the order of the steps, so a re-run is required: run 2 of at most 3, from a fresh `pre-extend-profile` clone with f319943's skills.
+
 ---
 
 ### Task 5: provision-tags, local only (literal)
