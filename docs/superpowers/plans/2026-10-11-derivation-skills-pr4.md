@@ -2379,6 +2379,20 @@ bun install
 
 **Step 3:** Any deviation means: fix the SKILL.md in the M4 worktree, commit (`git commit -m "provision-tags: fixes from the fresh-clone run" …`), and repeat this task from Step 1. Close the window from the M4 worktree, with the hand-back to M3.
 
+**Done 2026-10-12** in two runs. Log: `/Users/alexeisele/dev/withme-scratch/notes/provision-tags-fresh.md`, screenshots in `notes/7b-shots/`. §2–§4 were skipped (production, physical tags).
+- Run 1 (`6d05ebf`, about 6 min) found two deviations, fixed in `b02fcf3`. First, §1 began at `db:start`, but its end-to-end check signs in as a seeded demo user and runs both dev servers. It now opens with the Quickstart setup: env files, `db:start`, `db:seed`. Second, macOS prints `-rw-------@`, and the checkpoint now says so.
+- Run 2 (`b02fcf3`, about 2.5 min) had no skill deviation, and every expected result passed:
+  - the §1 stdout lines;
+  - three `|unclaimed` rows;
+  - `git status --porcelain` empty, and `find` showed no `provisioned-tags.*` in the clone's root;
+  - signed out, the encode URL went to `/login?returnTo=%2Fclaim%2F<UID>`;
+  - Lin's claim turned the page into her card ("This is your tag.");
+  - a signed-out viewer saw her card with "Connect" and no claim;
+  - a second account's stale claim got "This tag has already been claimed.";
+  - §5's `04D00D00D00D02` came back under `returning` and landed on "Claim this tag" with that UID.
+- §5's in-app reader (`readTagUid` on a chip) needs a physical tag and was not exercised.
+- Outside the skill: in both runs, on the clone's first `vite dev` session, a fresh server-side load of any claimed card (`/t/<claimed UID>`, the seeded `04BBBBBBBBBBBB` too) hung with 0 bytes after the sign-in and claim flow. `/login` and `/claim` loaded. Restarting `apps/web`'s `bun run dev` cleared it. This is an app/dev-server issue, reported to the program manager, and the skill text is unchanged.
+
 ---
 
 ### Task 7c: Fresh-clone re-run: `extend-profile`
