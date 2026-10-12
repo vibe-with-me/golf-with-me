@@ -36,12 +36,13 @@ it. Then from the repo root:
 
 ```sh
 SUPABASE_DB_PASSWORD="$(cat "$HOME/.config/<name>/supabase-db-password")" supabase link --project-ref <ref>
-supabase db push -p "$(cat "$HOME/.config/<name>/supabase-db-password")"
+SUPABASE_DB_PASSWORD="$(cat "$HOME/.config/<name>/supabase-db-password")" supabase db push
 ```
 
-`supabase link` reads the password from `SUPABASE_DB_PASSWORD` (the CLI
-reference says so), which keeps it off that command line; `db push`
-documents only `-p`.
+Both commands read the password from `SUPABASE_DB_PASSWORD` (the CLI
+reference documents it for `link`; Supabase's troubleshooting guide for
+failed SASL auth uses it with `db push`), which keeps it off the command
+line, where `-p` would show it to `ps`.
 
 **Checkpoint:** `db push` lists every migration and ends `Finished
 supabase db push`.

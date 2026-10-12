@@ -236,6 +236,36 @@ Or `update public.tags set status = 'disabled' where …` with the same
 `where`, to keep the rows. Either way nobody can claim those tags any
 more; replace them from a new batch.
 
+Those statements skip the list's claimed UIDs, and someone holding the
+list may have claimed one before its tag reached the customer. Have the
+owner review them in the SQL editor, not a terminal or CI log, with the
+same UIDs:
+
+```sql
+select t.uid, t.updated_at, p.display_name
+from public.tags t join public.profiles p on p.id = t.claimed_by
+where t.uid in ('04A1B2C3D4E5F6', '04A1B2C3D4E5F7');
+```
+
+The schema keeps no claim time: `updated_at` is the row's last change (the
+claim, or a later destination or on/off change). The owner checks each
+claimant against who was sent that tag. A claim by the customer who has
+the tag is legitimate: leave it, since disabling it takes their tag away.
+For a claim the owner judges illegitimate, and only with the owner's OK
+for that UID:
+
+```sql
+update public.tags
+set status = 'disabled', claimed_by = null, destination = null
+where uid = '04A1B2C3D4E5F6' and claimed_by is not null
+returning uid;
+```
+
+Clearing `claimed_by` matters: a disabled row that keeps its owner stays
+in that account's My tags, which can switch it back on. The tag then
+resolves as disabled and nobody can claim it. Send the rightful holder a
+new tag from a fresh batch.
+
 A claimed tag's UID keeps resolving (that is the product) but can no
 longer be claimed — until its owner deletes their account, which releases
 the tag to `unclaimed`. By then everyone who tapped it has seen its UID, so
