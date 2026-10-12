@@ -38,7 +38,12 @@ unknown variants must fail to parse.
 - helpers live in the `private` schema; anything `security definer` also
   sets `search_path = ''`;
 - function grants are explicit: `revoke execute ... from public`, then
-  grant to exactly `anon` / `authenticated` as intended.
+  grant to exactly `anon` / `authenticated` as intended;
+- storage follows the same rules (`20261011120000_avatars.sql`): per-user
+  folder policies on `storage.objects`, a CHECK-shaped path column instead
+  of a URL, no select policy for anyone but the owner (a listable bucket is
+  a directory), bucket-level MIME and size limits, and no update policy
+  (objects are immutable).
 
 **3. RLS tests.** `packages/db/test/*.test.ts` (bun test against the live
 local stack — `assertStackRunning` guards it). The behavior under test
@@ -48,6 +53,9 @@ acts through real per-user JWT clients (`createTestUser`) and
 no client path — never for exercising the boundary being tested.
 Cover the negative space: what a stranger, a non-owner, a blocked user, and
 anon must NOT see. `enumeration.test.ts` and `blocks.test.ts` are the model.
+`avatars.test.ts` is the model for Storage: act through each user's own
+client, and give every negative case a positive control so it cannot pass
+red.
 
 **4. API handlers.** `apps/api/src/routers/{public,app}.ts` implement the
 contract via `implement(contract)` (`src/lib/orpc.ts`). Handlers are thin:
@@ -57,6 +65,11 @@ mapping PG error codes to oRPC codes. Every handler runs on `context.db`,
 a per-request client carrying the caller's JWT — the API never bypasses
 RLS. Anonymous endpoints take an edge rate limit keyed on UID + caller IP
 (`public.ts`); the IP is a rate-limit key only, never stored.
+A handler that writes to Storage does it through `context.db` too (the
+caller's JWT; the Storage helpers are in
+`packages/db/src/queries/avatars.ts`) and checks uploaded bytes itself
+(`uploadAvatar` sniffs the magic number); a write that spans Storage and
+Postgres compensates instead of pretending to be one transaction.
 
 **5. Web route.** File routes in `apps/web/src/routes/`. Tab pages live
 under the pathless `_app` layout — `_app.tsx`, no URL segment of its own
@@ -79,7 +92,14 @@ is unbreakable. All styling references `var(--*)` tokens from
 The accent never marks navigation state: active tabs are ink. The web
 app owns no data access, even for single-row owner CRUD: re-pointing your
 own tag goes through `app.tags.update`, never a browser Supabase query —
-the My tags precedent.
+the My tags precedent. Uploads are no exception: the photo goes to
+`app.profile.uploadAvatar` as a `File`, never `supabase.storage` from the
+browser.
+Lists climb the ladder in `src/components/ListStates.tsx` (loading → error
+with retry → typed empty → content); a loader with several lists
+`settled()`s each one (`src/lib/loaded.ts`) so a failed list never fails
+the page. In-page segments are links with a search param
+(`_app.connections.tsx`).
 
 **6. Mobile screen.** Expo Router screens mirror the web routes wherever
 the surface is shared (`t/[uid].tsx` ↔ `t.$uid.tsx`; `scan.tsx` is
@@ -90,7 +110,9 @@ stay in `app/` as stack screens so they push over the bar
 (`gathering/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
 tab follows the Merch screen: `href: null` when its env value is unset,
 so it is both hidden and unreachable. Screens compose the card primitives from `components/ui.tsx`
-(`Card`, `Title`, `Muted`, `Button`, `Avatar`) and read colors through
+(`Card`, `Title`, `Muted`, `Button` (`inline` inside rows), `Avatar`,
+`PersonRow`, `SegmentedTabs`, `ListLadder`, `EmptyState`,
+`SectionHeader`) and read colors through
 `useTokens()` from `lib/tokens.ts` — the mobile mirror of `tokens.css`.
 Auth gating happens once, via `Stack.Protected` in `app/_layout.tsx`, not
 per-screen. A detail screen returns to the tabs with `router.dismissTo`,
@@ -102,8 +124,9 @@ Worker into Supabase (including the silent-drop and blocked-viewer
 assertions), and the Playwright smoke in `apps/web/e2e/` runs against the
 production build (`vite build && vite preview`): `handshake.spec.ts` (two
 strangers tap one tag and end up connected), `shell.spec.ts` (the
-signed-in shell), and `gatherings.spec.ts` (tap the host's tag, join, both
-see the member list), all sharing `e2e/helpers.ts`. Extend whichever
+signed-in shell), `gatherings.spec.ts` (tap the host's tag, join, both
+see the member list), `connections.spec.ts` (the list ladder), and
+`profile.spec.ts` (photo, my tags, account deletion), all sharing `e2e/helpers.ts`. Extend whichever
 one your slice touches; a slice nobody can walk end-to-end is not done.
 
 ## The safety discipline

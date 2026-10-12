@@ -40,6 +40,10 @@ supabase db push -p "$(cat .supabase-demo-db-password)"
 **Checkpoint:** `db push` lists every migration and ends `Finished
 supabase db push`.
 
+The migrations also create the public `avatars` bucket and its policies
+(Storage is on by default in hosted projects). Confirm it under Storage →
+Buckets: public, 1 MiB, `image/jpeg, image/webp`.
+
 Fetch keys into a gitignored env file — never put the service key on a
 command line (it lands in shell history and transcripts):
 
@@ -110,7 +114,13 @@ seeded card — this one proves the worker-to-worker service binding,
 which only exists if `services[0].service` in `apps/web/wrangler.jsonc`
 matches the api worker name exactly. Also verify the authed path once
 (sign in as the demo user via supabase-js, call the app router) — it
-exercises the JWKS leg, the classic silent failure.
+exercises the JWKS leg, the classic silent failure. Then confirm
+`delete_my_account()` works on the hosted project: sign up a throwaway
+account on the live web app (an address that can confirm — see the Auth
+note in section 1) and delete it (Profile → Account → Delete
+account, then Delete my account). It deletes from `auth.users` inside a
+definer function; if it fails with `permission denied for table users`,
+stop and tell the owner — never work around it with the service role.
 
 ## 4. Mobile (EAS Update)
 
