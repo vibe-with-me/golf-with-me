@@ -2744,7 +2744,8 @@ export async function squareAvatar(source: Blob): Promise<File> {
 ```tsx
 import type { Profile } from '@withme/contract';
 import { useRouter } from '@tanstack/react-router';
-import { useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { squareAvatar } from '../lib/avatar.ts';
 import { Avatar } from './ProfileCard.tsx';
@@ -2767,6 +2768,7 @@ const MESSAGES: Record<Exclude<PhotoState, 'idle'>, string> = {
 export function AvatarField({ profile }: { profile: Profile }) {
   const router = useRouter();
   const [state, setState] = useState<PhotoState>('idle');
+  const fileInput = useRef<HTMLInputElement>(null);
   const working = state === 'working';
 
   async function choose(event: ChangeEvent<HTMLInputElement>) {
@@ -2797,7 +2799,12 @@ export function AvatarField({ profile }: { profile: Profile }) {
     try {
       await api.app.profile.removeAvatar();
       await router.invalidate({ sync: true });
-      setState('removed');
+      // "Remove photo" unmounts with the photo; keep keyboard focus on the
+      // control that adds one rather than letting it fall to <body>. Flushed
+      // first: until this render the input is still disabled, and a disabled
+      // input refuses focus.
+      flushSync(() => setState('removed'));
+      fileInput.current?.focus();
     } catch {
       setState('failed');
     }
@@ -2808,6 +2815,7 @@ export function AvatarField({ profile }: { profile: Profile }) {
       <Avatar profile={profile} />
       <div className="avatar-field__actions">
         <input
+          ref={fileInput}
           id="avatar_file"
           className="visually-hidden"
           type="file"
@@ -2824,11 +2832,10 @@ export function AvatarField({ profile }: { profile: Profile }) {
           </button>
         ) : null}
       </div>
-      {state !== 'idle' ? (
-        <p className="hint" role="status">
-          {MESSAGES[state]}
-        </p>
-      ) : null}
+      {/* Always mounted: a live region created with its message is not announced. */}
+      <p className="hint" role="status">
+        {state !== 'idle' ? MESSAGES[state] : null}
+      </p>
     </div>
   );
 }
@@ -2930,11 +2937,10 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
           onChange={(e) => setBio(e.target.value)}
         />
       </div>
-      {status ? (
-        <p className="hint" role="status">
-          {status}
-        </p>
-      ) : null}
+      {/* Always mounted: a live region created with its message is not announced. */}
+      <p className="hint" role="status">
+        {status}
+      </p>
       <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
         {busy ? 'Saving…' : 'Save'}
       </button>
@@ -2969,6 +2975,11 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
 .visually-hidden:focus-visible + label {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+/* An empty, always-mounted status region takes no gap in a flex column. */
+.hint[role='status']:empty {
+  position: absolute;
 }
 ```
 
