@@ -4549,6 +4549,8 @@ function TagRow({
           inline
           kind="quiet"
           label={choosing ? 'Close' : 'Point it at…'}
+          accessibilityLabel={choosing ? `Close where ${tag.uid} points` : `Point it at…, ${tag.uid}`}
+          expanded={choosing}
           disabled={busy}
           onPress={() => setChoosing((open) => !open)}
         />
@@ -4556,6 +4558,7 @@ function TagRow({
           inline
           kind="quiet"
           label={off ? 'Turn on' : 'Turn off'}
+          accessibilityLabel={`${off ? 'Turn on' : 'Turn off'} ${tag.uid}`}
           disabled={busy}
           onPress={() => onUpdate({ status: off ? 'claimed' : 'disabled' })}
         />
