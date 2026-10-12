@@ -254,6 +254,19 @@ git -C "$LINE" remote remove origin
 
 **Then:** the reviewer checks above, the deviation procedure, and a commit in the clone tagged `pre-customize-gathering`.
 
+**Run 1 (2026-10-12).** On `$LINE` at `pre-make-it-yours` (511a26c). START 21:23:36Z, END 21:31:49Z: about 8 min wall, no pauses. Log: `$NOTES/2-make-it-yours-r1.md`. Step 5 skipped per the brief; `project_id` rename and `db:stop`/`db:start` also skipped (the shared stack, Decision 6), so the Watch list's step 6 item was not exercised. Every checkpoint run was green: lint, typecheck, test at the baseline counts (db 72, contract 31, nfc 48), Playwright 14/14, API e2e all passed, the visual check showed the accent only on "Join this gathering" in both modes. The result is uncommitted in `$LINE`'s working tree. Deviations:
+- D1, step 1: the shipped light `--color-border-input` measures 2.97:1, below the 3:1 the skill requires. The follower raised the opacity from 0.46 to 0.47 (3.06:1). App defect, filed as ENG-753; the skill now says to raise it until the fix lands upstream (b160d58).
+- D2, step 1: the token comments say the accent is for Connect and Accept only; the skill's rule lists five actions. App defect, part of ENG-753; no skill change.
+- D3, step 2: the copied font file's name was unspecified. Now it is `<font>-var-latin.woff2`, with `format('woff2')` and the `wght` file only (Archivo also ships `wdth`) (b160d58).
+- D4, step 3: the README title's target was unspecified. It is now the wordmark (b160d58).
+- D5, steps 3/6/8: `apps/web/.env` is copied before step 3 edits the example demo-credentials line, and step 8's sweep reads `.env`. Step 3 now says to edit the line in both files, and its checkpoint greps both (b160d58).
+- D6, step 4: no slug rule, and the upstream `owner`/`projectId` stay until step 5. Now the rule is the wordmark, lowercase, with hyphens, plus a warning against `eas` commands before step 5 (b160d58).
+- D7, step 3: the landing card's "This is the starter app" hint was not on the surface list. It is now (b160d58).
+- D8, step 8: the sweep missed `vibe-with-me` (app.json `owner`, the nfc-sdk `repository.url`) and never looked in `packages/` or `supabase/` beyond the seed. It now covers both, filters migrations and `packages/nfc-sdk/` with reasons, lists the conditional acceptable matches, and fails on the upstream `owner` (b160d58). On r1's tree it prints exactly the two expected lines: `owner` (step 5 skipped) and `project_id` (kept).
+- D9, step 8: no icon artwork was supplied, so the input had a gap. Not a skill defect, and no change.
+
+The step 8 sweep command changed, so a re-run is required (run 2, from a fresh `pre-make-it-yours` clone with b160d58's skills).
+
 ---
 
 ### Task 3: customize-gathering (nouns, URLs, one field) (literal)
