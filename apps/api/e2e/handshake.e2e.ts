@@ -245,6 +245,7 @@ assert(
 
 // === profile: the photo, my tags' status, account deletion ===
 const { AVATAR_MAX_BYTES, avatarPublicUrl } = await import('@withme/contract');
+const { AVATAR_BODY_LIMIT } = await import('../src/middleware/avatar-body-limit.ts');
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const codeOf = (e: { code?: string }) => e.code ?? 'error';
 // Leading bytes only: the API sniffs magic numbers; Storage never decodes.
@@ -300,7 +301,7 @@ assert(tooLarge.status === 413, `an oversized declared length is a 413 before th
 // send), so bodyLimit has nothing declared to judge and counts the streamed bytes instead. One byte
 // past the limit, so the count trips on the last chunk: under wrangler dev, chunks left unread when
 // the 413 goes out wreck the next request on the dev server.
-const chunkedSize = AVATAR_MAX_BYTES + 65_537;
+const chunkedSize = AVATAR_BODY_LIMIT + 1;
 let streamed = 0;
 const tooLargeChunked = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
   method: 'POST',

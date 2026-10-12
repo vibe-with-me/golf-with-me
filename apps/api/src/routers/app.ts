@@ -53,21 +53,29 @@ async function storageCall<T>(context: ApiContext, work: () => Promise<T>): Prom
   try {
     return await work();
   } catch (error) {
-    context.logger.error('storage call failed', { status: storageStatus(error) });
+    context.logger.error('storage call failed', storageFailure(error));
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
   }
 }
 
 /**
- * A StorageApiError carries a string statusCode; a StorageUnknownError has
- * the field but leaves it undefined, so fall back to the numeric status.
+ * Every HTTP failure is a StorageApiError, which carries both status (the
+ * HTTP number) and statusCode (Storage's own string). A StorageUnknownError
+ * is a network failure and sets neither, so the error's name is logged too:
+ * it tells a request that never got an answer from one that got an odd one.
  */
-function storageStatus(error: unknown): string {
-  if (typeof error !== 'object' || error === null) return 'unknown';
-  const { statusCode, status } = error as { statusCode?: unknown; status?: unknown };
-  if (typeof statusCode === 'string' && statusCode !== '') return statusCode;
-  if (typeof status === 'number') return String(status);
-  return 'unknown';
+function storageFailure(error: unknown): { name: string; status: string } {
+  if (typeof error !== 'object' || error === null) return { name: 'unknown', status: 'unknown' };
+  const { name, statusCode, status } = error as { name?: unknown; statusCode?: unknown; status?: unknown };
+  return {
+    name: typeof name === 'string' ? name : 'unknown',
+    status:
+      typeof statusCode === 'string' && statusCode !== ''
+        ? statusCode
+        : typeof status === 'number'
+          ? String(status)
+          : 'unknown',
+  };
 }
 
 /** Best effort: a file the profile no longer points at is a stray, not a broken profile. */
@@ -75,7 +83,7 @@ async function removeQuietly(context: ApiContext, path: string): Promise<void> {
   try {
     await removeAvatarObjects(context.db, [path]);
   } catch (error) {
-    context.logger.warn('stale avatar not removed', { status: storageStatus(error) });
+    context.logger.warn('stale avatar not removed', storageFailure(error));
   }
 }
 

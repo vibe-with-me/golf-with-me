@@ -1891,6 +1891,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```ts
 // === profile: the photo, my tags' status, account deletion ===
 const { AVATAR_MAX_BYTES, avatarPublicUrl } = await import('@withme/contract');
+const { AVATAR_BODY_LIMIT } = await import('../src/middleware/avatar-body-limit.ts');
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const codeOf = (e: { code?: string }) => e.code ?? 'error';
 // Leading bytes only: the API sniffs magic numbers; Storage never decodes.
@@ -1942,6 +1943,32 @@ const tooLarge = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
   body: new Uint8Array(AVATAR_MAX_BYTES + 65_537),
 });
 assert(tooLarge.status === 413, `an oversized declared length is a 413 before the body is read (got ${tooLarge.status})`);
+// A stream body goes out with Transfer-Encoding: chunked and no Content-Length (as React Native may
+// send), so bodyLimit has nothing declared to judge and counts the streamed bytes instead. One byte
+// past the limit, so the count trips on the last chunk: under wrangler dev, chunks left unread when
+// the 413 goes out wreck the next request on the dev server.
+const chunkedSize = AVATAR_BODY_LIMIT + 1;
+let streamed = 0;
+const tooLargeChunked = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
+  method: 'POST',
+  headers: {
+    authorization: `Bearer ${session.session?.access_token ?? ''}`,
+    'content-type': 'multipart/form-data; boundary=e2e',
+  },
+  body: new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (streamed === chunkedSize) return controller.close();
+      const size = Math.min(65_536, chunkedSize - streamed);
+      streamed += size;
+      controller.enqueue(new Uint8Array(size));
+    },
+  }),
+  duplex: 'half',
+}).then((r) => r.status, codeOf);
+assert(
+  tooLargeChunked === 413,
+  `an oversized chunked body is a 413 once the count passes the limit (got ${tooLargeChunked})`,
+);
 const secondPath = replaced.profile.avatar_path!;
 const cleared = await aliceApp.profile.removeAvatar();
 assert(
@@ -2073,8 +2100,8 @@ export async function squareAvatar(asset: { uri: string; width: number; height: 
 function readBlob(uri: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
-    request.onload = () => resolve(request.response as Blob);
-    request.onerror = () => reject(new Error('Could not read the resized photo'));
+    request.addEventListener('load', () => resolve(request.response as Blob));
+    request.addEventListener('error', () => reject(new Error('Could not read the resized photo')));
     request.responseType = 'blob';
     request.open('GET', uri);
     request.send();

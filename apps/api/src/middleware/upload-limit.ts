@@ -1,13 +1,10 @@
-import { AVATAR_MAX_BYTES } from '@withme/contract';
 import type { MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import type { HonoEnv } from '../env.ts';
+import { AVATAR_BODY_LIMIT } from './avatar-body-limit.ts';
 
 /** RPCHandler prefix '/rpc' + the router path app.profile.uploadAvatar. */
 const UPLOAD_PATH = '/rpc/app/profile/uploadAvatar';
-
-/** The cap plus 64 KiB of multipart framing: an honest upload never comes near it. */
-export const AVATAR_BODY_LIMIT = AVATAR_MAX_BYTES + 65_536;
 
 const limit = bodyLimit({
   maxSize: AVATAR_BODY_LIMIT,
