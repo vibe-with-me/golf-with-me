@@ -88,10 +88,22 @@ use of the tab label.
   `gathering/[id].tsx` → `round/[id].tsx`; update the `Tabs.Screen` name,
   the root `Stack.Screen` name, and every `pathname` / `href` /
   `dismissTo('/gatherings')` / `redirect` string (`index.tsx`, `login.tsx`,
-  `(tabs)/merch.tsx`, `t/[uid].tsx`, the detail), the
+  `(tabs)/merch.tsx`, `t/[uid].tsx`, the detail, and the renamed list
+  screen itself, whose rows `router.push({ pathname: '/gathering/[id]' })`), the
   `startsWith('/gathering/')` check behind the login screen's invitation
   line, and the `/gathering/` prefix that `gatheringHref` in
   `lib/gathering-link.ts` builds for redirects.
+
+**Copy the sweep cannot catch.** Some starter copy is vertical-specific
+without containing "gathering"; rewrite it for your vertical too:
+- the create form's title placeholder, `"e.g. Rooftop listening session"`,
+  in `apps/web/src/routes/_app.gatherings.tsx` and
+  `apps/mobile/app/(tabs)/gatherings.tsx` (or the files you renamed);
+- the seed's gathering, in `supabase/seed/index.ts`: its `p_title`
+  (`'Rooftop listening session'`) and the console text it prints
+  ("hosts a gathering Lin joined", "inviting you to her gathering"). §2
+  step 2 edits the same `create_gathering` call when a field is added,
+  so the title can change there in the same edit.
 
 The API's REST paths (`/gatherings…` in `packages/contract/src/contract/app.ts`)
 are internal identifiers: leave them.
@@ -100,7 +112,9 @@ The `/t/<uid>` resolver URL and the `gathering` destination type do not
 change: tags already in the field keep working.
 
 **Checkpoint:** `bun run lint && bun run typecheck`, then
-`cd apps/web && bunx playwright test`.
+`bun run db:reset && bun run db:seed` (the local stack's state is
+otherwise unknown, and the Playwright specs sign in as the seeded users),
+then `cd apps/web && bunx playwright test`.
 
 ## 2. Fields
 
@@ -166,19 +180,31 @@ In slice order:
    so add `p_course_name: '…'` there now (without it the seed fails with
    `PGRST202 Could not find the function public.create_gathering(…)`).
    Then `bun run db:reset && bun run db:seed && bun run db:types` and commit
-   `packages/db/src/types/supabase.ts`.
+   `packages/db/src/types/supabase.ts`. A Supabase CLI version other than
+   the one that last generated it can reformat that file wholesale, so a
+   large `git diff --stat` is not by itself a problem: check that what
+   changed semantically is only the new column (`Row`/`Insert`/`Update`)
+   and the new `p_` argument (`grep -n course_name` on the file).
 3. **Tests.** Every db test that calls the RPC passes the new argument —
    the caller grep under the map lists them. In core:
    `gatherings.test.ts`'s `createGathering()` helper; the anon call in
    its 'anon can neither create nor join' (PostgREST resolves a function
-   by its named arguments, so without the new one it answers PGRST202
-   instead of reaching the body's `'authentication required'`); and
-   `account.test.ts`'s two calls. A field with a CHECK gets a
+   by its named arguments, so without the new one it answers PGRST202);
+   and `account.test.ts`'s two calls. That anon test also changes one
+   expectation: step 2's `revoke … from public, anon` refuses anon at the
+   grant (`42501 permission denied for function create_gathering`) before
+   the body's `'authentication required'` runs, so its create assertion
+   `expect(createError?.message).toContain('authentication required')`
+   becomes the code both refusals share:
+   `expect(createError?.code).toBe('42501');`
+   (a missing argument still fails it, with PGRST202). Its join assertion
+   stays as it is. That is an argument and an expectation, not a safety
+   change: anon is refused earlier, not later. A field with a CHECK gets a
    rejected-at-the-boundary case (create and host edit, with a positive
    control). Adding an assertion for the new field to an existing test
-   (e.g. the anonymous resolve summary) is fine. Beyond the new argument,
-   the seventeen existing tests pass untouched — if one does not, you
-   moved a safety mechanism.
+   (e.g. the anonymous resolve summary) is fine. Beyond the new argument
+   and that one expectation, the seventeen existing tests pass untouched —
+   if one does not, you moved a safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
 5. **SDK.** If the summary changed, mirror it in
@@ -192,7 +218,16 @@ In slice order:
    `sub` line, the detail header; the resolver line comes from
    `gatheringLine()` in `lib/format-time.ts`. Mobile mirrors in
    `(tabs)/gatherings.tsx`, `gathering/[id].tsx` (or the files you renamed
-   in §1), `lib/format-time.ts`.
+   in §1), `lib/format-time.ts`. The display lines are composed in both
+   apps' `lib/format-time.ts`: rows and the detail
+   header call `whenAndWhere()` ("when · where"), and the resolver card
+   calls `gatheringLine()` ("Title · when · where"). Join the field there,
+   not in each screen. For the worked example: add
+   `courseWhenAndWhere(g)` =
+   `[g.course_name, whenAndWhere(g)].filter(Boolean).join(' · ')`
+   ("Course · when · where"; `''` shows nothing), call it from the rows
+   and the detail header, and have `gatheringLine()` use it, so the tag
+   card reads "Title · Course · when · where".
 7. **E2E.** `apps/api/e2e/handshake.e2e.ts`: every
    `gatherings.create` the caller grep lists (§12 and §17 in core) passes
    the field, and §12 asserts it on the created gathering and on the
@@ -200,7 +235,7 @@ In slice order:
    every Playwright step that creates a gathering, or the create fails:
    `grep -rn "getByLabel('Title')" apps/web/e2e` finds them
    (`gatherings.spec.ts` and `profile.spec.ts` in core). The seed was
-   done in step 2.
+   done in step 2, and that edit can carry §1's new seed title too.
 
 Then the verification gate from `docs/the-slice.md`.
 
