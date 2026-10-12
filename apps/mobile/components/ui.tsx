@@ -89,6 +89,8 @@ export function Button({
   disabled = false,
   inline = false,
   ref,
+  accessibilityLabel,
+  expanded,
 }: {
   label: string;
   onPress: () => void;
@@ -99,12 +101,18 @@ export function Button({
   inline?: boolean;
   /** For moving screen-reader focus here when the control that had it goes away. */
   ref?: Ref<View>;
+  /** When the label alone is ambiguous in a list ("Turn off" → "Turn off ABC123"). Keep the label's words in it. */
+  accessibilityLabel?: string;
+  /** For a button that shows and hides something below it. */
+  expanded?: boolean;
 }) {
   const t = useTokens();
   return (
     <Pressable
       ref={ref}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={expanded === undefined ? undefined : { expanded }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
