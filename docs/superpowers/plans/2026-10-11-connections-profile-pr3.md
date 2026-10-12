@@ -52,7 +52,7 @@
    - **Rejected: a signed upload URL issued by the API.** The bytes would bypass the API's sniffing, and it contradicts "the API receives a File".
    - **Rejected: base64 JSON (vibe-with-me's `image_data`).** It contradicts the spec, and the File path works on both platforms (Decision 5).
    - The write spans two systems (Storage, then Postgres), so it cannot be one definer RPC. The API compensates instead: if the profile update fails, the new file is removed; if removing the old file fails, that is logged and tolerated, because a stray file is not a broken profile.
-   - `AVATAR_MAX_BYTES = 1_048_576` (1 MiB). It is enforced four times: the clients, which refuse to send a larger encode; the API, which answers 413 by `Content-Length` before reading the body (Task 9, because oRPC buffers the whole multipart body before zod runs); the contract (`z.file().max`); and the bucket (`file_size_limit`).
+   - `AVATAR_MAX_BYTES = 1_048_576` (1 MiB). It is enforced four times: the clients, which refuse to send a larger encode; the API, which answers 413 through Hono's `bodyLimit` before oRPC buffers the body (Task 9: by `Content-Length` when declared, by counting the streamed bytes when not, because oRPC buffers the whole multipart body before zod runs); the contract (`z.file().max`); and the bucket (`file_size_limit`).
    - **Added beyond the spec's list: `app.profile.removeAvatar`** (`DELETE /me/avatar`). The URL field could be cleared. Without this, a photo, once set, could only ever be replaced. It mirrors how M2 added `gatherings.update/remove` for host edit/delete.
 
 2. **The bucket and its policies.** Migration `20261011120000_avatars.sql`:
@@ -1710,7 +1710,12 @@ After `updateProfile` add:
 ```ts
 const profileUploadAvatar = appProcedure.profile.uploadAvatar.handler(async ({ input, context }) => {
   const userId = requireUser(context);
-  const bytes = new Uint8Array(await input.file.arrayBuffer());
+  const { file } = input;
+  // z.file() already checked this at runtime. Under workers-types zod's File
+  // type carries only size and type (File is a global class there, not a
+  // globalThis property), so this guard is what types the bytes read.
+  if (!(file instanceof Blob)) throw new ORPCError('BAD_REQUEST', { message: 'Unsupported image' });
+  const bytes = new Uint8Array(await file.arrayBuffer());
   const kind = sniffAvatar(bytes);
   if (!kind) throw new ORPCError('BAD_REQUEST', { message: 'Unsupported image' });
 
@@ -1797,17 +1802,22 @@ In `appRouter`:
 ```
 
 **Step 3: refuse an oversized upload before it is read.**
-- **Why:** oRPC's `RPCHandler` buffers the whole multipart body before zod sees the file, so `z.file().max(AVATAR_MAX_BYTES)` answers BAD_REQUEST only after the Worker already holds every byte. A Hono middleware answers 413 from `Content-Length` before anything reads the body.
+- **Why:** oRPC's `RPCHandler` buffers the whole multipart body before zod sees the file, so `z.file().max(AVATAR_MAX_BYTES)` answers BAD_REQUEST only after the Worker already holds every byte. Hono's built-in `bodyLimit` (`hono/body-limit`) answers 413 before oRPC reads the body.
 - **The route:** `apps/api/src/index.ts` mounts `rpcHandler.handle(c.req.raw, { prefix: '/rpc', context })` inside `app.use('/rpc/*', …)`, and the router is `{ public: publicRouter, app: appRouter }`, so `app.profile.uploadAvatar` is served at `/rpc/app/profile/uploadAvatar`.
 - **Why `/rpc/*` and not that exact path:** oRPC strips a trailing slash before its exact (case-sensitive) lookup, so `/rpc/app/profile/uploadAvatar/` reaches the same procedure, but Hono's strict routing would not run a middleware mounted on the bare path for it. The middleware mounts on `/rpc/*` and compares the path with one trailing slash removed.
 - **The slack:** 64 KiB above the cap covers the multipart framing, which is a few hundred bytes. A file just over the cap therefore still reaches the contract and gets BAD_REQUEST (§18 in Task 10 checks both).
-- **No length, no upload:** a missing or malformed `Content-Length` is refused too, because an unbounded body is exactly what this guards against. Task 10b's spike exercises this on the simulator with `expo/fetch`.
+- **How `bodyLimit` judges the size** (hono 4.12.25, `dist/middleware/body-limit/index.js`):
+  - A request with no body passes.
+  - With a `Content-Length` and no `Transfer-Encoding`, it compares the declared length with `maxSize` and answers `onError` without reading a byte; the runtime holds the body to that length.
+  - Otherwise (no `Content-Length`, or chunked), it reads the stream, counting bytes, answers `onError` as soon as the count passes `maxSize`, and else hands the buffered chunks on as a fresh `c.req.raw`, which the `/rpc/*` handler reads.
+- **A missing length is not refused.** A chunked multipart upload from React Native/Expo may omit `Content-Length`; refusing it would 413 every real mobile upload. Counting the streamed bytes bounds it just the same. Task 10b's spike exercises the no-length path on the simulator with `expo/fetch`.
 
 Create `apps/api/src/middleware/upload-limit.ts`:
 
 ```ts
 import { AVATAR_MAX_BYTES } from '@withme/contract';
 import type { MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import type { HonoEnv } from '../env.ts';
 
 /** RPCHandler prefix '/rpc' + the router path app.profile.uploadAvatar. */
@@ -1816,25 +1826,25 @@ const UPLOAD_PATH = '/rpc/app/profile/uploadAvatar';
 /** The cap plus 64 KiB of multipart framing: an honest upload never comes near it. */
 export const AVATAR_BODY_LIMIT = AVATAR_MAX_BYTES + 65_536;
 
+const limit = bodyLimit({
+  maxSize: AVATAR_BODY_LIMIT,
+  onError: (c) => c.json({ error: 'payload too large' }, 413),
+});
+
 /**
- * 413 before the body is read: oRPC buffers the whole multipart body before
- * the contract's z.file().max() can run, so the size is judged here, from the
- * declared Content-Length. A missing or malformed length is refused too.
- * Mounted on /rpc/* because oRPC also serves the path with a trailing slash.
+ * 413 before oRPC buffers the body: RPCHandler reads the whole multipart body
+ * before the contract's z.file().max() can run, so the size is judged here.
+ * Hono's bodyLimit refuses a declared Content-Length over the limit without
+ * reading; with no length (a chunked upload, which React Native may send) it
+ * counts the streamed bytes and stops at the limit. Mounted on /rpc/* because
+ * oRPC also serves the path with a trailing slash.
  */
 export function avatarUploadLimit(): MiddlewareHandler<HonoEnv> {
-  return async (c, next) => {
-    if (c.req.path.replace(/\/$/, '') !== UPLOAD_PATH) return next();
-    const length = c.req.header('content-length') ?? '';
-    if (!/^\d{1,10}$/.test(length) || Number(length) > AVATAR_BODY_LIMIT) {
-      return c.text('Payload too large', 413);
-    }
-    return next();
-  };
+  return (c, next) => (c.req.path.replace(/\/$/, '') === UPLOAD_PATH ? limit(c, next) : next());
 }
 ```
 
-In `apps/api/src/index.ts`, import it and mount it after `cors` (so a browser can read the 413) and before `supabaseAuth()` (so an oversized request is refused before a JWT is verified or a byte is read):
+In `apps/api/src/index.ts`, import it and mount it after `cors` (so a browser can read the 413) and before `supabaseAuth()` (so an oversized request is refused before a JWT is verified, and a declared oversized length before a byte is read):
 
 ```ts
 import { avatarUploadLimit } from './middleware/upload-limit.ts';
@@ -1864,8 +1874,10 @@ it, and removes the old file — compensating if the pointer update fails.
 deleteAccount clears the photo pointer, then empties the avatar folder
 through the Storage API, then calls delete_my_account, so a failure midway
 never leaves a card pointing at a deleted file. tags.update passes status
-through; not-yours stays NOT_FOUND. An upload whose Content-Length is
-missing or over the cap is a 413 before oRPC buffers the body.
+through; not-yours stays NOT_FOUND. An upload over the cap plus framing
+slack is a 413 from Hono's bodyLimit before oRPC buffers the body: by
+Content-Length when declared, by counting streamed bytes when not (a
+chunked upload from React Native may carry no length).
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1920,7 +1932,7 @@ const huge = await aliceApp.profile
   })
   .then(() => 'stored', codeOf);
 assert(huge === 'BAD_REQUEST', `an oversized file is refused (got ${huge})`);
-// Past the cap plus the framing slack, the Worker refuses by Content-Length before reading.
+// Past the cap plus the framing slack, bodyLimit refuses by the declared Content-Length, before reading.
 const tooLarge = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
   method: 'POST',
   headers: {
@@ -1929,7 +1941,7 @@ const tooLarge = await fetch(`${API_URL}/rpc/app/profile/uploadAvatar`, {
   },
   body: new Uint8Array(AVATAR_MAX_BYTES + 65_537),
 });
-assert(tooLarge.status === 413, `an oversized body is a 413 before it is read (got ${tooLarge.status})`);
+assert(tooLarge.status === 413, `an oversized declared length is a 413 before the body is read (got ${tooLarge.status})`);
 const secondPath = replaced.profile.avatar_path!;
 const cleared = await aliceApp.profile.removeAvatar();
 assert(
@@ -2157,7 +2169,7 @@ console.log(JSON.stringify(data));
 
 prints `{"avatar_path":"<ada-id>/<uuid>.jpg"}`.
 
-**Fail:** a `BAD_REQUEST` with "Input validation failed" means the multipart transport is broken: the blob part arrived as a string. **Stop here and report** with the spike line, the API log, and a screenshot (`xcrun simctl io booted screenshot ~/Desktop/m3-spike.png`). Do not improvise a base64 contract: that is a spec deviation that needs Alex (Decision 5, ENG-749). A 413 means the request reached the Worker without a `Content-Length` (Task 9's upload limit refuses a body it cannot size): report it with the API log rather than loosening the limit, since that is the same spec-level call. Any other failure is worth a short debug first (sign-in, API not running, Metro stale: `bunx agent-device metro reload`), still without changing the transport.
+**Fail:** a `BAD_REQUEST` with "Input validation failed" means the multipart transport is broken: the blob part arrived as a string. **Stop here and report** with the spike line, the API log, and a screenshot (`xcrun simctl io booted screenshot ~/Desktop/m3-spike.png`). Do not improvise a base64 contract: that is a spec deviation that needs Alex (Decision 5, ENG-749). A 413 means the Worker counted (or was told) more than `AVATAR_MAX_BYTES` + 64 KiB, so the client sent an encode far over the cap (Task 9's `bodyLimit` accepts a missing `Content-Length` and counts the streamed bytes instead): report it with the API log and the encoded size rather than loosening the limit, since that is the same spec-level call. Any other failure is worth a short debug first (sign-in, API not running, Metro stale: `bunx agent-device metro reload`), still without changing the transport.
 
 **Step 6:** Revert the temporary button and leave the tree clean:
 
