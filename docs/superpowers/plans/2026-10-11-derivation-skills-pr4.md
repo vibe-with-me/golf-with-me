@@ -2459,6 +2459,30 @@ bun install
 
 **Step 3:** Any deviation means: fix the SKILL.md in the M4 worktree, commit (`git commit -m "make-it-yours: fixes from the fresh-clone run" …`), and repeat this task from Step 1. Close the window from the M4 worktree, with the hand-back to M3.
 
+**Done 2026-10-12** in two runs. Log: `/Users/alexeisele/dev/withme-scratch/notes/make-it-yours-fresh.md`, check script `notes/7d-verify.cjs`, screenshots `notes/7d-*.png`. Steps 2 (fonts), 5 (EAS: no `eas` command was run) and step 6's `project_id` rename were skipped. Contrast, computed with the WCAG formula: light `#0f766e`/`#ffffff` 5.47:1, dark `#2dd4bf`/`#042f2e` 7.77:1.
+- Run 1 (`bcef319`, about 7 min) passed every expected result, and found four places where the text and the starter disagree. All four were fixed as text in `ef48bdf`:
+  - the Inputs never asked for the fork's repository URL, which step 3's README badge needs;
+  - step 1 put the accent on "the Connect/claim buttons", but it also sits on Accept, Join, and mobile's "Read NFC tag" (`btn--connect` / `kind="connect"`);
+  - step 8 listed six icon files, but `app.json` wires only `icon.png` and `android-icon-foreground.png`, so the other four change nothing until they are wired in;
+  - step 8 expected the accent on Connect, but the seeded `04BBBBBBBBBBBB` is Ada's gathering invite. It shows "Join this gathering" and no Connect button, and the accent is on Join.
+- Run 2 (`ef48bdf`, about 2 min) had no skill deviation, and every expected result passed:
+  - the step 3 and step 8 sweeps printed nothing;
+  - `bunx expo config --type public` showed `Acme` / `acme` / `com.acme.app`, with no schema errors;
+  - the gate was green (contract 31, db 72, nfc 48);
+  - `CI=1 bunx playwright test` passed 14;
+  - with the store set, a Playwright script against both dev servers passed 22 of 22 checks:
+    - the `acme` wordmark and titles;
+    - "Get tags" on the landing page;
+    - the accent only on "Join this gathering", in light and dark;
+    - the `/merch` card;
+    - "Open store" with `target="_blank"`, opening `https://shop.example.com/`.
+- Run 1 also checked the store unset: no "Get tags", no Merch tab, and `/merch` landed on `/gatherings`. Run 2 skipped that check, because the fixes were text-only and outside step 7.
+- The seed identity was rebranded (`*@demo.acme.local`). No test hardcodes it.
+- Outside the skill:
+  - the shipped `tokens.css` comment cites 4.8:1 for `#c2410c`/`#ffffff`, which computes to 5.18:1;
+  - `packages/nfc-sdk` still points its `repository.url` at upstream, and no sweep covers `packages/`.
+  Neither was changed. The known web dev-server hang did not occur, since this run has no claim flow.
+
 ---
 
 ### Task 8: Cleanup, gate, PR
