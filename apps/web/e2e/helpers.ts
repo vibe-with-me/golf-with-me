@@ -28,3 +28,29 @@ export async function signUp(page: Page, email: string): Promise<void> {
 export function returnToOf(page: Page): string | null {
   return new URL(page.url()).searchParams.get('returnTo');
 }
+
+/** Signs up from /login and creates the profile; lands on Events, the default. */
+export async function signUpWithProfile(page: Page, email: string, name: string): Promise<void> {
+  await page.goto('/login');
+  await signUp(page, email);
+  await page.waitForURL(/\/profile\?/);
+  await page.getByLabel('Name').fill(name);
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.waitForURL('**/gatherings');
+}
+
+/** Provisions a fresh tag, signs up from its tap, and claims it. Returns the uid. */
+export async function claimFreshTag(page: Page, email: string, name: string): Promise<string> {
+  const uid = freshUid();
+  const { error } = await admin.from('tags').insert({ uid });
+  if (error) throw error;
+  await page.goto(`/t/${uid}`);
+  await page.waitForURL('**/login**');
+  await signUp(page, email);
+  await page.waitForURL(`**/claim/${uid}`);
+  await page.getByLabel('Name').fill(name);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Claim tag' }).click();
+  await page.waitForURL(`**/t/${uid}`);
+  return uid;
+}
