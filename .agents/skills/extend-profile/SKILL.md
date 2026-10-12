@@ -47,6 +47,30 @@ the other tier's lines. Connections-only: still redefine
 `accept_connect_request` (for `details`), skip `resolve_tag`. Card-only:
 skip `details` everywhere, including `ConnectionSchema`.
 
+**A field with a format rule** (a pace like `5:30/km`, a postcode) swaps
+the example's length rule for a pattern at every layer; nothing else moves.
+
+- Contract (§1): its own schema in place of `CardLineSchema`, used
+  wherever the example uses that one — for a pace, a
+  `PaceSchema = z.string().regex(/^[0-9]{1,2}:[0-5][0-9]\/(km|mi)$/)`.
+- SQL (§3): a format CHECK instead of the length CHECK, named for it
+  (`profiles_pace_format check (pace is null or pace ~ '^…$')`), whose
+  pattern matches the zod regex character for character. Spell the
+  classes out (`[0-9]`, not `\d`; no `\w` or `\b`): Postgres's regex
+  dialect and JavaScript's differ on shorthand, and both rules must reject
+  the same strings.
+- Tests: each length test becomes a format test. §1's "rejects empty and
+  oversized" checks `''` and malformed values (`'5:60/km'`, `'123:30/km'`,
+  `'5:30/mile'`) plus valid values that must parse (`'5:30/km'`,
+  `'12:05/mi'`); §2's card-tier length test loops over `''` and a
+  malformed value and expects the format CHECK's name. Wherever the
+  example writes a value (`'Riverside GC'`, `'E2E Club'`), use a valid one.
+- Forms (§6, §7): `maxLength` of the longest valid value, and a
+  `placeholder` that shows the format (`5:30/km or 8:45/mi`). A malformed
+  value reaches the API and comes back as the form's generic save error
+  ("Could not save. Check the fields and try again."); field-level
+  messages are the fork's to add.
+
 ## The map
 
 | Layer | Card tier | Connections tier |
@@ -67,6 +91,8 @@ Outside the tabs, mobile `gathering/[id].tsx` (join) and `t/[uid].tsx`
 acting: the gate is for entering the shell, and an incomplete profile is
 still a valid card. Leave them as they are (`const { profile } = …` still
 works). The claim pages ask for the required fields themselves (§6, §7).
+(If you ran customize-gathering's URL step, `gathering/[id].tsx` here and
+`gatherings.spec.ts` in the table carry your vertical's word instead.)
 
 ## 1. Contract
 
@@ -144,9 +170,11 @@ That is the required-nullable key doing its job. Then:
   starter, under `ResolveOutputSchema` and `ConnectRequestSchema`; the key
   is required-nullable, so every existing fixture fails to parse without it);
 - add `'affiliation'` to the expected keys in "exposes only card-safe fields"
-  (the test sorts them with `.toSorted()`, so it goes first:
+  (the test sorts them with `.toSorted()`, so the expected list is sorted
+  too, with your field in its alphabetical place — for `affiliation`,
   `['affiliation', 'avatar_path', 'bio', 'display_name', 'id']`);
-- append, at the end of the file:
+- append, at the end of the file (a format field adapts the second test as
+  in "A field with a format rule" above):
 
 ```ts
 describe('profile tiers', () => {
@@ -575,8 +603,14 @@ which PostgREST reports from its schema cache:
 Not Postgres's `42P01` / `42703`: the request never reaches the database.
 A failure on a data assertion instead (`Received: undefined`, say) means a
 write upstream went unchecked: check its `error`. A new test that passes
-now asserts nothing: fix it before going on. `bun run typecheck` is red
-for `@withme/db` until §3 regenerates the types.
+now asserts nothing: fix it before going on. `bunx turbo run typecheck
+--continue` is red for `@withme/db` until §3 regenerates the types, and
+may already be red for `@withme/api` and `@withme/nfc` from §1's contract
+change (§4 and §5 close those).
+
+A format-checked card field: the card-tier "is length-checked" test
+becomes "is format-checked", looping over `''` and a malformed value and
+expecting the format CHECK's name (see "A field with a format rule").
 
 ## 3. Migration — both tiers, one additive file
 
@@ -659,6 +693,10 @@ create policy profile_details_update_own on public.profile_details
   with check (profile_id = (select auth.uid()) and tenant_id = private.current_tenant_id());
 ```
 
+A format-checked card field replaces the length CHECK with a format CHECK
+whose pattern is the zod regex, class for class (see "A field with a
+format rule").
+
 **Every function that builds a card** gets the card tier. Find them:
 
 ```sh
@@ -722,9 +760,9 @@ dropped.
 bun run db:reset && bun run db:seed && bun run db:types
 ```
 
-**Checkpoint (green):** `db:reset` prints `Finished supabase db reset on
-branch …` (outside a terminal, a JSON line with `"Reset local database."`
-follows it);
+**Checkpoint (green):** `db:reset` prints `Finished supabase db reset`
+(some CLI versions add `on branch …`; outside a terminal, a JSON line with
+`"Reset local database."` follows it);
 `cd packages/db && bun test` is all green, fourteen more than before;
 `git diff packages/db/src/types/supabase.ts` shows `affiliation` and a
 `profile_details` table with a one-to-one `profile_details_profile_id_fkey`
@@ -748,7 +786,7 @@ others are red.)
   and the `23505` race retry send `patch` whole, so they need nothing. (The
   avatar is not in this patch: `setOwnAvatarPath` in `queries/avatars.ts`
   owns it.)
-- The connections tier:
+- The connections tier, as a block right after `upsertOwnProfile`:
 
 ```ts
 /** Connections tier. Never part of CARD_COLUMNS: RLS lets only the owner and connections read it. */
@@ -933,7 +971,9 @@ const [contact, setContact] = useState(details?.contact_handle ?? '');
   the `<h1>` becomes
   `{!profile ? 'Create your profile' : isProfileComplete(profile) ? 'Your profile' : 'Finish your profile'}`,
   Save's `disabled` becomes `busy || !displayName.trim() || !affiliation.trim()`,
-  and the fields go after Bio, before the status line:
+  and the fields go after Bio, before the status line (labels, ids, and
+  placeholders in your vertical's words; a format field takes the
+  `maxLength` and `placeholder` from "A field with a format rule"):
 
 ```tsx
 <div className="field">
@@ -1047,7 +1087,8 @@ useEffect(() => {
 
 Like web's `pathname !== '/profile'`: navigating to the screen you are on
 replaces its params and would drop `redirect`. Connect (`t/[uid].tsx`) and
-Join (`gathering/[id].tsx`) push `/profile` with a `redirect` for a user
+Join (`gathering/[id].tsx`, renamed if you ran customize-gathering's URL
+step) push `/profile` with a `redirect` for a user
 with no profile; when the tabs were not mounted yet, that push mounts them,
 the gate fires, and without the path check Save stays on Profile instead
 of returning to the tag.
@@ -1070,11 +1111,14 @@ of returning to the tag.
     `setAffiliation(profile.affiliation ?? '')`; after it,
     `setContact(details?.contact_handle ?? '')`.
   - `save`: `const saved = await api.app.profile.update({ … })` with the
-    same payload as web, then `setCurrent(saved.profile)`.
+    same payload as web, then `setCurrent(saved.profile)` on the next
+    line, before the `redirect` branch and its `dismissTo` return, so it
+    runs on both paths.
   - `Title`:
     `{!current ? 'Create your profile' : isProfileComplete(current) ? 'Your profile' : 'Finish your profile'}`.
   - Save: `disabled={busy || !displayName.trim() || !affiliation.trim()}`.
-  - After the Bio `Field`:
+  - After the Bio `Field` (labels, placeholders, and the `Muted` line in
+    your vertical's words; a format field as on web):
 
 ```tsx
 <Field
@@ -1110,32 +1154,13 @@ of returning to the tag.
   Requests and Blocked segments may pass the card tier's `affiliation`,
   never details.
 
-**Checkpoint:** `bun run lint && bun run typecheck`, then a simulator pass
-(`cd apps/mobile && bunx expo start --ios --clear`, API dev server up): a
-new account lands on Profile and cannot be left incomplete without being
-sent back on the next tabs mount; two connected accounts see each other's
-contact in Connections; a tag resolve shows the affiliation and no contact;
-and, cold, Connect returns to the tag: signed out, open a tag link whose
-card shows Connect (`/t/<uid>`), tap Connect, sign up, and back on the tag
-tap Connect again; Profile opens, and Save after filling it lands on the
-tag again, not on Profile. The seed has no tag that shows Connect: first
-sign in as Lin and claim `04AAAAAAAAAAAA` (`/t/04AAAAAAAAAAAA` opens the
-claim flow), then sign out and use that tag. The seeded `04BBBBBBBBBBBB`
-points at Ada's gathering, so it shows Join, which takes the same path
-through `gathering/[id].tsx`: sign-up lands on its "Join this gathering?"
-screen rather than the tag, Join opens Profile, and Save returns to "Join
-this gathering?", not to Profile.
+**Checkpoint (static):** `bun run lint && bun run typecheck`.
 
-On the local stack a brand-new sign-up can land on Events instead. The
-first API calls made within a second of sign-up can hit PostgREST's
-`PGRST303` ("JWT issued at future"; the API logs "unexpected database
-error"), and the gate fails open by design. Relaunch and the account is
-sent to Profile. Every tab's first call can fail the same way, so it does
-not come from the gate.
-
-## 8. Seed and e2e
-
-`supabase/seed/index.ts`, after the two `createDemoUser` lines:
+**The seed, before the simulator pass.** Without the new fields the demo
+users are incomplete: the pass below would send Lin to "Finish your
+profile" and show Ada's card without the card tier.
+`supabase/seed/index.ts`, after the two `createDemoUser` lines (rename the
+comment's words to your vertical's):
 
 ```ts
 // extend-profile: both demo users fill both tiers. They are not connected
@@ -1157,6 +1182,38 @@ for (const [user, affiliation, contact_handle] of [
   if (detailsError) throw detailsError;
 }
 ```
+
+Then `bun run db:reset && bun run db:seed`: both demo users are now
+complete, with both tiers filled.
+
+**Checkpoint (simulator):** a simulator pass
+(`cd apps/mobile && bunx expo start --ios --clear`, API dev server up): a
+new account lands on Profile and cannot be left incomplete without being
+sent back on the next tabs mount; two connected accounts see each other's
+contact in Connections; a tag resolve shows the affiliation and no contact;
+and, cold, Connect returns to the tag: signed out, open a tag link whose
+card shows Connect (`/t/<uid>`), tap Connect, sign up, and back on the tag
+tap Connect again; Profile opens, and Save after filling it lands on the
+tag again, not on Profile. The seed has no tag that shows Connect: first
+sign in as Lin (complete now, so she lands in the tabs) and claim
+`04AAAAAAAAAAAA` (`/t/04AAAAAAAAAAAA` opens the claim flow), then sign out
+and use that tag; its card shows Lin's affiliation. The seeded `04BBBBBBBBBBBB` points at Ada's gathering, so it
+shows Join (and Ada's affiliation), which takes the same path through
+`gathering/[id].tsx`: sign-up lands on its "Join this gathering?" screen
+rather than the tag, Join opens Profile, and Save returns to "Join this
+gathering?", not to Profile. (If you ran customize-gathering's URL step,
+the screen and its copy carry your vertical's word, e.g. "Join this run?".)
+
+On the local stack a brand-new sign-up can land on Events instead. The
+first API calls made within a second of sign-up can hit PostgREST's
+`PGRST303` ("JWT issued at future"; the API logs "unexpected database
+error"), and the gate fails open by design. Relaunch and the account is
+sent to Profile. Every tab's first call can fail the same way, so it does
+not come from the gate.
+
+## 8. e2e
+
+(The seed edit is in §7, before the simulator pass.)
 
 `apps/api/e2e/handshake.e2e.ts`:
 
@@ -1200,7 +1257,8 @@ shared `signUpWithProfile` and `claimFreshTag` in `helpers.ts` — fills
 `getByLabel('Affiliation')` right after (steps that only assert a Name
 value need nothing). In the starter the grep finds twelve, all
 profile-creating: `handshake.spec.ts` 2, `helpers.ts` 2,
-`gatherings.spec.ts` 2, `shell.spec.ts` 6; each gets
+`gatherings.spec.ts` 2 (renamed if you ran customize-gathering's URL
+step), `shell.spec.ts` 6; each gets
 `.getByLabel('Affiliation').fill('Smoke Club')` on the same page. A
 Playwright failure later on a profile-creating step is a fill this grep
 missed. Then extend `handshake.spec.ts`, after its last
