@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -153,11 +153,15 @@ export function Avatar({
 }) {
   const t = useTokens();
   const url = avatarSrc(path);
-  if (url) {
+  // A photo that fails to load (deleted, storage down) falls back to the
+  // initial, as on web; keyed by URL, so a new photo gets its own attempt.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  if (url && url !== failedUrl) {
     return (
       <Image
         source={{ uri: url }}
         style={[styles.avatar, { width: size, height: size, borderColor: t.border }]}
+        onError={() => setFailedUrl(url)}
       />
     );
   }
