@@ -242,7 +242,7 @@ owner review them in the SQL editor, not a terminal or CI log, with the
 same UIDs:
 
 ```sql
-select t.uid, t.updated_at, p.display_name
+select t.uid, t.claimed_by, t.updated_at, p.display_name
 from public.tags t join public.profiles p on p.id = t.claimed_by
 where t.uid in ('04A1B2C3D4E5F6', '04A1B2C3D4E5F7');
 ```
@@ -257,9 +257,13 @@ for that UID:
 ```sql
 update public.tags
 set status = 'disabled', claimed_by = null, destination = null
-where uid = '04A1B2C3D4E5F6' and claimed_by is not null
+where uid = '04A1B2C3D4E5F6' and claimed_by = '<claimed_by from the review>'
 returning uid;
 ```
+
+No row back means the tag changed hands since the review (its owner
+deleted their account, and someone may have claimed it since): run the
+review again.
 
 Clearing `claimed_by` matters: a disabled row that keeps its owner stays
 in that account's My tags, which can switch it back on. The tag then
