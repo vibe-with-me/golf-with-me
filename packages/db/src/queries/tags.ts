@@ -25,19 +25,29 @@ export async function listOwnTags(db: Db): Promise<OwnTagRow[]> {
   return data ?? [];
 }
 
+/** What an owner may change on their tag: where it points, and off or on. */
+export interface OwnTagPatch {
+  destination?: Json;
+  status?: 'claimed' | 'disabled';
+}
+
 /**
- * Re-point one of the caller's tags. RLS + the (destination, status) column
- * grant make this owner-only and the CHECK constraint validates the shape.
- * A tag that is not yours matches zero rows and reads as null.
+ * Re-point and/or switch one of the caller's tags. RLS + the (destination,
+ * status) column grant make this owner-only; the shape and state CHECKs
+ * validate what lands. A tag that is not yours matches zero rows and reads
+ * as null.
  */
-export async function updateOwnTagDestination(
+export async function updateOwnTag(
   db: Db,
   uid: string,
-  destination: Json,
+  patch: OwnTagPatch,
 ): Promise<OwnTagRow | null> {
+  const update: OwnTagPatch = {};
+  if (patch.destination !== undefined) update.destination = patch.destination;
+  if (patch.status !== undefined) update.status = patch.status;
   const { data, error } = await db
     .from('tags')
-    .update({ destination })
+    .update(update)
     .eq('uid', uid)
     .select(OWN_TAG_COLUMNS)
     .maybeSingle();
