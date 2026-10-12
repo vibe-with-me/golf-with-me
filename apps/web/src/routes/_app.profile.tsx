@@ -3,8 +3,11 @@ import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstac
 import { useState } from 'react';
 import { AvatarField } from '../components/AvatarField.tsx';
 import { shellStates } from '../components/CalmStates.tsx';
+import { MyTags } from '../components/MyTags.tsx';
+import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { safeReturnTo } from '../lib/auth-guard.ts';
+import { settled } from '../lib/loaded.ts';
 import { getSupabase } from '../lib/supabase.ts';
 
 /** Profile: identity (photo, name, bio), My tags, Account. */
@@ -15,15 +18,27 @@ export const Route = createFileRoute('/_app/profile')({
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
   },
+  loader: async () => {
+    // Each settles alone: a failed gatherings list only loses the labels.
+    const [tags, gatherings] = await asSignedInAccount(() =>
+      Promise.all([
+        settled(api.app.tags.listMine().then(({ tags: list }) => list)),
+        settled(api.app.gatherings.listMine().then(({ gatherings: list }) => list)),
+      ]),
+    );
+    return { tags, gatherings };
+  },
   component: ProfilePage,
 });
 
 function ProfilePage() {
   // Fetched once by the layout; invalidated after a save or a photo change.
   const { profile } = useLoaderData({ from: '/_app' });
+  const { tags, gatherings } = Route.useLoaderData();
   return (
     <div className="stack">
       <IdentityForm profile={profile} />
+      {profile ? <MyTags tags={tags} gatherings={gatherings} /> : null}
     </div>
   );
 }
