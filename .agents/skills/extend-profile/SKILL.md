@@ -55,7 +55,10 @@ the example's length rule for a pattern at every layer; nothing else moves.
   `PaceSchema = z.string().regex(/^[0-9]{1,2}:[0-5][0-9]\/(km|mi)$/)`.
 - SQL (§3): a format CHECK instead of the length CHECK, named for it
   (`profiles_pace_format check (pace is null or pace ~ '^…$')`), whose
-  pattern matches the zod regex character for character. Spell the
+  pattern matches the zod regex's character classes and anchors. A
+  JavaScript-only escape drops out in SQL: the `\/` inside the regex
+  literal is a plain `/` in the SQL string
+  (`'^[0-9]{1,2}:[0-5][0-9]/(km|mi)$'`). Spell the
   classes out (`[0-9]`, not `\d`; no `\w` or `\b`): Postgres's regex
   dialect and JavaScript's differ on shorthand, and both rules must reject
   the same strings.
@@ -66,7 +69,11 @@ the example's length rule for a pattern at every layer; nothing else moves.
   malformed value and expects the format CHECK's name. Wherever the
   example writes a value (`'Riverside GC'`, `'E2E Club'`), use a valid one.
 - Forms (§6, §7): `maxLength` of the longest valid value, and a
-  `placeholder` that shows the format (`5:30/km or 8:45/mi`). A malformed
+  `placeholder` that shows the format (`5:30/km or 8:45/mi`). On mobile,
+  a format that needs lowercase (or any exact case, like `km`) also wants
+  `autoCapitalize="none"` on its `Field` in both the profile and claim
+  screens, or the keyboard capitalizes the first letter (the starter's
+  `Field` already turns `autoCorrect` off). A malformed
   value reaches the API and comes back as the form's generic save error
   ("Could not save. Check the fields and try again."); field-level
   messages are the fork's to add.
@@ -615,8 +622,10 @@ expecting the format CHECK's name (see "A field with a format rule").
 ## 3. Migration — both tiers, one additive file
 
 New file `supabase/migrations/<UTC-timestamp>_extend_profile.sql`
-(`date -u +%Y%m%d%H%M%S`; it must sort after every existing migration,
-the newest in the starter being `20261011130000_delete_my_account.sql`):
+(`date -u +%Y%m%d%H%M%S`; it must sort after every existing migration:
+in the starter the newest is `20261011130000_delete_my_account.sql`, but a
+fork that ran another skill first, such as customize-gathering, has a
+newer one, so check `ls supabase/migrations | tail -1`):
 
 ```sql
 -- extend-profile: vertical fields in two visibility tiers.
@@ -724,6 +733,9 @@ grep -lE 'create (or replace )?function public\.accept_connect_request' supabase
 ```
 
 In the starter both print `supabase/migrations/20261011120000_avatars.sql`.
+After customize-gathering, `resolve_tag`'s newest may be that skill's
+migration instead (it redefines `resolve_tag`), which is why the grep,
+not a file name, decides; copy each function from its own newest file.
 The `grep -v` matters when you redo this migration, after a rebase for
 instance: it already defines both functions and would otherwise be its own
 newest. Copy each newest definition whole into this migration, at the end,
@@ -779,6 +791,9 @@ others are red.)
 - `CARD_COLUMNS`: append `, affiliation`. `ProfileCard`: add
   `affiliation: string | null`. Gathering member lists and block lists use
   the same constant, so they carry the card tier with no further change.
+  Showing it is optional: the Requests and Blocked rows (§6, §7) and a
+  gathering's member list may or may not display the card-tier field, and
+  no check depends on it.
 - `upsertOwnProfile`: its patch type is
   `{ display_name?: string; bio?: string | null }`; add
   `affiliation?: string | null`. In the first-create `.insert({ id, display_name, bio })`,
