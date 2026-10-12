@@ -28,7 +28,8 @@ export function MyTags({
 }) {
   const router = useRouter();
   const [retrying, setRetrying] = useState(false);
-  const [busyUid, setBusyUid] = useState<string | null>(null);
+  // Per tag: saving one row never re-enables another mid-save.
+  const [busyUids, setBusyUids] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const mine = gatherings.ok ? gatherings.data : null;
 
@@ -41,16 +42,23 @@ export function MyTags({
     }
   }
 
-  async function update(uid: string, patch: TagPatch) {
-    setBusyUid(uid);
+  /** True when the change saved. */
+  async function update(uid: string, patch: TagPatch): Promise<boolean> {
+    setBusyUids((prev) => new Set(prev).add(uid));
     setError(null);
     try {
       await api.app.tags.update({ uid, ...patch });
       await router.invalidate({ sync: true });
+      return true;
     } catch {
       setError('That didn’t go through. Try again.');
+      return false;
     } finally {
-      setBusyUid(null);
+      setBusyUids((prev) => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
     }
   }
 
@@ -72,7 +80,7 @@ export function MyTags({
               key={tag.uid}
               tag={tag}
               gatherings={mine}
-              busy={busyUid === tag.uid}
+              busy={busyUids.has(tag.uid)}
               onUpdate={(patch) => update(tag.uid, patch)}
             />
           ))
@@ -91,9 +99,14 @@ function TagRow({
   tag: Tag;
   gatherings: Gathering[] | null;
   busy: boolean;
-  onUpdate: (patch: TagPatch) => void;
+  onUpdate: (patch: TagPatch) => Promise<boolean>;
 }) {
   const current = destinationKey(tag.destination);
+  // A choice is staged until Save: browsing a closed select with the arrow
+  // keys fires change on every step, and each would re-point the real tag.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? current;
+  const staged = draft !== null && draft !== current;
   const known = gatherings ?? [];
   // A destination outside the list (left, deleted, or the list failed) stays shown as itself.
   const orphan = current !== 'profile' && !known.some((g) => `gathering:${g.id}` === current);
@@ -103,6 +116,7 @@ function TagRow({
   // The controls are disabled while a change is saved, and a disabled control
   // drops keyboard focus to <body>. Hand it back to the one that was used.
   const used = useRef<HTMLSelectElement | HTMLButtonElement | null>(null);
+  const select = useRef<HTMLSelectElement>(null);
   const wasBusy = useRef(busy);
   useEffect(() => {
     if (wasBusy.current && !busy) {
@@ -123,14 +137,12 @@ function TagRow({
           {`Where ${tag.uid} points`}
         </label>
         <select
+          ref={select}
           id={selectId}
           className="select"
-          value={current}
+          value={shown}
           disabled={busy}
-          onChange={(e) => {
-            used.current = e.currentTarget;
-            onUpdate({ destination: destinationFromKey(e.target.value) });
-          }}
+          onChange={(e) => setDraft(e.target.value)}
         >
           <option value="profile">My profile</option>
           {known.map((g) => (
@@ -144,6 +156,22 @@ function TagRow({
             </option>
           ) : null}
         </select>
+        {staged ? (
+          <button
+            type="button"
+            className="btn btn--quiet"
+            disabled={busy}
+            aria-label={`Save where ${tag.uid} points`}
+            onClick={async () => {
+              // Save goes away once the tag points where the draft does: focus
+              // returns to the select. Kept on failure, so Save can be retried.
+              used.current = select.current;
+              if (await onUpdate({ destination: destinationFromKey(draft) })) setDraft(null);
+            }}
+          >
+            Save
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn--quiet"
@@ -151,7 +179,7 @@ function TagRow({
           aria-label={`${off ? 'Turn on' : 'Turn off'} ${tag.uid}`}
           onClick={(e) => {
             used.current = e.currentTarget;
-            onUpdate({ status: off ? 'claimed' : 'disabled' });
+            void onUpdate({ status: off ? 'claimed' : 'disabled' });
           }}
         >
           {off ? 'Turn on' : 'Turn off'}

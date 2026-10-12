@@ -579,7 +579,8 @@ a {
 
 /* An empty, always-mounted status region takes no gap in a flex column. */
 .hint[role='status']:empty,
-.card > div[role='alert']:empty {
+.card > div[role='alert']:empty,
+.stack > div[role='alert']:empty {
   position: absolute;
 }
 

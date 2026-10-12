@@ -124,7 +124,7 @@
        - "A tap shows your card: the gathering it pointed at is gone, or you left it."
        - "A tap invites people to a gathering." (when the gatherings list failed to load)
        - "Off. A tap shows an inactive tag."
-     - a destination picker: "My profile" plus every gathering from `app.gatherings.listMine`, labelled "Title · Thu, Oct 9 · 7:00 PM". Web uses a native `<select>` labelled "Where {UID} points". Mobile uses an expandable radio list behind "Point it at…".
+     - a destination picker: "My profile" plus every gathering from `app.gatherings.listMine`, labelled "Title · Thu, Oct 9 · 7:00 PM". Web uses a native `<select>` labelled "Where {UID} points", with a Save button, so a keyboard user browsing options never re-points the tag. Mobile uses an expandable radio list behind "Point it at…".
      - "Turn off" / "Turn on", labelled "Turn off {UID}" for assistive tech and tests.
    - **Relation to the M2 detail page.** The gathering detail's "Point my tags at this gathering" stays: a bulk shortcut over the same endpoint, for claimed tags only. My tags is the per-tag control. No new policy is needed. The new RLS tests pin the existing `tags_select_own` / `tags_update_own` + `(destination, status)` grant that these endpoints rest on, so they are green on arrival, honestly labelled as pins.
 
@@ -3051,7 +3051,7 @@ export function describeTag(tag: Tag, gatherings: Gathering[] | null): string {
 ```tsx
 import type { Destination, Gathering, Tag } from '@withme/contract';
 import { useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.ts';
 import type { Loaded } from '../lib/loaded.ts';
 import {
@@ -3079,7 +3079,8 @@ export function MyTags({
 }) {
   const router = useRouter();
   const [retrying, setRetrying] = useState(false);
-  const [busyUid, setBusyUid] = useState<string | null>(null);
+  // Per tag: saving one row never re-enables another mid-save.
+  const [busyUids, setBusyUids] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const mine = gatherings.ok ? gatherings.data : null;
 
@@ -3092,27 +3093,31 @@ export function MyTags({
     }
   }
 
-  async function update(uid: string, patch: TagPatch) {
-    setBusyUid(uid);
+  /** True when the change saved. */
+  async function update(uid: string, patch: TagPatch): Promise<boolean> {
+    setBusyUids((prev) => new Set(prev).add(uid));
     setError(null);
     try {
       await api.app.tags.update({ uid, ...patch });
       await router.invalidate({ sync: true });
+      return true;
     } catch {
       setError('That didn’t go through. Try again.');
+      return false;
     } finally {
-      setBusyUid(null);
+      setBusyUids((prev) => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
     }
   }
 
   return (
     <>
       <h2 className="section-title">My tags</h2>
-      {error ? (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {/* Always mounted: a live region created with its message is not announced. */}
+      <div role="alert">{error ? <p className="form-error">{error}</p> : null}</div>
       <ListLadder
         state={tags}
         what="your tags"
@@ -3126,7 +3131,7 @@ export function MyTags({
               key={tag.uid}
               tag={tag}
               gatherings={mine}
-              busy={busyUid === tag.uid}
+              busy={busyUids.has(tag.uid)}
               onUpdate={(patch) => update(tag.uid, patch)}
             />
           ))
@@ -3145,16 +3150,35 @@ function TagRow({
   tag: Tag;
   gatherings: Gathering[] | null;
   busy: boolean;
-  onUpdate: (patch: TagPatch) => void;
+  onUpdate: (patch: TagPatch) => Promise<boolean>;
 }) {
   const current = destinationKey(tag.destination);
+  // A choice is staged until Save: browsing a closed select with the arrow
+  // keys fires change on every step, and each would re-point the real tag.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? current;
+  const staged = draft !== null && draft !== current;
   const known = gatherings ?? [];
   // A destination outside the list (left, deleted, or the list failed) stays shown as itself.
   const orphan = current !== 'profile' && !known.some((g) => `gathering:${g.id}` === current);
   const off = tag.status === 'disabled';
   const selectId = `destination-${tag.uid}`;
+
+  // The controls are disabled while a change is saved, and a disabled control
+  // drops keyboard focus to <body>. Hand it back to the one that was used.
+  const used = useRef<HTMLSelectElement | HTMLButtonElement | null>(null);
+  const select = useRef<HTMLSelectElement>(null);
+  const wasBusy = useRef(busy);
+  useEffect(() => {
+    if (wasBusy.current && !busy) {
+      const active = document.activeElement;
+      if (active === null || active === document.body) used.current?.focus();
+    }
+    wasBusy.current = busy;
+  }, [busy]);
+
   return (
-    <div className="row">
+    <div className="row row--stacked">
       <div className="row-body">
         <span className="name">{tag.uid}</span>
         <span className="sub">{describeTag(tag, gatherings)}</span>
@@ -3164,11 +3188,12 @@ function TagRow({
           {`Where ${tag.uid} points`}
         </label>
         <select
+          ref={select}
           id={selectId}
           className="select"
-          value={current}
+          value={shown}
           disabled={busy}
-          onChange={(e) => onUpdate({ destination: destinationFromKey(e.target.value) })}
+          onChange={(e) => setDraft(e.target.value)}
         >
           <option value="profile">My profile</option>
           {known.map((g) => (
@@ -3182,12 +3207,31 @@ function TagRow({
             </option>
           ) : null}
         </select>
+        {staged ? (
+          <button
+            type="button"
+            className="btn btn--quiet"
+            disabled={busy}
+            aria-label={`Save where ${tag.uid} points`}
+            onClick={async () => {
+              // Save goes away once the tag points where the draft does: focus
+              // returns to the select. Kept on failure, so Save can be retried.
+              used.current = select.current;
+              if (await onUpdate({ destination: destinationFromKey(draft) })) setDraft(null);
+            }}
+          >
+            Save
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn--quiet"
           disabled={busy}
           aria-label={`${off ? 'Turn on' : 'Turn off'} ${tag.uid}`}
-          onClick={() => onUpdate({ status: off ? 'claimed' : 'disabled' })}
+          onClick={(e) => {
+            used.current = e.currentTarget;
+            void onUpdate({ status: off ? 'claimed' : 'disabled' });
+          }}
         >
           {off ? 'Turn on' : 'Turn off'}
         </button>
@@ -3232,6 +3276,20 @@ import { settled } from '../lib/loaded.ts';
 ```css
 /* --- a compact select inside a row (My tags) --------------------------------- */
 
+/* A row whose actions always take their own line: a select plus a button
+ * does not fit beside the text in a card at any width. */
+.row--stacked {
+  flex-wrap: wrap;
+}
+
+.row--stacked .row-actions {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+/* A select is as wide as its longest option (a gathering title runs to 120
+ * characters). The percentage width lets it shrink to the row instead of
+ * widening the page; flex hands it the room the button leaves. */
 .select {
   font: inherit;
   font-size: var(--text-sm);
@@ -3241,6 +3299,9 @@ import { settled } from '../lib/loaded.ts';
   border-radius: var(--radius-control);
   min-height: var(--tap-target);
   padding: 0 var(--space-3);
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
   max-width: 100%;
 }
 ```
@@ -3625,12 +3686,15 @@ test('My tags: a claimed tag turns off and on, and re-points at a gathering', as
   await owner.getByRole('button', { name: 'Create gathering' }).click();
   await expect(owner.getByText('Smoke Tag Night')).toBeVisible();
   await owner.goto('/profile');
-  await owner.getByLabel(`Where ${uid} points`).selectOption({ index: 1 });
+  // exact: the Save button's name ("Save where … points") contains the label.
+  await owner.getByLabel(`Where ${uid} points`, { exact: true }).selectOption({ index: 1 });
+  await owner.getByRole('button', { name: `Save where ${uid} points` }).click();
   await expect(owner.getByText('A tap invites people to Smoke Tag Night.')).toBeVisible();
   await stranger.reload();
   await expect(stranger.getByText(/Smoke Tag Night/)).toBeVisible();
 
-  await owner.getByLabel(`Where ${uid} points`).selectOption('profile');
+  await owner.getByLabel(`Where ${uid} points`, { exact: true }).selectOption('profile');
+  await owner.getByRole('button', { name: `Save where ${uid} points` }).click();
   await expect(owner.getByText('A tap shows your card.')).toBeVisible();
 });
 
