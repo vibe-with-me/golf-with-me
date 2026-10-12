@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
   type TextInputProps,
+  type TextProps,
 } from 'react-native';
 import { avatarSrc } from '../lib/avatar';
 import { fonts, radius, space, TAP_TARGET, useTokens } from '../lib/tokens';
@@ -59,9 +60,14 @@ export function Title({ children }: { children: ReactNode }) {
   return <Text style={[styles.title, { color: t.ink }]}>{children}</Text>;
 }
 
-export function Muted({ children }: { children: ReactNode }) {
+/** Extra Text props (accessibility, mostly) pass through; the style is fixed. */
+export function Muted({ children, ...textProps }: Omit<TextProps, 'style'> & { children: ReactNode }) {
   const t = useTokens();
-  return <Text style={[styles.muted, { color: t.inkMuted }]}>{children}</Text>;
+  return (
+    <Text {...textProps} style={[styles.muted, { color: t.inkMuted }]}>
+      {children}
+    </Text>
+  );
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
@@ -218,7 +224,13 @@ export function ListLadder<T>({
   onRetry: () => void;
   children: (items: T[]) => ReactNode;
 }) {
-  if (state.status === 'loading') return <Muted>Loading…</Muted>;
+  if (state.status === 'loading') {
+    return (
+      <Muted accessibilityRole="progressbar" accessibilityLiveRegion="polite">
+        Loading…
+      </Muted>
+    );
+  }
   if (state.status === 'error') {
     return (
       <View style={styles.ladderError}>
@@ -253,7 +265,9 @@ export function PersonRow({
       <View style={styles.personMain}>
         <Avatar name={name} path={path} size={44} />
         <View style={styles.personBody}>
-          <Text style={[styles.personName, { color: t.ink }]}>{name}</Text>
+          <Text numberOfLines={2} style={[styles.personName, { color: t.ink }]}>
+            {name}
+          </Text>
           {sub ? (
             <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
               {sub}
@@ -407,8 +421,11 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontFamily: fonts.displayMedium,
-  },  buttonInline: {
+  },
+  buttonInline: {
     width: 'auto',
+    maxWidth: '100%',
+    flexShrink: 1,
     minHeight: TAP_TARGET,
     paddingHorizontal: space.s4,
   },

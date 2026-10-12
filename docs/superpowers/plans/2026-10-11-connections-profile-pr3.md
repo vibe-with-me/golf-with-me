@@ -3793,7 +3793,13 @@ export function ListLadder<T>({
   onRetry: () => void;
   children: (items: T[]) => ReactNode;
 }) {
-  if (state.status === 'loading') return <Muted>Loading…</Muted>;
+  if (state.status === 'loading') {
+    return (
+      <Muted accessibilityRole="progressbar" accessibilityLiveRegion="polite">
+        Loading…
+      </Muted>
+    );
+  }
   if (state.status === 'error') {
     return (
       <View style={styles.ladderError}>
@@ -3828,7 +3834,9 @@ export function PersonRow({
       <View style={styles.personMain}>
         <Avatar name={name} path={path} size={44} />
         <View style={styles.personBody}>
-          <Text style={[styles.personName, { color: t.ink }]}>{name}</Text>
+          <Text numberOfLines={2} style={[styles.personName, { color: t.ink }]}>
+            {name}
+          </Text>
           {sub ? (
             <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
               {sub}
@@ -3904,6 +3912,8 @@ export function SegmentedTabs<K extends string>({
 ```ts
   buttonInline: {
     width: 'auto',
+    maxWidth: '100%',
+    flexShrink: 1,
     minHeight: TAP_TARGET,
     paddingHorizontal: space.s4,
   },
@@ -3964,6 +3974,20 @@ export function SegmentedTabs<K extends string>({
     justifyContent: 'center',
   },
   badgeLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12 },
+```
+
+(d) `Muted` passes extra Text props through (the ladder's loading line is announced), with `type TextProps` added to the `react-native` import:
+
+```tsx
+/** Extra Text props (accessibility, mostly) pass through; the style is fixed. */
+export function Muted({ children, ...textProps }: Omit<TextProps, 'style'> & { children: ReactNode }) {
+  const t = useTokens();
+  return (
+    <Text {...textProps} style={[styles.muted, { color: t.inkMuted }]}>
+      {children}
+    </Text>
+  );
+}
 ```
 
 **Verify:** `bun run --cwd apps/mobile typecheck && bun run lint` are clean. Nothing uses the new primitives yet; Task 17b does.
