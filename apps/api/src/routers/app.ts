@@ -53,21 +53,29 @@ async function storageCall<T>(context: ApiContext, work: () => Promise<T>): Prom
   try {
     return await work();
   } catch (error) {
-    const status =
-      typeof error === 'object' && error !== null && 'statusCode' in error
-        ? String((error as { statusCode: unknown }).statusCode)
-        : 'unknown';
-    context.logger.error('storage call failed', { status });
+    context.logger.error('storage call failed', { status: storageStatus(error) });
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
   }
+}
+
+/**
+ * A StorageApiError carries a string statusCode; a StorageUnknownError has
+ * the field but leaves it undefined, so fall back to the numeric status.
+ */
+function storageStatus(error: unknown): string {
+  if (typeof error !== 'object' || error === null) return 'unknown';
+  const { statusCode, status } = error as { statusCode?: unknown; status?: unknown };
+  if (typeof statusCode === 'string' && statusCode !== '') return statusCode;
+  if (typeof status === 'number') return String(status);
+  return 'unknown';
 }
 
 /** Best effort: a file the profile no longer points at is a stray, not a broken profile. */
 async function removeQuietly(context: ApiContext, path: string): Promise<void> {
   try {
     await removeAvatarObjects(context.db, [path]);
-  } catch {
-    context.logger.warn('stale avatar not removed');
+  } catch (error) {
+    context.logger.warn('stale avatar not removed', { status: storageStatus(error) });
   }
 }
 
@@ -127,9 +135,9 @@ const profileRemoveAvatar = appProcedure.profile.removeAvatar.handler(async ({ c
 const profileDeleteAccount = appProcedure.profile.deleteAccount.handler(async ({ context }) => {
   const userId = requireUser(context);
   // 1. Clear the pointer first, so a failure in a later step never leaves the
-  //    card pointing at a file that is gone. No profile, nothing to clear.
+  //    card pointing at a file that is gone. No pointer, nothing to clear.
   const existing = await run(context, () => getOwnProfile(context.db, userId));
-  if (existing) await run(context, () => setOwnAvatarPath(context.db, userId, null));
+  if (existing?.avatar_path) await run(context, () => setOwnAvatarPath(context.db, userId, null));
   // 2. Sweep the files, through the Storage API and the caller's own JWT: a
   //    SQL delete on storage.objects would orphan the blobs. Paged and bounded.
   for (let page = 0; ; page++) {
