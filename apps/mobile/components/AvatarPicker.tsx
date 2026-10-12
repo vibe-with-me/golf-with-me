@@ -51,12 +51,19 @@ export function AvatarPicker({
   }, [state]);
 
   async function choose() {
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    let picked: ImagePicker.ImagePickerResult;
+    try {
+      picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+    } catch {
+      // The picker could not open: say so, rather than an unhandled rejection.
+      setState('failed');
+      return;
+    }
     const asset = picked.canceled ? undefined : picked.assets[0];
     if (!asset) return;
     setState('working');
