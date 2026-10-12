@@ -528,6 +528,18 @@ Deviations, fixed in d81acb5 except where noted:
 
 §5's `$DB` is a command change, so a re-run is required: run 2 of at most 3, on `$LINE` with d81acb5's skill.
 
+**Run 2 — Done 2026-10-12.** START 23:38:13Z, END 23:44:57Z: about 7 min wall. Log: `$NOTES/5-provision-tags-r2.md`. All checkpoints passed:
+- §1's output word for word; the files `-rw-------` (`provision.log` included); `git status --porcelain` empty and no stray `provisioned-tags.*`; three `|unclaimed` rows; `/t/<UID>` gave `307` to `/claim/<UID>`, then `/login?returnTo=%2Fclaim%2F…`.
+- The claim as Lin turned the page into her card with `6:15/km` and without `@lin.runs`. A signed-out viewer saw "Connect" and no claim offer. A stale claim got "This tag has already been claimed." A brand-new account got "First, your card" (Name, Pace) before "Claim this tag".
+- §5: the insert returned one row, the count check printed `1`, and a re-insert returned 0 rows.
+- §4: the batch directory (dev-server logs included) deleted. The follower's own search found no batch UID left in wrangler state, the vite cache, `supabase/.temp`, the notes, or its scratchpad.
+
+One ENG-751 hang, cleared by a restart of `apps/web`'s dev server.
+
+Deviations 1–9. D2 (§1 hard-coded `$HOME/withme-tags`), D3 (how to restart the web dev server under the agent's log redirect) and D4 (stop the dev servers before §4 deletes `$OUT`) are fixed by wording in d220c5c. The rest are follower choices or observations: D1 the required background read late, D5–D6 how the second and the brand-new accounts were exercised, D7 a signed-out "Connect" is a link (the skill's text does not imply a button, so no change), D8 the `/login` hydration mismatch (an app observation for the report, as in run 1), D9 screenshot names. Wording only, so no re-run is needed.
+
+Final fork: `/Users/alexeisele/dev/withme-scratch/proof-runclub-provision-tags-r2` at 3d472db, tagged `pre-provision-tags` and `pre-gate` (provisioning changes no files).
+
 ---
 
 ### Task 6: The full gate on the finished fork (program manager or a verification subagent; not literal-following)
