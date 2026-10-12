@@ -107,14 +107,30 @@ folder. The `umask 077` subshell makes the new directories and both files
 readable only by you, and `mkdir "$OUT"` (no `-p`) stops it on a reused
 directory before the script runs.
 
+Name the local database container too; the checkpoint below and §5 use it:
+
+```sh
+DB="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' "$REPO/supabase/config.toml")"
+```
+
+Even locally, the script prints every UID to the terminal, and so do the
+checkpoint's `psql`, the app's pages, and the dev servers' logs. An agent
+running this rehearsal keeps them out of its transcript as §2 does: append
+`> provision.log` to the `bun run` line, read the log through a redacted
+view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
+`psql` below through the same `sed`, and write the dev servers' logs into
+`$OUT` so §4's retirement deletes them.
+
 **Checkpoint:**
 
-- stdout starts `Provisioned 3 unclaimed tags on http://127.0.0.1:55321`,
-  lists three `  04…  http://localhost:3000/t/04…` lines, and ends
+- stdout (or `provision.log`) starts
+  `Provisioned 3 unclaimed tags on http://127.0.0.1:55321`, lists three
+  `  04…  http://localhost:3000/t/04…` lines, and ends
   `Wrote provisioned-tags.csv and provisioned-tags.html (printable).`
 - `ls -l "$OUT"` lists exactly `provisioned-tags.csv` and
-  `provisioned-tags.html`, both `-rw-------` (macOS may print
-  `-rw-------@`: the `@` marks extended attributes, not a permission);
+  `provisioned-tags.html` (plus `provision.log` if you redirected), both
+  `-rw-------` (macOS may print `-rw-------@`: the `@` marks extended
+  attributes, not a permission);
   `head -1 "$OUT/provisioned-tags.csv"` is `uid,encode_url`.
 - `git -C "$REPO" status --porcelain` prints nothing, and
   `find "$REPO" -maxdepth 1 -name 'provisioned-tags.*'` prints nothing (the
@@ -124,22 +140,27 @@ directory before the script runs.
 - The rows exist and are unclaimed:
 
   ```sh
-  DB="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' "$REPO/supabase/config.toml")"
   UIDS=$(tail -n +2 "$OUT/provisioned-tags.csv" | cut -d, -f1 | sed "s/.*/'&'/" | paste -sd, -)
   docker exec "$DB" psql -U postgres -tAc "select uid, status from public.tags where uid in ($UIDS) order by uid"
   ```
 
   prints three `04…|unclaimed` lines.
 - End to end, with both dev servers up (`cd apps/api && bun run dev` and
-  `cd apps/web && bun run dev`): open one encode URL signed out. `/t/<UID>`
-  goes to `/claim/<UID>`, which sends you to sign in
+  `cd apps/web && bun run dev`; an agent adds `> "$OUT/api-dev.log" 2>&1`
+  and `> "$OUT/web-dev.log" 2>&1`): open one encode URL signed out.
+  `/t/<UID>` goes to `/claim/<UID>`, which sends you to sign in
   (`/login?returnTo=%2Fclaim%2F<UID>`). Sign in there as the seed's demo
   user (`lin@demo.withme.local` / `withme-demo-1`, or your rebranded
-  identity), and you return to "Claim this tag" with the UID. Press "Claim
-  tag": the page becomes that user's card ("This is your tag."). From then on the encode URL shows that card to everyone else,
-  with "Connect", and never offers a claim. A second account that presses
-  "Claim tag" on a claim page it opened before the claim landed gets "This
-  tag has already been claimed."
+  identity; its profile is complete), and you return to "Claim this tag"
+  with the UID. Press "Claim tag": the page becomes that user's card ("This
+  is your tag."). From then on the encode URL shows that card to everyone
+  else, with "Connect", and never offers a claim. A second account that
+  presses "Claim tag" on a claim page it opened before the claim landed
+  gets "This tag has already been claimed." A brand-new account first gets
+  the profile step ("First, your card", with any required profile fields)
+  before "Claim this tag"; fill it in, or use a second seeded user.
+  If `/t/<UID>` hangs after the claim under `vite dev` (a known dev-server
+  SSR hang, ENG-751), restart `apps/web`'s dev server and load it again.
 
 ## 2. Provision the real batch
 
@@ -216,10 +237,10 @@ For each row of `provisioned-tags.html` (print it or open it locally):
 
 Ship the tags. The encode list has then done its job: keep the CSV only if
 your fulfillment records need it — offline, access-limited — and otherwise
-delete the batch directory. If you keep the CSV, delete
-`provisioned-tags.html` and `provision.log` from the batch directory: both
-carry the same UIDs. A printed sheet is the same bearer list on paper:
-shred it once the batch has shipped.
+delete the batch directory (and its parent, if that leaves it empty). If
+you keep the CSV, delete `provisioned-tags.html` and `provision.log` from
+the batch directory: both carry the same UIDs. A printed sheet is the
+same bearer list on paper: shred it once the batch has shipped.
 
 If a `provisioned-tags.*` file was ever committed, deleting it does not
 remove it from history: every UID in it that is still unclaimed is
@@ -304,11 +325,21 @@ returning uid;
 Each new row comes back under `returning`; a UID that already exists
 returns nothing and is left as it was.
 
-Locally: `docker exec "$DB" psql -U postgres -c "<that sql>"` (with `$DB`
-from §1). In production, stop first, as in §2: show the owner the project
-ref, each UID you are inserting, and the domain you will encode (it cannot
-change once the tags are locked), and wait for a clear yes. Then run it in
-that project's SQL editor in the Supabase dashboard, and encode
+Locally, from the repo root (a fresh shell needs `$DB` again):
+
+```sh
+DB="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' supabase/config.toml)"
+docker exec "$DB" psql -U postgres -c "<that sql>"
+docker exec "$DB" psql -U postgres -tAc "select count(*) from public.tags where uid = '<that UID>' and status = 'unclaimed'"
+```
+
+The count prints `1`. `/t/<that UID>` is no check: an unknown UID
+redirects to the claim page just the same, by design.
+
+In production, stop first, as in §2: show the owner the project ref, each
+UID you are inserting, and the domain you will encode (it cannot change
+once the tags are locked), and wait for a clear yes. Then run it in that
+project's SQL editor in the Supabase dashboard, and encode
 `https://<your-domain>/t/<that UID>`.
 
 Know the cost: a chip UID is readable by anyone in NFC range and assigned
