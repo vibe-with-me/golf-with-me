@@ -36,7 +36,8 @@ owner's OK).
 
 ## The rules this runbook will not bend
 
-1. **UIDs come from the script, never from you.** It draws 6 bytes from
+1. **UIDs come from the script — or, in §5, from the chip itself — never
+   from you.** The script draws 6 bytes from
    `crypto.getRandomValues` behind the NXP-style `04` prefix: 48 random bits
    per tag. Never sequential, never hand-picked, never derived from an order
    number or a customer. An unclaimed tag is claimed by whoever presents its
@@ -89,14 +90,22 @@ demo user; the seed is local-only and safe to re-run). From the repo root:
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
 OUT="$HOME/withme-tags/local-$(date +%Y%m%d-%H%M%S)"
-(umask 077 && mkdir -p "$OUT" && cd "$OUT" && bun run "$REPO/supabase/seed/provision.ts" --count 3 --base-url http://localhost:3000)
+(
+  set -e
+  umask 077
+  mkdir -p "$(dirname "$OUT")"
+  mkdir "$OUT"
+  cd "$OUT"
+  bun run "$REPO/supabase/seed/provision.ts" --count 3 --base-url http://localhost:3000
+)
 ```
 
 Running the file directly instead of `bun run db:provision` is deliberate:
 the script writes into the current directory, and this keeps that
 directory out of the repo. Imports still resolve from the script's own
 folder. The `umask 077` subshell makes the new directories and both files
-readable only by you.
+readable only by you, and `mkdir "$OUT"` (no `-p`) stops it on a reused
+directory before the script runs.
 
 **Checkpoint:**
 

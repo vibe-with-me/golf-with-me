@@ -86,9 +86,9 @@ vivid accent, and the accent appears only on the primary action of a
 screen: Connect, Accept, Claim tag, and Join (the resolver's "Join this
 gathering" and the gathering's own Join), plus mobile's "Read NFC tag".
 That is the `btn--connect` class on web and `kind="connect"` on mobile.
-Do not introduce a second accent and do not
-spread the accent to borders, links, or chrome — restraint is the design
-system. Keep the WCAG notes in `tokens.css` honest: accent/accent-ink
+Do not introduce a second accent, and keep the accent off links, chrome,
+and any border outside that primary-action button — restraint is the
+design system. Keep the WCAG notes in `tokens.css` honest: accent/accent-ink
 ≥ 4.5:1, `--color-border-input` ≥ 3:1 against `--color-surface` (WCAG
 1.4.11), in both light and dark — recompute the ratios cited in the
 comments with a contrast checker; don't leave stale numbers.
