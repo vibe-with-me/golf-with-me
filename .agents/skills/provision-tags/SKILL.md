@@ -32,7 +32,7 @@ owner's OK).
 | Unknown and unclaimed look alike | `public.resolve_tag` answers `unclaimed` for both (newest definition: the last migration that defines it) |
 | The tap | web `apps/web/src/routes/t.$uid.tsx` → `claim.$uid.tsx`; mobile `apps/mobile/app/t/[uid].tsx` → `claim/[uid].tsx` |
 | The in-app reader | `readTagUid` in `apps/mobile/lib/nfc.ts` — reads the chip's own UID, not the URL (§5) |
-| After the claim | the owner aims their own tags over `app.tags.listMine` / `app.tags.update` (destination only): today from a gathering's detail screen (web `_app.gatherings_.$id.tsx` `TagPointer`, mobile `app/gathering/[id].tsx`). The database also lets the owner disable a tag (`grant update (destination, status)`), but no client exposes that yet [[M3-CHECK: Profile → My tags on both platforms; confirm the section name and whether `app.tags.update` now accepts `status`]] |
+| After the claim | the owner's Profile → "My tags" on both platforms (web `apps/web/src/components/MyTags.tsx`, mobile `apps/mobile/components/MyTags.tsx`), over `app.tags.listMine` / `app.tags.update`: re-point a tag (the card or one of their gatherings) and "Turn off" / "Turn on" (`status` `disabled` / `claimed`, `OwnerTagStatusSchema` in `packages/contract/src/schemas/tag.ts`). A gathering's detail screen also points all of them at once (`TagPointer` in web `_app.gatherings_.$id.tsx`, mobile `app/gathering/[id].tsx`). No owner control releases a tag back to `unclaimed`; deleting the account does (`delete_my_account`: claimed tags reset, their scans erased) |
 
 ## The rules this runbook will not bend
 
@@ -261,9 +261,10 @@ shipment. Both kinds of UID live in the same table.
 - No QR codes, no label layout, no print service: the sheet is a plain table
   for whoever writes the tags. A QR sheet puts the capability on paper; if
   you add one, it inherits rule 2.
-- Re-pointing, disabling, and resetting a claimed tag belong to its owner
-  (what the apps expose today is in the map). The operator has no client
-  path to someone else's tag, by design.
+- Re-pointing and turning off a claimed tag belong to its owner (Profile →
+  My tags, in the map); a tag goes back to `unclaimed` only when its owner
+  deletes their account. The operator has no client path to someone else's
+  tag, by design.
 - The gate is unchanged: `bun run lint && bun run typecheck && bun run test`
   stays green, because this runbook changes no code. A batch is proven by
   §1's checkpoint locally and §2–§3's checkpoints in production.

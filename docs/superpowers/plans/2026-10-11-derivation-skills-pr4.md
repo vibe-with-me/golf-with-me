@@ -48,18 +48,18 @@
    - Golf's `home_club` and tailgate's `team` are both `affiliation`; a contact handle is the canonical connections-only field.
 5. **Completion gating is UX, never safety.**
    - `REQUIRED_PROFILE_FIELDS` and `isProfileComplete()` live in `packages/contract/src/schemas/profile.ts`, the one package both clients import.
-   - Web gates in the `_app` loader (today's `!profile` check, widened). Mobile gates in `(tabs)/_layout.tsx` once per signed-in account.
+   - Web gates in `_app.tsx`'s `ShellRoute` component (today's `!profile` check before its `<Navigate to="/profile">`, widened; not a `throw redirect` from the loader, which M3's comment there explains blanks the page). Mobile gates in `(tabs)/_layout.tsx` once per signed-in account.
    - Columns stay nullable, so pre-existing rows and the claim flow's minimal profile stay valid. No policy or RPC reads completion.
 6. **API shape.**
    - `app.profile.get` / `update` return `{ profile, details }`.
    - `ConnectionSchema` gains `details: ProfileDetailsSchema.nullable()`.
    - `accept_connect_request` returns `details`: it is the one definer read of `profile_details`, after the connection row exists.
    - Writes are update-then-insert, not PostgREST `.upsert()`. Its `ON CONFLICT DO UPDATE` sets `profile_id`, which the column grant forbids. The scratch build confirms or corrects this.
-7. **RLS tests red first.** `extend-profile` orders tests before the migration on purpose. This departs from the slice's 2/3 order: the boundary is specified before the policy that enforces it. That gives 14 new tests, plus `profile_details` added to the enumeration anon sweep and to the cascade test.
+7. **RLS tests red first.** `extend-profile` orders tests before the migration on purpose. This departs from the slice's 2/3 order: the boundary is specified before the policy that enforces it. That gives 14 new tests, plus `profile_details` added to the enumeration anon sweep and to both deletion tests (`cascade.test.ts`, through the auth admin API, and M3's `account.test.ts`, through `delete_my_account()`).
 8. **make-it-yours.**
    - A new step 7, "Merch store pointer". The old step 7 becomes step 8.
    - The shell-heights paragraph is rewritten so heights may change, in lockstep.
-   - Three missed brand surfaces are added: `CalmStates.tsx` "withme home", the `login.tsx` hint, and `WordmarkFooter` in `t.$uid.tsx`. Milestone 3's surfaces are added after it merges.
+   - Three missed brand surfaces are added: `CalmStates.tsx` "withme home", the `login.tsx` hint, and `WordmarkFooter` in `t.$uid.tsx`. Milestone 3 added no `withme` string (the sweep at `7932548` matches the same files as at `4fa6c98`); its one new user-facing system string, `expo-image-picker`'s `photosPermission` in `app.json`, joins step 3 as voice copy.
    - go-live §3's `.env.production` block gains `VITE_STORE_URL`.
 9. **Docs.**
    - `docs/the-slice.md` gains one safety bullet ("Two tiers of profile data") so the discipline lives in one place (roadmap hard constraint 3).
@@ -77,7 +77,7 @@
       - Task 1 (provision-tags)
       - Task 2 (extend-profile's database and RLS core, which is M3-independent)
     - Phase B starts only after M3 merges:
-      - Task 3 (rebase; resolve `[[M3-CHECK]]` markers)
+      - Task 3 (rebase; resolve the Milestone 3 markers)
       - Task 4a (extend-profile on post-M3 main: cherry-pick the core, redo §3, §4–§5 green)
       - Task 4b (extend-profile §6–§8, API e2e and Playwright green)
       - Task 4c (extend-profile simulator pass)
@@ -89,16 +89,16 @@
       - Task 7c (fresh-clone re-run: extend-profile)
       - Task 7d (fresh-clone re-run: make-it-yours)
       - Task 8 (PR)
-13. **`[[M3-CHECK: …]]` markers.**
-    - Spots that depend on Milestone 3's code carry an inline marker in the SKILL.md text below. Examples: the avatar column (`avatar_url` → `avatar_path`), the Profile tab's sections, the segmented Connections tab, `delete_my_account`, and M3's new copy.
-    - Branch commits may carry markers. No marker survives into the PR: `grep -rn 'M3-CHECK' .agents docs README.md` must print nothing before Task 8.
+13. **Milestone 3 markers (resolved in Task 3, 2026-10-12).**
+    - Spots that depended on Milestone 3's code carried an inline "M3 check" marker in the SKILL.md texts. Examples: the avatar column (`avatar_url` → `avatar_path`), the Profile tab's sections, the segmented Connections tab, `delete_my_account`, and M3's new copy.
+    - Task 3 resolved every one against M3's merged code (`7932548`). No marker may come back: `grep -rn 'M3-CHEC[K]' .agents docs README.md` (the bracket keeps the pattern from matching itself) must print nothing before Task 8.
 
 ---
 
 ## Ground rules for every task
 
 - **Branch.**
-  - Work in `/Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69` on branch `claude/derivation-skills`, created from `origin/main` in Task 0.
+  - Work in `/Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills` on branch `claude/derivation-skills`, created from `origin/main` in Task 0. (`.claude/worktrees/with-me-derivation-starter-1f2c69` holds Milestone 3's finished branch; never work or write there.)
   - Do not reuse `claude/connections-profile`, which is the name in use for Milestone 3.
   - Local `main` is stale (`02147a7`): always base on `origin/main` after `git fetch origin`.
 - **Stack windows.**
@@ -124,7 +124,7 @@
 **Files:** none.
 
 ```bash
-cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69
+cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills
 git fetch origin
 git switch -c claude/derivation-skills origin/main
 git log --oneline -1          # expect the merge of PR #8 (or later, if M3 already merged)
@@ -208,7 +208,7 @@ owner's OK).
 | Unknown and unclaimed look alike | `public.resolve_tag` answers `unclaimed` for both (newest definition: the last migration that defines it) |
 | The tap | web `apps/web/src/routes/t.$uid.tsx` → `claim.$uid.tsx`; mobile `apps/mobile/app/t/[uid].tsx` → `claim/[uid].tsx` |
 | The in-app reader | `readTagUid` in `apps/mobile/lib/nfc.ts` — reads the chip's own UID, not the URL (§5) |
-| After the claim | the owner's Profile → My tags on both platforms, over `app.tags.listMine` / `app.tags.update`: re-point, disable [[M3-CHECK: confirm the section name and that `app.tags.update` accepts `status`]] |
+| After the claim | the owner's Profile → "My tags" on both platforms (web `apps/web/src/components/MyTags.tsx`, mobile `apps/mobile/components/MyTags.tsx`), over `app.tags.listMine` / `app.tags.update`: re-point a tag (the card or one of their gatherings) and "Turn off" / "Turn on" (`status` `disabled` / `claimed`, `OwnerTagStatusSchema` in `packages/contract/src/schemas/tag.ts`). A gathering's detail screen also points all of them at once (`TagPointer` in web `_app.gatherings_.$id.tsx`, mobile `app/gathering/[id].tsx`). No owner control releases a tag back to `unclaimed`; deleting the account does (`delete_my_account`: claimed tags reset, their scans erased) |
 
 ## The rules this runbook will not bend
 
@@ -405,8 +405,10 @@ shipment. Both kinds of UID live in the same table.
 - No QR codes, no label layout, no print service: the sheet is a plain table
   for whoever writes the tags. A QR sheet puts the capability on paper; if
   you add one, it inherits rule 2.
-- Re-pointing, disabling, and resetting a claimed tag belong to its owner in
-  the app. The operator has no client path to someone else's tag, by design.
+- Re-pointing and turning off a claimed tag belong to its owner (Profile →
+  My tags, in the map); a tag goes back to `unclaimed` only when its owner
+  deletes their account. The operator has no client path to someone else's
+  tag, by design.
 ````
 
 **Step 5: the go-live fix.** In `.agents/skills/go-live/SKILL.md` §1 make the following edits.
@@ -444,7 +446,7 @@ Check: `touch .supabase-demo-db-password provisioned-tags.csv provisioned-tags.h
 **Step 6: verify and commit.**
 
 ```bash
-cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69
+cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills
 git add .agents/skills/provision-tags/SKILL.md .agents/skills/go-live/SKILL.md .gitignore
 git commit -m "Add provision-tags: batch tags, encode list, printable sheet
 
@@ -572,9 +574,9 @@ Then remove both scratch files and run `bun run db:reset`.
 **Precondition:** Milestone 3 is merged into `origin/main`.
 
 ```bash
-cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69
+cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills
 git fetch origin && git rebase origin/main
-grep -rn 'M3-CHECK' .agents docs README.md
+grep -rn 'M3-CHEC[K]' .agents docs README.md
 ```
 
 Then resolve each marker against M3's merged code, reading the files and not guessing:
@@ -590,6 +592,16 @@ Then resolve each marker against M3's merged code, reading the files and not gue
 | New brand copy | `grep -rni --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} withme apps/ \| grep -v '@withme/'` |
 
 Edit the SKILL.md texts in place, both the committed provision-tags and the drafts in this plan. Commit only if a committed file changed: `git commit -m "provision-tags: describe My tags as Milestone 3 shipped it" …`.
+
+**Done 2026-10-12** against `7932548` (the merge of PR #9). The rebase was clean. What M3 shipped, and where the texts now say so:
+- Avatar key: `avatar_path` (a bucket path, never a URL) on `ProfileSchema`, `PublicProfileSchema`, `CARD_COLUMNS`, `PublicProfileCard`, and both card functions, whose newest definitions are in `20261011120000_avatars.sql`. The photo has its own endpoints (`uploadAvatar` / `removeAvatar`), so `UpdateProfileInputSchema` has no avatar key.
+- Profile: web `_app.profile.tsx` is `IdentityForm` (one `<form className="card">`: heading, `AvatarField` when a profile exists, Name, Bio, a status line, Save), then `<MyTags>` (`components/MyTags.tsx`, heading "My tags"), then `<AccountSection>`. Mobile `(tabs)/profile.tsx` is one `Card` (`Title`, `AvatarPicker`, Name and Bio `Field`s, Save `Button`), then `<MyTags />`, then `<AccountSection />`.
+- Connections: three segments (Connections, the default with no `?tab`; Requests; Blocked). Rows are `PersonRow`: web's is local to `_app.connections.tsx` (`profile`, `sub`, children), mobile's is exported from `components/ui.tsx` (`name`, `path`, `sub`, children). Both show one `sub` line.
+- My tags: `app.tags.update` takes `status` (`OwnerTagStatusSchema`: `claimed` / `disabled`) as well as `destination`; the controls are "Turn off" / "Turn on". No owner release; `delete_my_account` releases.
+- Deletion: `cascade.test.ts` still deletes through `admin.auth.admin.deleteUser`; M3 added `account.test.ts`, which deletes through `delete_my_account()` (definer: deletes the `auth.users` row, so the same FK cascade runs). extend-profile §2 now extends both.
+- `upsertOwnProfile`: patch `{ display_name?: string; bio?: string | null }`, first-create insert `{ id, display_name, bio }`, and a `23505` race retry that re-sends `patch`.
+- Brand copy: the sweep matches the same files as at `4fa6c98`; M3 added no `withme` string.
+- Beyond the markers: web's completion gate is not in the `_app` loader but in `ShellRoute` (`<Navigate>`), and the e2e profile helpers live in `apps/web/e2e/helpers.ts`. §6, §8, and Task 7a now say so.
 
 ---
 
@@ -611,9 +623,11 @@ Conflicts are expected in:
 - The migration's card-function bodies: redo them by following SKILL §3's instruction literally against M3's newest definitions; this is a test of that instruction.
 - The contract fixtures (the avatar key).
 
+Then apply the one §2 addition the core does not carry (Task 3 added it to the skill text after Task 2 ran): the `profile_details` row and check in `packages/db/test/account.test.ts`'s first test.
+
 **Step 2 (stack window): §3 green on post-M3 main.**
 1. Run `bun run db:reset && bun run db:seed && bun run db:types && bun run test`.
-2. Expected: db at the post-M3 baseline +14, contract +4, all green, including the extended cascade and enumeration tests. `bun run typecheck` red only in `@withme/api` and `@withme/nfc`.
+2. Expected: db at the post-M3 baseline +14, contract +4, all green, including the extended cascade, account, and enumeration tests. `bun run typecheck` red only in `@withme/api` and `@withme/nfc`.
 
 **Step 3: §4–§5 literally.**
 1. Follow SKILL §4 (queries and API) and §5 (SDK mirror) as written. Hit each checkpoint: after §4, `bun run typecheck` has `@withme/api` and `@withme/db` green and `@withme/nfc` red; after §5, `bun run --cwd packages/nfc-sdk typecheck` is clean.
@@ -668,7 +682,7 @@ Use the established technique (agent-device + Expo Go + simctl), not the native 
    `docker exec supabase_db_withme-starter psql -U postgres -c "update public.profiles set affiliation = null where id = (select id from auth.users where email = 'lin@demo.withme.local')"`.
    Sign in as Lin and relaunch the project: the tabs mount sends her to Profile, "Finish your profile".
 4. As Lin, still incomplete, open `exp://127.0.0.1:8081/--/t/04BBBBBBBBBBBB`: Ada's card renders with her affiliation line and no `@ada.listens`. The `t/[uid]` screen is not behind the gate, by design.
-5. Restore Lin's affiliation in the app. As Ada, accept Lin's pending request under Connections: Ada sees `@lin.reads`; signed in as Lin, Lin sees `@ada.listens`.
+5. Restore Lin's affiliation in the app. As Ada, accept Lin's pending request under Connections → Requests: Ada sees `@lin.reads`; signed in as Lin, Lin sees `@ada.listens`.
 
 **Step 3:** Stop Metro and the API. Close the stack window with the hand-back.
 
@@ -682,7 +696,7 @@ Use the established technique (agent-device + Expo Go + simctl), not the native 
 **Step 1: Write the SKILL.md.**
 1. Write it from the scratch result (Tasks 2 and 4a–4c, and the log), using the target text below.
 2. Consistency check: every path in `git -C /Users/alexeisele/dev/withme-scratch/extend-profile diff --name-only origin/main` appears in the skill's map or steps. Every file the skill tells a fork to edit appears in that diff.
-3. `grep -n 'M3-CHECK' .agents/skills/extend-profile/SKILL.md` prints nothing.
+3. `grep -n 'M3-CHEC[K]' .agents/skills/extend-profile/SKILL.md` prints nothing.
 
 Target text, to be corrected to the scratch build:
 
@@ -740,17 +754,19 @@ the other tier's lines.
 | --- | --- | --- |
 | Contract | `packages/contract/src/schemas/profile.ts` (`ProfileSchema`, `PublicProfileSchema`, `UpdateProfileInputSchema`) | `schemas/profile.ts` (`ProfileDetailsSchema`), `schemas/connection.ts` (`ConnectionSchema.details`), `contract/app.ts` (`profile.get` / `profile.update` outputs) |
 | SQL | `public.profiles`; every function that builds a card (`resolve_tag`, `accept_connect_request`) | `public.profile_details` and its policies; `accept_connect_request` |
-| RLS tests | `packages/db/test/profile-fields.test.ts` (both tiers), `enumeration.test.ts`, `cascade.test.ts` | same |
+| RLS tests | `packages/db/test/profile-fields.test.ts` (both tiers), `enumeration.test.ts`, `cascade.test.ts`, `account.test.ts` | same |
 | Queries | `CARD_COLUMNS`, `ProfileCard`, `upsertOwnProfile` in `packages/db/src/queries/handshake.ts` | `DETAILS_COLUMNS`, `getOwnDetails`, `upsertOwnDetails`, `listConnections` (same file) |
 | API | `apps/api/src/routers/app.ts`: `getProfile`, `updateProfile` | same; `acceptRequest` and `connectionsList` pass it through |
 | SDK | `PublicProfileCard` in `packages/nfc-sdk/src/client.ts` | never |
-| Web | `components/ProfileCard.tsx`, `_app.profile.tsx`, `claim.$uid.tsx` | `_app.profile.tsx`, `_app.connections.tsx` |
-| Mobile | `app/t/[uid].tsx`, `(tabs)/profile.tsx`, `claim/[uid].tsx` | `(tabs)/profile.tsx`, `(tabs)/connections.tsx` |
-| Gate | `isProfileComplete` (contract) → web `routes/_app.tsx` loader, mobile `(tabs)/_layout.tsx` | — |
+| Web | `components/ProfileCard.tsx`, `_app.profile.tsx`, `claim.$uid.tsx` | `_app.profile.tsx`, `_app.connections.tsx` (its local `PersonRow`) |
+| Mobile | `app/t/[uid].tsx`, `(tabs)/profile.tsx`, `claim/[uid].tsx` | `(tabs)/profile.tsx`, `(tabs)/connections.tsx`, `PersonRow` in `components/ui.tsx` |
+| Gate | `isProfileComplete` (contract) → web `routes/_app.tsx` (`ShellRoute`), mobile `(tabs)/_layout.tsx` | — |
 
-Outside the tabs, `apps/mobile/app/gathering/[id].tsx` (join) and
-`apps/mobile/app/t/[uid].tsx` (connect) also call `app.profile.get`, and
-check only that a profile exists (`!profile`) before acting. They
+Outside the tabs, `apps/mobile/app/gathering/[id].tsx` (join),
+`apps/mobile/app/t/[uid].tsx` (connect), and `apps/web/src/routes/t.$uid.tsx`
+(connect) also call `app.profile.get`, and check only that a profile exists
+(`!profile`) before acting. (`claim.$uid.tsx` on both platforms calls it
+too, and asks for the required fields itself: §6, §7.) They
 intentionally skip the completion gate: it is a UX gate on entering the
 shell, not a check every screen repeats, and an incomplete profile is
 still a valid card. Their `const { profile } = …` keeps working with the
@@ -815,16 +831,16 @@ and `updateProfile`'s becomes
 
 - add `affiliation: null` to every profile-card fixture (the key is
   required-nullable, so every existing fixture fails to parse without it);
-- add `'affiliation'` to the expected keys in "exposes only card-safe fields";
+- add `'affiliation'` to the expected keys in "exposes only card-safe fields"
+  (they are sorted: `['affiliation', 'avatar_path', 'bio', 'display_name', 'id']`);
 - add:
 
 ```ts
 describe('profile tiers', () => {
-  // [[M3-CHECK: the avatar key Milestone 3 settled on]]
   const card = {
     id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
     display_name: 'Alex',
-    avatar_url: null,
+    avatar_path: null,
     bio: null,
     affiliation: null,
   };
@@ -1159,7 +1175,7 @@ find: the test exercises the trigger. The policy's two `is_blocked`
 clauses are defense in depth, for a connection row that outlives a block
 some other way; keep them.
 
-Two existing files grow. Both additions check `error`: a `data ?? []`
+Three existing files grow. Every addition checks `error`: a `data ?? []`
 assertion passes against a table that does not exist, which is a false
 red-phase green.
 
@@ -1177,8 +1193,9 @@ red-phase green.
       expect(details).toEqual([]);
   ```
 
-- `cascade.test.ts`: after Alice is created, give her a row and check it
-  landed:
+- `cascade.test.ts` (deletion through the auth admin API,
+  `admin.auth.admin.deleteUser`): after Alice is created, give her a row
+  and check it landed:
 
   ```ts
       const { error: detailsError } = await alice.client
@@ -1200,11 +1217,27 @@ red-phase green.
       expect(details).toEqual([]);
   ```
 
-  [[M3-CHECK: if the cascade test now deletes through delete_my_account, keep that path]]
+- `account.test.ts` (deletion as the account holder does it:
+  `delete_my_account()`, a definer function that deletes the caller's
+  `auth.users` row, so the same foreign-key cascade runs). In the first
+  test, "removes the caller and cascades: …", insert the same row right
+  after the four users are created, with the same error check, and among
+  the assertions after `delete_my_account` add, with the file's own helper:
+
+  ```ts
+      expectEmpty(await admin.from('profile_details').select('*').eq('profile_id', alice.id));
+  ```
+
+  Keep both deletion paths: the cascade test pins the foreign key, the
+  account test the route a real user takes. No change to
+  `delete_my_account`, the `app.profile.deleteAccount` comment, or either
+  client's `DELETE_COPY` (`components/AccountSection.tsx`): the details
+  row is part of "your profile" and goes with it.
 
 **Checkpoint (red):** `cd packages/db && bun test` — the fourteen new
-tests, the cascade test, and the enumeration test "anon cannot select any
-rows from any handshake table" fail, each on the missing table or column
+tests, the cascade test, the first `delete_my_account` test in
+`account.test.ts`, and the enumeration test "anon cannot select any rows
+from any handshake table" fail, each on the missing table or column
 (an `error` that is not null, or a missing `profiles_affiliation_length`).
 A new test that passes now asserts nothing: fix it before going on. `bun
 run typecheck` is red for `@withme/db` until §3 regenerates the types.
@@ -1336,9 +1369,13 @@ bun run db:reset && bun run db:seed && bun run db:types
 - `CARD_COLUMNS`: append `, affiliation`. `ProfileCard`: add
   `affiliation: string | null`. Gathering member lists and block lists use
   the same constant, so they carry the card tier with no further change.
-- `upsertOwnProfile`: add `affiliation?: string | null` to the patch type and
-  `affiliation: patch.affiliation ?? null` to the first-create insert.
-  [[M3-CHECK: the patch type and insert columns as Milestone 3 left them]]
+- `upsertOwnProfile`: its patch type is
+  `{ display_name?: string; bio?: string | null }`; add
+  `affiliation?: string | null`. In the first-create `.insert({ id, display_name, bio })`,
+  add `affiliation: patch.affiliation ?? null` after `bio`. The update path
+  and the `23505` race retry send `patch` whole, so they need nothing. (The
+  avatar is not in this patch: `setOwnAvatarPath` in `queries/avatars.ts`
+  owns it.)
 - The connections tier:
 
 ```ts
@@ -1448,7 +1485,8 @@ const updateProfile = appProcedure.profile.update.handler(async ({ input, contex
 
 `acceptRequest` and `connectionsList` need no change: the RPC's `details`
 and the query's rows pass straight through, and the contract validates
-them.
+them. `uploadAvatar`, `removeAvatar`, and `deleteAccount` need none either:
+the photo endpoints keep returning `{ profile }` alone.
 
 **Checkpoint:** `bun run typecheck` — `@withme/api` and `@withme/db` green;
 `@withme/nfc` red until §5.
@@ -1467,38 +1505,49 @@ be the typecheck: the parity assertions are type-level).
 - `apps/web/src/components/ProfileCard.tsx`: `CardProfile` gains
   `affiliation: string | null`; under the name,
   `{profile.affiliation ? <p className="hint">{profile.affiliation}</p> : null}`.
-- **The gate**, `apps/web/src/routes/_app.tsx`: import `isProfileComplete`
-  from `@withme/contract`, and widen today's `!profile` check:
+- **The gate**, `apps/web/src/routes/_app.tsx`. The loader passes the
+  details through, and `ShellRoute` — the layout's component, which already
+  sends a session without a profile to `/profile` with a `<Navigate>` —
+  widens its `!profile` check. Keep it in the component: the comment above
+  `ShellRoute` explains why a `throw redirect` from the loader blanks the
+  page. Import `isProfileComplete` from `@withme/contract`, then:
 
 ```ts
-  loader: async ({ location }) => {
+  loader: async () => {
     const { profile, details } = await asSignedInAccount(() => api.app.profile.get());
-    if (!isProfileComplete(profile) && location.pathname !== '/profile') {
-      throw redirect({ to: '/profile', search: { returnTo: location.href }, replace: true });
-    }
     return { profile, details };
   },
 ```
 
-- `apps/web/src/routes/_app.profile.tsx`, in the identity section
-  [[M3-CHECK: the section structure and where the avatar upload sits]]:
+```tsx
+  if (!isProfileComplete(profile) && pathname !== '/profile') {
+```
+
+- `apps/web/src/routes/_app.profile.tsx`. The page is `IdentityForm`
+  (one `<form className="card">`: the heading, `AvatarField` once a profile
+  exists, Name, Bio, the `role="status"` line, Save), then `MyTags`, then
+  `AccountSection`. Only `ProfilePage`'s read and `IdentityForm` change. `ProfilePage` reads
+  `const { profile, details } = useLoaderData({ from: '/_app' });` and
+  renders `<IdentityForm profile={profile} details={details} />`;
+  `IdentityForm` takes `details: ProfileDetails | null` (import the type
+  from `@withme/contract`) and adds
 
 ```tsx
-const { profile, details } = useLoaderData({ from: '/_app' });
 const [affiliation, setAffiliation] = useState(profile?.affiliation ?? '');
 const [contact, setContact] = useState(details?.contact_handle ?? '');
 ```
 
-  the update payload gains
+  the `api.app.profile.update` payload in `save` gains
 
 ```ts
   affiliation: affiliation.trim() === '' ? null : affiliation.trim(),
   details: { contact_handle: contact.trim() === '' ? null : contact.trim() },
 ```
 
-  the heading becomes
+  the `<h1>` becomes
   `{!profile ? 'Create your profile' : isProfileComplete(profile) ? 'Your profile' : 'Finish your profile'}`,
-  and the fields, after Bio:
+  Save's `disabled` becomes `busy || !displayName.trim() || !affiliation.trim()`,
+  and the fields go after Bio, before the status line:
 
 ```tsx
 <div className="field">
@@ -1531,17 +1580,35 @@ const [contact, setContact] = useState(details?.contact_handle ?? '');
   `affiliation` state and the same Affiliation field, send
   `{ display_name, affiliation }`, disable Continue until both are filled,
   and retitle it "First, your card".
-- `apps/web/src/routes/_app.connections.tsx`, each connection row, under the
-  bio [[M3-CHECK: the row component inside the Connections segment]]:
+- `apps/web/src/routes/_app.connections.tsx`. Every list renders the
+  file's local `PersonRow` (`profile`, `sub`, children), which shows one
+  `sub` line. Give it a second, optional line:
 
 ```tsx
-{connection.details?.contact_handle ? (
-  <span className="sub">{connection.details.contact_handle}</span>
-) : null}
+function PersonRow({
+  profile,
+  sub,
+  detail,
+  children,
+}: {
+  profile: CardProfile;
+  sub?: string | null;
+  detail?: string | null;
+  children: ReactNode;
+}) {
 ```
 
-  Requests and gathering-member rows may show `profile.affiliation` the
-  same way; they never show details (they do not have them).
+  and after its `{sub ? <span className="sub">{sub}</span> : null}`:
+
+```tsx
+        {detail ? <span className="sub">{detail}</span> : null}
+```
+
+  Then only the Connections segment (the default, no `?tab`) passes it:
+  `detail={connection.details?.contact_handle}` on its `PersonRow`. The
+  Requests and Blocked segments may pass the card tier as `detail`
+  (`request.requester.affiliation`, `block.user.affiliation`); they never
+  show details (they do not have them).
 
 No new CSS: `.hint`, `.sub`, and `.field` exist. Tokens only.
 
@@ -1580,9 +1647,18 @@ useEffect(() => {
 }, [userId]);
 ```
 
-- `apps/mobile/app/(tabs)/profile.tsx` [[M3-CHECK: the identity section of the rebuilt Profile screen]]:
-  `affiliation` and `contact` state, loaded from `{ profile, details }`;
-  the same payload as web; the title rule from web; and
+- `apps/mobile/app/(tabs)/profile.tsx`. The screen is one identity `Card`
+  (`Title`, `AvatarPicker` once a profile exists, the Name and Bio
+  `Field`s, the status and error lines, the Save `Button`), then
+  `<MyTags />`, then `<AccountSection />`; only the `Card` changes. Add
+  `affiliation` and `contact` state. `load` reads
+  `({ profile, details }: { profile: Profile | null; details: ProfileDetails | null })`
+  (its annotation today names `profile` alone; import `ProfileDetails` from
+  `@withme/contract`) and sets them from `profile.affiliation` and
+  `details?.contact_handle`. `save` sends the same payload as web. For the
+  `Title`, keep the loaded or saved `Profile` in state (`load` has it, and
+  `api.app.profile.update` returns it) and apply web's rule with
+  `isProfileComplete`. After the Bio `Field`:
 
 ```tsx
 <Field
@@ -1607,9 +1683,14 @@ useEffect(() => {
 - `apps/mobile/app/claim/[uid].tsx`: the Affiliation field in the
   first-profile form, sent with the name; Continue disabled until both are
   filled.
-- `apps/mobile/app/(tabs)/connections.tsx`: each connection row shows
-  `details.contact_handle` on a line styled like the bio line, when non-null
-  [[M3-CHECK: the row component and its props]].
+- `PersonRow` in `apps/mobile/components/ui.tsx` (`name`, `path`, `sub`,
+  children) gains `detail?: string | null`, rendered after the `sub` `Text`
+  as a second `Text` with the same `numberOfLines={2}` and
+  `[styles.personSub, { color: t.inkMuted }]`, when non-null. In
+  `apps/mobile/app/(tabs)/connections.tsx`, the Connections segment's
+  `PersonRow` passes `detail={connection.details?.contact_handle}`; the
+  Requests and Blocked segments may pass the card tier's `affiliation`,
+  never details.
 
 **Checkpoint:** `bun run lint && bun run typecheck`, then a simulator pass
 (`cd apps/mobile && bunx expo start --ios --clear`, API dev server up): a
@@ -1676,14 +1757,24 @@ assert(bobConns.connections[0]?.details?.contact_handle === '@e2e.alice', 'a con
 assert(!JSON.stringify(await anon.resolve(uid)).includes('@e2e.alice'), 'resolve never carries the connections tier');
 ```
 
-`apps/web/e2e/`: affiliation is required for completion, so every spec
-step that creates a profile — `grep -n "getByLabel('Name').fill" apps/web/e2e/*.spec.ts`,
-on the Profile form and the claim page's first-profile form — fills
+`apps/web/e2e/`: affiliation is required for completion, so every step
+that creates a profile — `grep -n "getByLabel('Name').fill" apps/web/e2e/*.ts`,
+on the Profile form and the claim page's first-profile form, including the
+shared `signUpWithProfile` and `claimFreshTag` in `helpers.ts` — fills
 `getByLabel('Affiliation')` right after (steps that only assert a Name
-value need nothing). Then extend `handshake.spec.ts`: after the two are
-connected, Ada opens `/profile`, fills `Contact` with `@smoke.ada`, saves,
-and Bob's `/connections` shows `@smoke.ada`
-[[M3-CHECK: the Profile save control and the Connections segment the row lives in]].
+value need nothing). Then extend `handshake.spec.ts`, after its last
+assertion (Bob sees Smoke Ada under `/connections`):
+
+```ts
+  // --- extend-profile: the connections tier reaches the new connection ------
+  await ada.goto('/profile');
+  await ada.getByLabel('Contact', { exact: true }).fill('@smoke.ada');
+  // exact: a staged My tags row adds a "Save where … points" button
+  await ada.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(ada.getByText('Saved.')).toBeVisible();
+  await bob.goto('/connections'); // the Connections segment is the default
+  await expect(bob.getByText('@smoke.ada')).toBeVisible();
+```
 
 ## 9. The gate
 
@@ -1733,8 +1824,8 @@ The verification gate from `docs/the-slice.md`, then
 **Step 2: Commit.**
 
 ```bash
-cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69
-grep -rn 'M3-CHECK' .agents/skills/extend-profile && exit 1
+cd /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills
+grep -rn 'M3-CHEC[K]' .agents/skills/extend-profile && exit 1
 git add .agents/skills/extend-profile/SKILL.md
 git commit -m "Add extend-profile: vertical fields in two visibility tiers
 
@@ -1762,11 +1853,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 grep -rni --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} withme apps/ supabase/seed README.md | grep -v '@withme/'
 ```
 
-Diff the list against step 3's named files. Expected new surfaces at `4fa6c98`:
+Diff the list against step 3's named files. Expected new surfaces (the same at `4fa6c98` and post-M3 `7932548`; Task 3 ran the sweep and M3 added no `withme` string to `apps/`, `supabase/seed`, or `README.md`):
 - `CalmStates.tsx` (two "withme home" links)
 - `login.tsx:92` (the hint)
 - `t.$uid.tsx` (`WordmarkFooter`)
-- plus whatever M3 added. Log them.
+
+Log anything else the sweep finds. M3's one new user-facing system string carries no brand and so does not show up here: `expo-image-picker`'s `photosPermission` in `apps/mobile/app.json` (edit 4 below).
 
 **Step 2:** Apply the edits below. Then execute the new step 7 and the edited step 1 paragraph literally in the scratch worktree:
 1. Set `VITE_STORE_URL=https://shop.example.com` and `EXPO_PUBLIC_STORE_URL=https://shop.example.com`.
@@ -1800,7 +1892,29 @@ Diff the list against step 3's named files. Expected new surfaces at `4fa6c98`:
      mark a stranger who tapped a tag sees.
    ```
 
-   Then add one bullet per Milestone 3 surface found in Step 1.
+   After the `nfcPermission` bullet, insert (Milestone 3's surface; Task 3 found no other):
+
+   ```
+   - `apps/mobile/app.json` — the `expo-image-picker` plugin's
+     `photosPermission` string ("Choose a photo for your profile."), the
+     iOS prompt before the photo library opens. It carries no brand;
+     rewrite it only for voice.
+   ```
+
+   In the **Caution** paragraph below the list (M3 moved the shared sign-up and profile steps into `apps/web/e2e/helpers.ts` and added specs), replace
+
+   ```
+   smoke test selects by those strings — update
+   `apps/web/e2e/handshake.spec.ts` to match or e2e will fail.
+   ```
+
+   with
+
+   ```
+   specs select by those strings — update every match of
+   `grep -rn "getByRole\|getByLabel\|getByText" apps/web/e2e`, the shared
+   steps in `apps/web/e2e/helpers.ts` included, or e2e will fail.
+   ```
 5. Step 3:
    - `the step 7 sweep greps it` becomes `the step 8 sweep greps it`.
    - `final sweep in step 7 catches everything.` becomes `final sweep in step 8 catches everything.`
@@ -1855,8 +1969,8 @@ git commit -m "make-it-yours: the store URL step, shell heights, missed brand su
 
 The Merch pointer gets its own step with a checkpoint and the production
 var; the shell heights may change, in lockstep with mobile; the not-found
-card, sign-in hint, resolver footer, and the Profile work's copy join the
-list of places the brand renders.
+card, sign-in hint, resolver footer, and the photo-permission prompt join
+the list of places the brand and voice render.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1938,12 +2052,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
    - Milestone 1: merged (PR #6; follow-up #7).
    - Milestone 2: merged (PR #8).
-   - Milestone 3: merged (PR #<n>).
+   - Milestone 3: merged (PR #9).
    - Milestone 4: in review (this PR).
    - Milestone 5: waiting on 4.
    ```
 
-   Fill in M3's PR number from `git log --merges --oneline origin/main -3`.
+   M3 merged as `7932548` (PR #9); confirm with `git log --merges --oneline origin/main -3`.
 
 5. **`README.md`, "Encoding NFC tags"**: point it at `provision-tags` and make it agree with the skill. Today it says `{UID}` is the chip's immutable NTAG213 UID; the skill's default is a random, script-generated UID, and the chip's own UID is its §5 alternative. Replace the paragraph's opening, through `**lock the tag to read-only**.` (that line continues with "The heavy lookup…"; keep the rest of it),
 
@@ -2013,7 +2127,7 @@ Every command, path, table, and function the skills name, checked at HEAD withou
 **Step 1: No markers, no app code.**
 
 ```bash
-grep -rn 'M3-CHECK' .agents docs README.md            # nothing
+grep -rn 'M3-CHEC[K]' .agents docs README.md            # nothing
 git diff --name-only origin/main...HEAD                # only .agents/skills/**, docs/**, README.md, .gitignore
 git diff origin/main...HEAD -- .gitignore | grep '^[+-][^+-]'   # exactly Task 1's three added lines (the comment and two names)
 ```
@@ -2052,7 +2166,11 @@ grep -n '^\.env\.\*' .gitignore                                                 
 grep -n '^\.supabase-demo-db-password$\|^provisioned-tags\.\*$' .gitignore             # 2 lines (Task 1)
 grep -n "tag is not claimable' using errcode = 'P0002'\|tag not found' using errcode = 'P0003'" supabase/migrations/20260610120000_initial_handshake_schema.sql   # 2
 grep -n 'provision-tags' README.md                                                   # the Encoding NFC tags section links it
-grep -n 'listMine\|status' packages/contract/src/contract/app.ts                     # My tags: update takes status after M3
+grep -n 'listMine\|UpdateMyTagInputSchema' packages/contract/src/contract/app.ts
+grep -n 'export const OwnerTagStatusSchema\|status: OwnerTagStatusSchema' packages/contract/src/schemas/tag.ts   # My tags: update takes status (M3)
+grep -n '>My tags<\|SectionHeader>My tags\|Turn off' apps/web/src/components/MyTags.tsx apps/mobile/components/MyTags.tsx
+grep -n 'function TagPointer' 'apps/web/src/routes/_app.gatherings_.$id.tsx' 'apps/mobile/app/gathering/[id].tsx'
+grep -n 'claimed tags reset\|delete from auth.users' supabase/migrations/20261011130000_delete_my_account.sql
 docker exec supabase_db_withme-starter psql -U postgres -tAc "select proname from pg_proc where proname in ('claim_tag','resolve_tag') and pronamespace = 'public'::regnamespace order by 1"
 ```
 
@@ -2062,7 +2180,7 @@ docker exec supabase_db_withme-starter psql -U postgres -tAc "select proname fro
 for f in packages/contract/src/schemas/profile.ts packages/contract/src/schemas/connection.ts \
   packages/contract/src/contract/app.ts packages/contract/test/schemas.test.ts \
   packages/db/src/queries/handshake.ts packages/db/src/queries/gatherings.ts \
-  packages/db/test/enumeration.test.ts packages/db/test/cascade.test.ts \
+  packages/db/test/enumeration.test.ts packages/db/test/cascade.test.ts packages/db/test/account.test.ts \
   packages/db/src/test-utils/index.ts apps/api/src/routers/app.ts \
   packages/nfc-sdk/src/client.ts packages/nfc-sdk/test/client-types.test.ts \
   apps/web/src/components/ProfileCard.tsx apps/web/src/routes/_app.tsx \
@@ -2074,7 +2192,7 @@ for f in packages/contract/src/schemas/profile.ts packages/contract/src/schemas/
   apps/api/e2e/handshake.e2e.ts apps/web/e2e/handshake.spec.ts supabase/seed/index.ts \
   'apps/mobile/app/gathering/[id].tsx'; do
   test -f "$f" || echo "MISSING $f"; done
-grep -n 'api.app.profile.get' 'apps/mobile/app/gathering/[id].tsx' 'apps/mobile/app/t/[uid].tsx'   # the two ungated callers
+grep -n 'api.app.profile.get' 'apps/mobile/app/gathering/[id].tsx' 'apps/mobile/app/t/[uid].tsx' 'apps/web/src/routes/t.$uid.tsx'   # the three ungated callers
 grep -ln 'function private.on_block_created' supabase/migrations/*.sql
 grep -n "private.is_blocked(v_user, v_req.requester_id)" supabase/migrations/*.sql   # accept refuses a blocked pair
 grep -n 'export const CARD_COLUMNS\|export interface ProfileCard\|export async function getOwnProfile\|export async function upsertOwnProfile\|export async function listConnections' packages/db/src/queries/handshake.ts   # 5
@@ -2085,14 +2203,19 @@ grep -n 'const getProfile\|const updateProfile\|const acceptRequest\|const conne
 grep -n 'export interface PublicProfileCard' packages/nfc-sdk/src/client.ts
 grep -n 'export interface TestUser\|export async function createTestUser\|export async function connectUsers\|export async function pendingRequestId\|export async function provisionTag\|export function anonClient\|export const admin\|export async function assertStackRunning' packages/db/src/test-utils/index.ts   # 8
 grep -n "'profiles',$\|'blocks',$" packages/db/test/enumeration.test.ts
-grep -n 'requireSession\|asSignedInAccount\|redirect({ to: .\/profile' apps/web/src/routes/_app.tsx
+grep -n 'requireSession\|asSignedInAccount\|function ShellRoute\|!profile && pathname\|Navigate to="/profile"' apps/web/src/routes/_app.tsx
+grep -n 'function IdentityForm\|useLoaderData({ from: .\/_app. })' apps/web/src/routes/_app.profile.tsx
+grep -n 'function PersonRow' apps/web/src/routes/_app.connections.tsx apps/mobile/components/ui.tsx
+grep -n 'expectEmpty\|delete_my_account' packages/db/test/account.test.ts
+grep -n 'export async function setOwnAvatarPath' packages/db/src/queries/avatars.ts
 grep -n '"@withme/contract"' apps/web/package.json apps/mobile/package.json
 grep -n 'export function useSession' apps/mobile/lib/use-session.ts
 grep -n 'export function Muted\|export function Field' apps/mobile/components/ui.tsx
 grep -n '\.card \.hint\|\.row-body \.sub\|^\.field ' apps/web/src/styles/app.css
 grep -n 'createDemoUser(' supabase/seed/index.ts
 grep -n '^// 8\. \|^// 9\. \|^// 10\. ' apps/api/e2e/handshake.e2e.ts
-grep -n "getByLabel('Name').fill" apps/web/e2e/*.spec.ts
+grep -n "getByLabel('Name').fill" apps/web/e2e/*.ts                                  # specs and helpers.ts
+grep -n 'export async function signUpWithProfile\|export async function claimFreshTag' apps/web/e2e/helpers.ts
 jq -r '.scripts["db:types"]' package.json
 grep -ln "'display_name', v_profile.display_name" supabase/migrations/*.sql
 grep -l 'function public.resolve_tag' supabase/migrations/*.sql | sort | tail -1
@@ -2112,6 +2235,8 @@ for f in apps/web/src/routes/index.tsx apps/web/src/components/AppShell.tsx apps
   apps/mobile/components/Header.tsx 'apps/mobile/app/t/[uid].tsx' apps/mobile/app.json supabase/seed/index.ts; do
   printf '%s ' "$f"; grep -ci withme "$f"; done                         # every count >= 1
 grep -n 'Tags and gear from the store' apps/web/src/routes/_app.merch.tsx 'apps/mobile/app/(tabs)/merch.tsx'
+grep -n 'photosPermission' apps/mobile/app.json                                    # M3's voice-copy surface
+grep -n 'Playwright' -A3 .agents/skills/make-it-yours/SKILL.md | grep -n 'helpers.ts'      # the Caution names the shared steps
 grep -n "label: 'Merch'\|title: 'Merch'" apps/web/src/components/AppShell.tsx 'apps/mobile/app/(tabs)/_layout.tsx'
 grep -n 'shell-nav-height: 56px\|shell-tab-height: 60px\|shell-max-width' apps/web/src/styles/tokens.css
 grep -n 'headerHeight: 56' apps/mobile/lib/tokens.ts
@@ -2125,7 +2250,7 @@ grep -n '^## The safety discipline' docs/the-slice.md                           
 
 Expected: no `MISSING`, every grep hits (the two marked "nothing" print nothing), and the `docker exec` lines return the commented rows. Any miss is fixed in the skill text (or, if the app moved, in the skill's description of it) before Step 3.
 
-**Step 3: Re-run the skills from fresh clones.** Tasks 7b–7d, one clone and one stack window each, in any order. Each starts from the M4 branch's committed state, so first: `git -C /Users/alexeisele/dev/withme-starter/.claude/worktrees/with-me-derivation-starter-1f2c69 status --porcelain` prints nothing.
+**Step 3: Re-run the skills from fresh clones.** Tasks 7b–7d, one clone and one stack window each, in any order. Each starts from the M4 branch's committed state, so first: `git -C /Users/alexeisele/dev/withme-starter/.claude/worktrees/derivation-skills status --porcelain` prints nothing.
 
 ---
 
@@ -2164,7 +2289,7 @@ bun install
 
 **Step 2 (stack window): follow the skill literally**, all of §1–§9, with the worked example as written. Time it and log every deviation.
 - Expected:
-  - red at §2: the 14 new tests, the cascade test, and the enumeration anon sweep;
+  - red at §2: the 14 new tests, the cascade test, the first `account.test.ts` test, and the enumeration anon sweep;
   - green at §3 (db baseline +14);
   - contract baseline +4;
   - lint and typecheck green after §7;
