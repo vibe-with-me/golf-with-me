@@ -3520,6 +3520,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `apps/web/e2e/helpers.ts`, `apps/web/e2e/handshake.spec.ts`, `apps/web/e2e/gatherings.spec.ts`
 - Create: `apps/web/e2e/connections.spec.ts`, `apps/web/e2e/profile.spec.ts`
 
+**Note (found while running this task): the shell's profile gate moved from the `_app` loader to its component.** `throw redirect('/profile')` from the `_app` loader targets a route under the same layout, so TanStack Router reuses the redirected `/_app` match for the target (one shared `_nonReactive`). When the pending shell was already committed (profile fetch near `defaultPendingMs`) and Profile's own loader was still fetching after `/_app`'s `loadPromise` cleared, React re-rendered the stale "redirected" match and TanStack threw `undefined`, which passes every `CatchBoundary`; on a lost last retry the root unmounted and `/profile` went blank. `_app.tsx` now returns `{ profile }` from the loader and its `ShellRoute` component renders `<Navigate to="/profile" search={{ returnTo }} replace />` (over `ShellPending`) when there is no profile and the path is not `/profile`. Measured with a 118–128 ms delay on `/rpc/**`: 14 of 40 runs threw before, 0 of 40 after. The gate now applies on every shell render without a profile, not only on entry or a stale reload. Separately: e2e runs on a Mac in clamshell maintenance sleep fail in bursts that match `pmset -g log` sleep entries; run the suite on power with the machine awake.
+
 **Step 1:** Append to `helpers.ts`:
 
 ```ts
