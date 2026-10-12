@@ -690,6 +690,11 @@ Use the established technique (agent-device + Expo Go + simctl), not the native 
 
 **Step 3:** Stop Metro and the API. Close the stack window with the hand-back.
 
+**Done 2026-10-12** on `a1a73da`, with no scratch fixes. All five checks passed (screenshots `notes/extend-profile-{1,2,3,4,5,5a,5b}.png`).
+- Three of four fresh sign-ups landed on Events. Their first `profile.get` (and, for the first two, also `gatherings.listMine`) got a 500: PostgREST answered 401 `PGRST303` "JWT issued at future". That is a sub-second token race on the local stack, not the scratch code or the skill (`listMine` is untouched by extend-profile). A relaunch sent the account to Profile. §7's checkpoint now says so.
+- The `expo start --ios` command in §7 is left as is: it fails only on this Mac's Xcode setup, hence Expo Go + simctl here.
+- A follow-up investigation of the race on main has been filed separately.
+
 ---
 
 ### Task 4d: Write `extend-profile`'s SKILL.md (Phase B)
@@ -1735,6 +1740,13 @@ useEffect(() => {
 new account lands on Profile and cannot be left incomplete without being
 sent back on the next tabs mount; two connected accounts see each other's
 contact in Connections; a tag resolve shows the affiliation and no contact.
+
+On the local stack a brand-new sign-up can land on Events instead. The
+first API calls made within a second of sign-up can hit PostgREST's
+`PGRST303` ("JWT issued at future"; the API logs "unexpected database
+error"), and the gate fails open by design. Relaunch and the account is
+sent to Profile. Every tab's first call can fail the same way, so it does
+not come from the gate.
 
 ## 8. Seed and e2e
 
