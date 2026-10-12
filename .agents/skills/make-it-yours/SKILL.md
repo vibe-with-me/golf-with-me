@@ -39,6 +39,8 @@ Execution rules for the whole skill:
   (e.g. `com.acme.app`), URL scheme (e.g. `acme`).
 - Optional: a store URL for the Merch tab and the landing page's "Get
   tags" link — step 7.
+- Optional: your fork's repository URL, for the root README's CI badge —
+  step 3.
 
 Also do this now (a fresh clone ships only `.example` files, and the
 final boot check needs the real ones):
@@ -80,8 +82,11 @@ and dark background values or the native splash will flash the old brand:
   `backgroundColor` (light bg) + `dark.backgroundColor` (dark bg).
 
 **The one-accent rule.** The palette is near-monochrome with exactly one
-vivid accent, and the accent appears only on the primary action (the
-Connect/claim buttons). Do not introduce a second accent and do not
+vivid accent, and the accent appears only on the primary action of a
+screen: Connect, Accept, Claim tag, and Join (the resolver's "Join this
+gathering" and the gathering's own Join), plus mobile's "Read NFC tag".
+That is the `btn--connect` class on web and `kind="connect"` on mobile.
+Do not introduce a second accent and do not
 spread the accent to borders, links, or chrome — restraint is the design
 system. Keep the WCAG notes in `tokens.css` honest: accent/accent-ink
 ≥ 4.5:1, `--color-border-input` ≥ 3:1 against `--color-surface` (WCAG
@@ -286,9 +291,15 @@ line, with the same URL. With both dev servers up, `/merch` shows the card,
 
 ## 8. Icons + final gate
 
-Replace the artwork in `apps/mobile/assets/` (`icon.png` 1024×1024,
-`splash-icon.png`, `favicon.png`, and the three `android-icon-*.png`
-adaptive layers). The web app ships no favicon — and no `public/`
+Replace the artwork in `apps/mobile/assets/`. `app.json` wires two
+files: `icon.png` (1024×1024, `expo.icon`) and
+`android-icon-foreground.png` (`expo.android.adaptiveIcon.foregroundImage`).
+The other four (`splash-icon.png`, `favicon.png`,
+`android-icon-background.png`, `android-icon-monochrome.png`) are
+template files nothing references: replacing them changes nothing until
+`app.json` points at them (the `expo-splash-screen` entry's `image`,
+`expo.web.favicon`, `adaptiveIcon.backgroundImage` / `monochromeImage`).
+The web app ships no favicon — and no `public/`
 directory; `mkdir -p apps/web/public` and drop a `favicon.ico` there if
 you want one.
 
@@ -313,4 +324,7 @@ Finally the visual check, which needs BOTH dev servers: in one shell
 port 8786 — without it the resolver page errors), in another
 `cd apps/web && bun run dev`. The landing page shows your wordmark in
 your fonts, and the resolver card (`/t/04BBBBBBBBBBBB` after
-`bun run db:seed`) settles with your accent on the Connect button only.
+`bun run db:seed`: Ada's card, inviting you to her gathering) settles
+with your accent on its one primary action, "Join this gathering", and
+nowhere else. That tag shows no Connect button; Connect and Accept carry
+the same accent (step 1).
