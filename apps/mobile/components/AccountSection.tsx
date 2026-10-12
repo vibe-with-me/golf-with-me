@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { AccessibilityInfo, Alert, Platform } from 'react-native';
+import { AccessibilityInfo, Alert, Platform, View } from 'react-native';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Button, Card, ErrorText, SectionHeader } from './ui';
@@ -10,7 +10,7 @@ const DELETE_COPY =
 
 const FAILED = "That didn't go through. Try again.";
 
-/** iOS does not announce accessibilityRole="alert", so say it outright. */
+/** iOS has no live regions, so say it outright; Android reads the live region below. */
 function announceFailure() {
   if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(FAILED);
 }
@@ -43,6 +43,7 @@ export function AccountSection() {
       announceFailure();
       return;
     }
+    // Belt and braces: Stack.Protected already falls back to login when the session drops.
     router.replace('/login');
   }
 
@@ -64,6 +65,7 @@ export function AccountSection() {
     } catch {
       // Nothing to recover: the session it held no longer exists.
     } finally {
+      // Explicit, so leaving never depends on the local sign-out having succeeded.
       router.replace('/login');
     }
   }
@@ -86,7 +88,8 @@ export function AccountSection() {
           disabled={working}
           onPress={confirmDelete}
         />
-        {failed ? <ErrorText>{FAILED}</ErrorText> : null}
+        {/* Always mounted: a live region created with its message is not announced. */}
+        <View accessibilityLiveRegion="polite">{failed ? <ErrorText>{FAILED}</ErrorText> : null}</View>
       </Card>
     </>
   );
