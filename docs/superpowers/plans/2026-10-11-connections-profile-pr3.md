@@ -2504,15 +2504,15 @@ function SegmentLink({ tab, label, count = 0 }: { tab?: Tab; label: string; coun
       // exact: "Connections" (no search) must not match ?tab=requests
       activeOptions={{ exact: true }}
       activeProps={{ 'aria-current': 'page' }}
+      // Named outright: a hidden ", N pending" span inside this flex link is
+      // blockified, and the computed name would read "Requests , N pending".
+      aria-label={count > 0 ? `${label}, ${count} pending` : undefined}
     >
       {label}
       {count > 0 ? (
-        <>
-          <span className="badge" aria-hidden="true">
-            {count > 99 ? '99+' : count}
-          </span>
-          <span className="visually-hidden">{`, ${count} pending`}</span>
-        </>
+        <span className="badge" aria-hidden="true">
+          {count > 99 ? '99+' : count}
+        </span>
       ) : null}
     </Link>
   );
@@ -2630,6 +2630,7 @@ function PersonRow({
 **Verify:**
 - `bun run --cwd apps/web typecheck && bun run lint` are clean.
 - `cd apps/web && bunx vite build; cd ../..` succeeds. `git status` shows no `routeTree.gen.ts` change; if there is one, commit it with this task.
+- The existing `handshake.spec.ts` looks for Bob's request on the default segment, which now shows Connections. Its "Ada accepts" block (Task 16 Step 2) lands here, in its own commit, so the Playwright suite stays at `10 passed`.
 
 **Commit**
 
@@ -3446,7 +3447,7 @@ export async function claimFreshTag(page: Page, email: string, name: string): Pr
 }
 ```
 
-**Step 2:** `handshake.spec.ts`: replace the "Ada accepts" block with:
+**Step 2:** `handshake.spec.ts` (already done in Task 11, which broke the old block; shown for reference): the "Ada accepts" block reads:
 
 ```ts
   // --- Ada accepts from the Requests segment; both see the connection --------
