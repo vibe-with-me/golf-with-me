@@ -267,6 +267,8 @@ git -C "$LINE" remote remove origin
 
 The step 8 sweep command changed, so a re-run is required (run 2, from a fresh `pre-make-it-yours` clone with b160d58's skills).
 
+**Run 2 — Done 2026-10-12.** On `/Users/alexeisele/dev/withme-scratch/proof-runclub-make-it-yours-r2` (a fresh `pre-make-it-yours` clone with b160d58's skills). START 21:36:15Z, END 21:44:09Z: about 8 min wall. Log: `$NOTES/2-make-it-yours-r2.md`. Green: every checkpoint, lint, typecheck, test at the baseline counts, Playwright 14/14, API e2e all passed. The step 8 sweep prints exactly the two lines of the skipped sub-steps (`app.json` `owner`, step 5; `config.toml` `project_id`, Decision 6). The remaining notes were wording-only and are fixed in 77ec5f1: which ratios the token comments cite (the accent pair and the input border, each theme), and that the starter README's prose names no brand, so only the title and badge change. The other notes were input gaps (no copy or artwork supplied) or already known (ENG-753). Run 2 reached the final checkpoint green and the fixes are wording only, so no re-run is needed. Reviewer checks passed. The line is now `LINE=/Users/alexeisele/dev/withme-scratch/proof-runclub-make-it-yours-r2`, committed as 9a58a9a ("make-it-yours: runclub") and tagged `pre-customize-gathering`.
+
 ---
 
 ### Task 3: customize-gathering (nouns, URLs, one field) (literal)
@@ -317,6 +319,22 @@ The step 8 sweep command changed, so a re-run is required (run 2, from a fresh `
 - Record the actual counts.
 
 **Then:** the reviewer checks, the deviation procedure, and a commit tagged `pre-extend-profile`.
+
+**Run 1 (2026-10-12).** On `$LINE` at `pre-customize-gathering` (9a58a9a). START 21:44:53Z, END 21:54:41Z: about 10 min wall. Log: `$NOTES/3-customize-gathering-r1.md`. The gate was green after the deviations below: db 73, contract 33 (31 + the negative case + "a route alone is an update"), nfc 48, API e2e 59 `ok` lines ending "all checks passed", Playwright 14. The result is uncommitted in `$LINE`'s working tree, with the new migration untracked. Every deviation is fixed in 77ec5f1:
+- D1, §1: the copy sweep missed both apps' `lib/my-tags.ts` (My tags: "A tap invites people to a gathering."). The sweep now covers `apps/web/src` and `apps/mobile/lib`.
+- D2, §1: the list's title is `'Events — runclub'` after make-it-yours, not `'Events — withme'`. The text now says `'Events — <wordmark>'`.
+- D3, §1: `profile.spec.ts` and `helpers.ts` carry copy and URLs too. The copy and URL lists now say every file under `apps/web/e2e`, with a `/gatherings` grep.
+- D4, §2.1: a required field broke four existing contract fixtures and expectations. The text now says to update them, and how to find them (`grep -n starts_at`).
+- D5, §2.1/§2.2: the rule for rows that predate the column. Inputs require `min(1)`; `GatheringSchema` accepts `''` (max only); the `default ''` stays. This is the fork's choice.
+- D6, §2.2: `db:seed` ran before §2.7 edited the seed (PGRST202). The seed edit now comes before the first `db:seed`.
+- D7, §2.2: `revoke … from public` left anon able to execute the new `create_gathering`, through Supabase's default privileges. The text now revokes `from public, anon`, and `docs/the-slice.md`'s grant rule says the same. Core's older RPCs have the same gap: ENG-754.
+- D8, §2.3: the anon call in 'anon can neither create nor join' needs the new argument. The text now names the argument-only changes and keeps the safety sentence for everything else.
+- D9, map/§2.3: `account.test.ts` calls `create_gathering`. The map now carries a caller grep, and §2.3 and §2.7 use it.
+- D10, §2.7: `handshake.e2e.ts` creates in §17 too, and the e2e reads the built SDK. The caller grep covers §17, and §2.5 now says to run the root `bun run typecheck`.
+- D11, §2.7: `profile.spec.ts` creates a run. Covered by the grep, and the text says every Playwright create step needs a fill.
+- D12: environment (`CI=1`; `supabase.ts` not committed per the run rules). No change.
+
+Safety reviewer checks passed: no §3 mechanism touched, the original 17 tests changed only by the new argument (plus one added `route_name` assertion), and the summary carries `route_name` only. Commands and steps changed, so a re-run is required (run 2, from a fresh `pre-customize-gathering` clone with 77ec5f1's skills).
 
 ---
 
