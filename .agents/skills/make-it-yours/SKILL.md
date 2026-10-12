@@ -24,6 +24,11 @@ Execution rules for the whole skill:
 
 ## Inputs to collect before you start
 
+No brand yet, only a vertical? `.agents/skills/design-direction/SKILL.md`
+produces every value below, plus the copy and artwork steps 3 and 8 ask
+for, as `docs/brand-direction.md` with the contrast pairs already
+verified. Run it first, then fill this list from the sheet.
+
 - Brand name in two forms: the lowercase **wordmark** (e.g. `acme`) —
   used wherever the brand renders as a mark (headings, page titles,
   slugs, user-agent strings) — and the **display name** (e.g. `Acme`) —
