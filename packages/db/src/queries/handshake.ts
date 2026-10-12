@@ -1,12 +1,12 @@
 import type { Db, Tables } from '../index.ts';
 
 /** The card columns — everything a counterpart may see, nothing more. */
-export const CARD_COLUMNS = 'id, display_name, avatar_url, bio';
+export const CARD_COLUMNS = 'id, display_name, avatar_path, bio';
 
 export interface ProfileCard {
   id: string;
   display_name: string;
-  avatar_url: string | null;
+  avatar_path: string | null;
   bio: string | null;
 }
 
@@ -20,7 +20,7 @@ export async function getOwnProfile(db: Db, userId: string): Promise<Tables<'pro
 export async function upsertOwnProfile(
   db: Db,
   userId: string,
-  patch: { display_name?: string; avatar_url?: string | null; bio?: string | null },
+  patch: { display_name?: string; bio?: string | null },
 ): Promise<Tables<'profiles'>> {
   const existing = await getOwnProfile(db, userId);
   if (existing) {
@@ -41,7 +41,6 @@ export async function upsertOwnProfile(
     .insert({
       id: userId,
       display_name: patch.display_name,
-      avatar_url: patch.avatar_url ?? null,
       bio: patch.bio ?? null,
     })
     .select()

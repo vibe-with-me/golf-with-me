@@ -1,5 +1,5 @@
 import type { GatheringSummary } from '@withme/contract';
-import { createFileRoute, Link, notFound, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound, redirect, useHydrated, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
 import { ProfileCard } from '../components/ProfileCard.tsx';
@@ -67,8 +67,8 @@ function ResolvePage() {
     return (
       <main className="page">
         <ProfileCard profile={result.profile} settle>
-          <p className="hint">{gatheringLine(result.gathering)}</p>
-          <GatheringInvite gathering={result.gathering} hostId={result.profile.id} />
+          <GatheringLine gathering={result.gathering} />
+          <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
         </ProfileCard>
         <WordmarkFooter />
       </main>
@@ -97,30 +97,52 @@ function WordmarkFooter() {
   );
 }
 
+/** The server knows neither the viewer's timezone nor locale: the title alone until hydrated. */
+function GatheringLine({ gathering }: { gathering: GatheringSummary }) {
+  const hydrated = useHydrated();
+  return <p className="hint">{hydrated ? gatheringLine(gathering) : gathering.title}</p>;
+}
+
 /**
  * The Join link lands on the detail route under the shell, carrying
  * display-only hints. A signed-out tapper is sent through login by the
- * shell's own guard (returnTo keeps the hints), so no login routing here.
- * The host has nothing to join and gets a quiet "Open". Until the session
- * read settles there is no link at all (the card and the summary line are
- * already up): guessing "Join" would flash the accent at the host.
+ * shell's own guard (returnTo keeps the hints). The tag's owner and other
+ * members have nothing to join and get a plain "Open gathering". Until we
+ * know which, there is no link at all: guessing "Join" would flash the
+ * accent at a member.
  */
-function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
-  const [viewer, setViewer] = useState<'loading' | 'host' | 'other'>('loading');
+function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; ownerId: string }) {
+  const [viewer, setViewer] = useState<'loading' | 'member' | 'other'>('loading');
   useEffect(() => {
     let cancelled = false;
-    getSessionUserId().then((userId) => {
-      if (!cancelled) setViewer(userId === hostId ? 'host' : 'other');
-    });
+    // A new tag or gathering: the previous verdict does not carry over.
+    setViewer('loading');
+    (async (): Promise<'member' | 'other'> => {
+      const userId = await getSessionUserId();
+      if (userId === null) return 'other';
+      // The tag's owner: a member by construction, not necessarily the host.
+      if (userId === ownerId) return 'member';
+      // Already in it? A member's get succeeds; anyone else's is NOT_FOUND,
+      // the same answer as a gathering that does not exist.
+      return api.app.gatherings.get({ id: gathering.id }).then(
+        () => 'member' as const,
+        () => 'other' as const,
+      );
+    })()
+      // A failed session read falls back to the safe default, never a stuck card.
+      .catch(() => 'other' as const)
+      .then((next) => {
+        if (!cancelled) setViewer(next);
+      });
     return () => {
       cancelled = true;
     };
-  }, [hostId]);
+  }, [ownerId, gathering.id]);
   if (viewer === 'loading') return null;
-  const isHost = viewer === 'host';
+  const isMember = viewer === 'member';
   return (
     <Link
-      className={isHost ? 'btn' : 'btn btn--connect'}
+      className={isMember ? 'btn' : 'btn btn--connect'}
       to="/gatherings/$id"
       params={{ id: gathering.id }}
       // Display-only hints; the returnTo guard refuses control characters and
@@ -128,7 +150,7 @@ function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; h
       // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
       search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
     >
-      {isHost ? 'Open gathering' : 'Join this gathering'}
+      {isMember ? 'Open gathering' : 'Join this gathering'}
     </Link>
   );
 }
@@ -150,6 +172,9 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
       cancelled = true;
     };
   }, [profileId]);
+
+  // Nothing until the session read settles: the owner must never see Connect first.
+  if (viewer === 'loading') return null;
 
   if (viewer === 'self') {
     return (
@@ -182,7 +207,7 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
     <button
       type="button"
       className="btn btn--connect"
-      disabled={viewer === 'loading' || send === 'sending'}
+      disabled={send === 'sending'}
       onClick={async () => {
         setSend('sending');
         try {

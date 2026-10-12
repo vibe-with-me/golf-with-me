@@ -35,7 +35,8 @@ points at remains yours to change forever.
   schemas, including the typed destination union (`profile` and `gathering`
   today; `link | menu | vcard` can join without schema change). Two routers:
   `public` (resolve / claim / logScan — the SDK surface) and `app`
-  (profile, connect, block, gatherings, my tags — session-scoped).
+  (profile and photo, connect, block, gatherings, my tags, account —
+  session-scoped).
 - `apps/api` — the one backend every client talks to. Verifies Supabase JWTs
   (ES256 via JWKS), runs every query under the **caller's** RLS identity, and
   rate-limits per tag UID at the edge.
@@ -72,12 +73,24 @@ points at remains yours to change forever.
   surface.
 - **Privacy-default scans.** `tag_scans` stores a user-agent string and a
   timestamp. No GPS, no IP, no fingerprinting — the columns don't exist.
-- **Deletion cascades.** Deleting an account removes connections, requests,
-  and blocks, resets claimed tags to unclaimed, and erases their scan history.
+- **Avatars are paths, not URLs.** A photo is uploaded through the API into
+  the uploader's own folder of a public bucket no one else can list;
+  profiles store only `<user>/<file>` and every client builds the URL from
+  its own Supabase URL, so an avatar can never point off-origin. The real
+  boundary is the bucket's limits (JPEG or WebP, 1 MiB) plus the
+  `profiles_avatar_path_shape` CHECK. The API's byte sniffing is a first
+  gate that a direct Storage call with the user's own token can bypass,
+  which stays safe because the bucket only ever holds and serves images. A
+  photo's public URL works for anyone holding it until the photo changes
+  (caches may keep serving it for up to an hour after that).
+- **Deletion cascades.** Deleting an account (Profile → Account, which
+  clears your photo files and then calls `delete_my_account()`) removes
+  connections, requests, blocks, and the gatherings you host, resets
+  claimed tags to unclaimed, and erases their scan history.
 
-All of the above is RLS + security-definer functions, covered by 57 policy
-tests (`packages/db/test`) that run against Supabase local. The tests are the
-spec.
+All of the above is RLS + security-definer functions, covered by 72 policy
+tests (`packages/db/test`, Storage policies included) that run against
+Supabase local. The tests are the spec.
 
 ## Quickstart
 
@@ -88,7 +101,7 @@ Docker.
 
 ```sh
 bun install
-bun run db:start        # Supabase local on ports 553xx
+bun run db:start        # Supabase local on ports 553xx (includes Storage)
 bun run db:seed         # demo users + tags
 cp apps/api/.dev.vars.example apps/api/.dev.vars
 cp apps/web/.env.example apps/web/.env
@@ -101,8 +114,9 @@ flow), or sign in as `ada@demo.withme.local` / `withme-demo-1` to see her
 gathering and her pending request.
 
 Tests: `bun run test` (unit + RLS), `bun run --cwd apps/web test:e2e`
-(Playwright smoke: resolve → claim → connect, the signed-in shell, and tap →
-join a gathering),
+(Playwright smoke: resolve → claim → connect, the signed-in shell, tap →
+join a gathering, the Connections lists, and the profile: photo, my tags,
+account deletion),
 `bun run --cwd apps/api e2e` (API e2e against the local stack). The web
 smoke runs against the production build and needs Supabase up first;
 Playwright starts the API worker and the built web worker itself.

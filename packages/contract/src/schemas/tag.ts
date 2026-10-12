@@ -17,6 +17,30 @@ export const TagSchema = z.object({
   destination: DestinationSchema.nullable(),
 });
 
+/**
+ * What an owner may set: a tag off ('disabled') and back on ('claimed').
+ * Releasing a tag is not theirs to do; the tags_state_consistent CHECK
+ * agrees.
+ */
+export const OwnerTagStatusSchema = z.enum(['claimed', 'disabled']);
+
+/**
+ * Re-point and/or switch one of your tags. The uid identifies the tag (a path
+ * parameter under OpenAPI; the RPC link sends it in the body). At least one
+ * field.
+ */
+export const UpdateMyTagInputSchema = z
+  .object({
+    uid: TagUidSchema,
+    destination: DestinationSchema.optional(),
+    status: OwnerTagStatusSchema.optional(),
+  })
+  .refine((patch) => patch.destination !== undefined || patch.status !== undefined, {
+    message: 'Nothing to update',
+  });
+
 export type TagUid = z.infer<typeof TagUidSchema>;
 export type TagStatus = z.infer<typeof TagStatusSchema>;
 export type Tag = z.infer<typeof TagSchema>;
+export type OwnerTagStatus = z.infer<typeof OwnerTagStatusSchema>;
+export type UpdateMyTagInput = z.infer<typeof UpdateMyTagInputSchema>;

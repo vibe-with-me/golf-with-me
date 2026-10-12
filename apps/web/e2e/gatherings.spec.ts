@@ -61,6 +61,10 @@ test("tap a host's tag, join the gathering, and both see the member list", async
   await expect(bob.getByText('Smoke Bob')).toBeVisible();
   await expect(bob.getByRole('button', { name: 'Leave gathering' })).toBeVisible();
 
+  // Tapping the tag again as a member opens the gathering instead of inviting twice.
+  await bob.goto(`/t/${uid}`);
+  await expect(bob.getByRole('link', { name: 'Open gathering' })).toBeVisible();
+
   // --- Ada sees Bob too ----------------------------------------------------------
   await ada.reload();
   await expect(ada.getByText('Smoke Bob')).toBeVisible();

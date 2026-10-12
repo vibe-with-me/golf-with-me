@@ -43,11 +43,16 @@ test('two strangers tap a tag and remain connected', async ({ browser }) => {
   await bob.getByRole('button', { name: 'Connect' }).click();
   await expect(bob.getByText(/request sent/i)).toBeVisible();
 
-  // --- Ada accepts; both sides see the connection ----------------------------
+  // --- Ada accepts from the Requests segment; both see the connection --------
   await ada.goto('/connections');
+  const adaSegments = ada.getByRole('navigation', { name: 'Connections lists' });
+  await expect(ada.getByRole('heading', { name: 'Connections', exact: true })).toBeVisible();
+  await adaSegments.getByRole('link', { name: 'Requests, 1 pending' }).click();
   await expect(ada.getByText('Smoke Bob')).toBeVisible();
   await ada.getByRole('button', { name: 'Accept' }).click();
-  await expect(ada.getByRole('heading', { name: 'Connections', exact: true })).toBeVisible();
+  await expect(ada.getByText('No requests right now.')).toBeVisible();
+  await expect(adaSegments.getByRole('link', { name: 'Requests', exact: true })).toBeVisible();
+  await adaSegments.getByRole('link', { name: 'Connections' }).click();
   await expect(ada.getByText('Smoke Bob')).toBeVisible();
 
   await bob.goto('/connections');

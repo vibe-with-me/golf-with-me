@@ -99,11 +99,11 @@ export default function ResolveScreen() {
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card settle>
-          <Avatar name={result.profile.display_name} url={result.profile.avatar_url} />
+          <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
           <Title>{result.profile.display_name}</Title>
           {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
           <Muted>{gatheringLine(result.gathering)}</Muted>
-          <GatheringInvite gathering={result.gathering} hostId={result.profile.id} />
+          <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
         </Card>
       </View>
     );
@@ -112,7 +112,7 @@ export default function ResolveScreen() {
   return (
     <View style={[styles.page, { backgroundColor: t.bg }]}>
       <Card settle>
-        <Avatar name={result.profile.display_name} url={result.profile.avatar_url} />
+        <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
         <Title>{result.profile.display_name}</Title>
         {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
         <ConnectAction profileId={result.profile.id} uid={result.uid} />
@@ -124,26 +124,54 @@ export default function ResolveScreen() {
 /**
  * gathering/[id] sits behind Stack.Protected: a signed-out push would bounce
  * to the anchor and lose the id, so the signed-out path carries the id and
- * the display hints through login. The host, with nothing to join, gets
- * "Open gathering" in the default style instead of the accent.
+ * the display hints through login. The tag's owner and other members have
+ * nothing to join and get "Open gathering" in the default style. Until we
+ * know which, no button: guessing "Join" would flash the accent at a member.
  */
-function GatheringInvite({ gathering, hostId }: { gathering: GatheringSummary; hostId: string }) {
-  const [viewer, setViewer] = useState<'loading' | 'anon' | 'host' | 'other'>('loading');
+function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; ownerId: string }) {
+  const [viewer, setViewer] = useState<'loading' | 'anon' | 'member' | 'other'>('loading');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    let cancelled = false;
+    // A new tag or gathering: the previous verdict does not carry over.
+    setViewer('loading');
+    (async (): Promise<'anon' | 'member' | 'other'> => {
+      const { data } = await supabase.auth.getSession();
       const userId = data.session?.user.id;
-      setViewer(!userId ? 'anon' : userId === hostId ? 'host' : 'other');
-    });
-  }, [hostId]);
+      if (!userId) return 'anon';
+      // The tag's owner: a member by construction, not necessarily the host.
+      if (userId === ownerId) return 'member';
+      // Already in it? A member's get succeeds; anyone else's is NOT_FOUND,
+      // the same answer as a gathering that does not exist.
+      return api.app.gatherings.get({ id: gathering.id }).then(
+        () => 'member' as const,
+        () => 'other' as const,
+      );
+    })()
+      // A failed session read falls back to the safe default, never a stuck card.
+      .catch(() => 'other' as const)
+      .then((next) => {
+        if (!cancelled) setViewer(next);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerId, gathering.id]);
 
+  if (viewer === 'loading') return null;
+  const isMember = viewer === 'member';
   return (
     <Button
-      kind={viewer === 'host' ? 'default' : 'connect'}
-      disabled={viewer === 'loading'}
-      label={viewer === 'host' ? 'Open gathering' : 'Join this gathering'}
-      onPress={() => {
-        if (viewer === 'anon') {
+      kind={isMember ? 'default' : 'connect'}
+      label={isMember ? 'Open gathering' : 'Join this gathering'}
+      onPress={async () => {
+        // Decided at tap time, not from the mount verdict: a session read that
+        // failed then fell back to 'other', and a signed-out push to the
+        // protected detail would bounce and lose the id.
+        const { data } = await supabase.auth
+          .getSession()
+          .catch(() => ({ data: { session: null } }));
+        if (!data.session) {
           router.push({
             pathname: '/login',
             params: { redirect: gatheringHref(gathering.id, gathering) },
@@ -165,13 +193,28 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   const inFlight = useRef(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const userId = data.session?.user.id;
-      if (!userId) setViewer('anon');
-      else if (userId === profileId) setViewer('self');
-      else setViewer('other');
-    });
+    let cancelled = false;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const userId = data.session?.user.id;
+        if (!userId) setViewer('anon');
+        else if (userId === profileId) setViewer('self');
+        else setViewer('other');
+      })
+      // A failed session read must not leave the card without its action:
+      // fall back to the signed-out path, which goes through login.
+      .catch(() => {
+        if (!cancelled) setViewer('anon');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [profileId]);
+
+  // Nothing until the session read settles: the owner must never see Connect first.
+  if (viewer === 'loading') return null;
 
   if (viewer === 'self') {
     return (
@@ -190,7 +233,7 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   return (
     <Button
       kind="connect"
-      disabled={viewer === 'loading' || send === 'sending'}
+      disabled={send === 'sending'}
       label={send === 'sending' ? 'Connecting…' : send === 'failed' ? 'Try again' : 'Connect'}
       onPress={async () => {
         if (viewer === 'anon') {

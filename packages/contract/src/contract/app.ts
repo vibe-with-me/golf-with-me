@@ -1,15 +1,19 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 import { ConnectRequestSchema, ConnectionSchema } from '../schemas/connection.ts';
-import { DestinationSchema } from '../schemas/destination.ts';
 import {
   CreateGatheringInputSchema,
   GatheringMemberSchema,
   GatheringSchema,
   UpdateGatheringInputSchema,
 } from '../schemas/gathering.ts';
-import { ProfileSchema, PublicProfileSchema, UpdateProfileInputSchema } from '../schemas/profile.ts';
-import { TagSchema, TagUidSchema } from '../schemas/tag.ts';
+import {
+  AvatarUploadInputSchema,
+  ProfileSchema,
+  PublicProfileSchema,
+  UpdateProfileInputSchema,
+} from '../schemas/profile.ts';
+import { TagSchema, UpdateMyTagInputSchema } from '../schemas/tag.ts';
 
 const getProfile = oc
   .route({ method: 'GET', path: '/me/profile', tags: ['Profile'] })
@@ -19,6 +23,25 @@ const updateProfile = oc
   .route({ method: 'PATCH', path: '/me/profile', tags: ['Profile'] })
   .input(UpdateProfileInputSchema)
   .output(z.object({ profile: ProfileSchema }));
+
+const uploadAvatar = oc
+  .route({ method: 'POST', path: '/me/avatar', tags: ['Profile'] })
+  .input(AvatarUploadInputSchema)
+  // Stored as <your-id>/<uuid>.(jpg|webp) with your own JWT; the previous
+  // file is deleted. Anything but JPEG or WebP bytes is BAD_REQUEST.
+  .output(z.object({ profile: ProfileSchema }));
+
+const removeAvatar = oc
+  .route({ method: 'DELETE', path: '/me/avatar', tags: ['Profile'] })
+  .output(z.object({ profile: ProfileSchema }));
+
+const deleteAccount = oc
+  .route({ method: 'DELETE', path: '/me', tags: ['Profile'] })
+  // Irreversible. The photo pointer is cleared, the avatar files swept
+  // (Storage API), then delete_my_account(): profile, connections, requests,
+  // blocks, hosted gatherings and memberships go; claimed tags are released
+  // (unclaimed, scans erased).
+  .output(z.object({ ok: z.literal(true) }));
 
 const sendRequest = oc
   .route({ method: 'POST', path: '/connect-requests', tags: ['Connect'] })
@@ -112,20 +135,26 @@ const removeGathering = oc
   .input(z.object({ id: z.uuid() }))
   .output(z.object({ ok: z.literal(true) }));
 
-// My tags, minimal in M2 (the gathering detail's "point my tags here").
-// M3 extends `update` with `status` and builds the Profile section on these.
+// My tags: Profile → My tags, and the gathering detail's "point my tags here".
 const listMyTags = oc
   .route({ method: 'GET', path: '/me/tags', tags: ['Tags'] })
   .output(z.object({ tags: z.array(TagSchema) }));
 
 const updateMyTag = oc
   .route({ method: 'PATCH', path: '/me/tags/{uid}', tags: ['Tags'] })
-  .input(z.object({ uid: TagUidSchema, destination: DestinationSchema }))
+  .input(UpdateMyTagInputSchema)
+  // Not yours and nonexistent are the same NOT_FOUND.
   .output(z.object({ tag: TagSchema }));
 
 /** Session-scoped surface — every procedure requires a verified Supabase JWT. */
 export const appContract = {
-  profile: { get: getProfile, update: updateProfile },
+  profile: {
+    get: getProfile,
+    update: updateProfile,
+    uploadAvatar,
+    removeAvatar,
+    deleteAccount,
+  },
   requests: {
     send: sendRequest,
     listPending: listPendingRequests,

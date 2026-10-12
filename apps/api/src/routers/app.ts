@@ -10,14 +10,19 @@ import {
   listConnections,
   listGatheringMembers,
   listMyGatherings,
+  listOwnAvatarObjects,
   listOwnTags,
   listPendingRequests,
+  removeAvatarObjects,
   removeConnection,
+  setOwnAvatarPath,
   unblockUser,
   updateGathering,
-  updateOwnTagDestination,
+  updateOwnTag,
+  uploadAvatarObject,
   upsertOwnProfile,
 } from '@withme/db/queries';
+import { sniffAvatar } from '../lib/avatar.ts';
 import { throwFromDbError } from '../lib/errors.ts';
 import { appProcedure, requireUser } from '../lib/orpc.ts';
 import type { ApiContext } from '../lib/orpc.ts';
@@ -40,6 +45,48 @@ async function run<T>(context: ApiContext, work: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Storage answers with HTTP statuses, not SQLSTATEs, so throwFromDbError
+ * does not apply: log the status only, answer a fixed 500.
+ */
+async function storageCall<T>(context: ApiContext, work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    context.logger.error('storage call failed', storageFailure(error));
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
+  }
+}
+
+/**
+ * Every HTTP failure is a StorageApiError, which carries both status (the
+ * HTTP number) and statusCode (Storage's own string). A StorageUnknownError
+ * is a network failure and sets neither, so the error's name is logged too:
+ * it tells a request that never got an answer from one that got an odd one.
+ */
+function storageFailure(error: unknown): { name: string; status: string } {
+  if (typeof error !== 'object' || error === null) return { name: 'unknown', status: 'unknown' };
+  const { name, statusCode, status } = error as { name?: unknown; statusCode?: unknown; status?: unknown };
+  return {
+    name: typeof name === 'string' ? name : 'unknown',
+    status:
+      typeof statusCode === 'string' && statusCode !== ''
+        ? statusCode
+        : typeof status === 'number'
+          ? String(status)
+          : 'unknown',
+  };
+}
+
+/** Best effort: a file the profile no longer points at is a stray, not a broken profile. */
+async function removeQuietly(context: ApiContext, path: string): Promise<void> {
+  try {
+    await removeAvatarObjects(context.db, [path]);
+  } catch (error) {
+    context.logger.warn('stale avatar not removed', storageFailure(error));
+  }
+}
+
 const getProfile = appProcedure.profile.get.handler(async ({ context }) => {
   const userId = requireUser(context);
   const profile = await run(context, () => getOwnProfile(context.db, userId));
@@ -50,6 +97,71 @@ const updateProfile = appProcedure.profile.update.handler(async ({ input, contex
   const userId = requireUser(context);
   const profile = await run(context, () => upsertOwnProfile(context.db, userId, input));
   return { profile: profile as Profile };
+});
+
+const profileUploadAvatar = appProcedure.profile.uploadAvatar.handler(async ({ input, context }) => {
+  const userId = requireUser(context);
+  const { file } = input;
+  // z.file() already checked this at runtime. Under workers-types zod's File
+  // type carries only size and type (File is a global class there, not a
+  // globalThis property), so this guard is what types the bytes read.
+  if (!(file instanceof Blob)) throw new ORPCError('BAD_REQUEST', { message: 'Unsupported image' });
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const kind = sniffAvatar(bytes);
+  if (!kind) throw new ORPCError('BAD_REQUEST', { message: 'Unsupported image' });
+
+  const existing = await run(context, () => getOwnProfile(context.db, userId));
+  if (!existing) throw new ORPCError('BAD_REQUEST', { message: 'Profile required' });
+
+  // A fresh name every time: objects are immutable (no update policy).
+  const path = `${userId}/${crypto.randomUUID()}.${kind.ext}`;
+  await storageCall(context, () => uploadAvatarObject(context.db, path, bytes, kind.contentType));
+
+  // Two systems, so no single RPC: compensate instead. A failed pointer
+  // update removes the file it would have pointed at.
+  let profile: Awaited<ReturnType<typeof setOwnAvatarPath>>;
+  try {
+    profile = await run(context, () => setOwnAvatarPath(context.db, userId, path));
+  } catch (error) {
+    await removeQuietly(context, path);
+    throw error;
+  }
+  if (existing.avatar_path) await removeQuietly(context, existing.avatar_path);
+  context.logger.info('avatar uploaded');
+  return { profile: profile as Profile };
+});
+
+const profileRemoveAvatar = appProcedure.profile.removeAvatar.handler(async ({ context }) => {
+  const userId = requireUser(context);
+  const existing = await run(context, () => getOwnProfile(context.db, userId));
+  if (!existing) throw new ORPCError('BAD_REQUEST', { message: 'Profile required' });
+  const profile = await run(context, () => setOwnAvatarPath(context.db, userId, null));
+  if (existing.avatar_path) await removeQuietly(context, existing.avatar_path);
+  return { profile: profile as Profile };
+});
+
+const profileDeleteAccount = appProcedure.profile.deleteAccount.handler(async ({ context }) => {
+  const userId = requireUser(context);
+  // 1. Clear the pointer first, so a failure in a later step never leaves the
+  //    card pointing at a file that is gone. No pointer, nothing to clear.
+  const existing = await run(context, () => getOwnProfile(context.db, userId));
+  if (existing?.avatar_path) await run(context, () => setOwnAvatarPath(context.db, userId, null));
+  // 2. Sweep the files, through the Storage API and the caller's own JWT: a
+  //    SQL delete on storage.objects would orphan the blobs. Paged and bounded.
+  for (let page = 0; ; page++) {
+    const paths = await storageCall(context, () => listOwnAvatarObjects(context.db, userId));
+    if (paths.length === 0) break;
+    if (page === 10) {
+      context.logger.error('avatar folder did not empty');
+      throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'Internal error' });
+    }
+    await storageCall(context, () => removeAvatarObjects(context.db, paths));
+  }
+  // 3. Then the account itself; the cascades do the rest.
+  const { error } = await context.db.rpc('delete_my_account');
+  if (error) throwFromDbError(error, context.logger);
+  context.logger.info('account deleted');
+  return { ok: true as const };
 });
 
 const sendRequest = appProcedure.requests.send.handler(async ({ input, context }) => {
@@ -189,9 +301,8 @@ const tagsListMine = appProcedure.tags.listMine.handler(async ({ context }) => {
 
 const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) => {
   requireUser(context);
-  const tag = await run(context, () =>
-    updateOwnTagDestination(context.db, input.uid, input.destination),
-  );
+  const { uid, ...patch } = input;
+  const tag = await run(context, () => updateOwnTag(context.db, uid, patch));
   if (!tag) {
     // not yours and nonexistent are the same answer
     throw new ORPCError('NOT_FOUND', { message: 'Not found' });
@@ -200,7 +311,13 @@ const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) =
 });
 
 export const appRouter = {
-  profile: { get: getProfile, update: updateProfile },
+  profile: {
+    get: getProfile,
+    update: updateProfile,
+    uploadAvatar: profileUploadAvatar,
+    removeAvatar: profileRemoveAvatar,
+    deleteAccount: profileDeleteAccount,
+  },
   requests: {
     send: sendRequest,
     listPending: listPending,

@@ -1,22 +1,28 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { avatarSrc } from '../lib/avatar.ts';
 
 export interface CardProfile {
   display_name: string;
-  avatar_url: string | null;
+  avatar_path: string | null;
   bio: string | null;
 }
 
 export function Avatar({ profile, size }: { profile: CardProfile; size?: 'row' }) {
-  if (profile.avatar_url) {
+  const src = avatarSrc(profile.avatar_path);
+  // A photo that fails to load (deleted, storage down) falls back to the
+  // initial; keyed by URL, so a new photo gets its own attempt.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (src && src !== failedSrc) {
     return (
       <img
         className="avatar"
-        src={profile.avatar_url}
+        src={src}
         alt=""
-        // the avatar host must not learn which tag page the viewer is on
+        // the storage host must not learn which tag page the viewer is on
         referrerPolicy="no-referrer"
         width={size === 'row' ? 44 : 76}
         height={size === 'row' ? 44 : 76}
+        onError={() => setFailedSrc(src)}
       />
     );
   }

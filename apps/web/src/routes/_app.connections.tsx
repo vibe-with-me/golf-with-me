@@ -1,32 +1,52 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Avatar } from '../components/ProfileCard.tsx';
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
+import { useState, type ReactNode } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
+import { ListLadder } from '../components/ListStates.tsx';
+import { Avatar, type CardProfile } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
+import { settled } from '../lib/loaded.ts';
 
+type Tab = 'requests' | 'blocked';
+
+/**
+ * Connections: three lists behind in-page segments (Connections, Requests,
+ * Blocked). The segment is a search param, so each list is a URL that a
+ * reload or a link keeps; switching replaces the history entry rather than
+ * stacking one per tap. Each list settles on its own and climbs its own
+ * ladder.
+ */
 export const Route = createFileRoute('/_app/connections')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Connections — withme' }] }),
+  // Always returns the key: a route's search is the parent's spread under
+  // this result, so leaving `tab` out would let a raw ?tab=foo through.
+  validateSearch: (search): { tab?: Tab } => ({
+    tab: search.tab === 'requests' || search.tab === 'blocked' ? search.tab : undefined,
+  }),
   loader: async () => {
     const [pending, connections, blocks] = await asSignedInAccount(() =>
       Promise.all([
-        api.app.requests.listPending(),
-        api.app.connections.list(),
-        api.app.blocks.list(),
+        settled(api.app.requests.listPending().then(({ requests }) => requests)),
+        settled(api.app.connections.list().then(({ connections: list }) => list)),
+        settled(api.app.blocks.list().then(({ blocks: list }) => list)),
       ]),
     );
-    return { pending: pending.requests, connections: connections.connections, blocks: blocks.blocks };
+    return { pending, connections, blocks };
   },
   component: ConnectionsPage,
 });
 
 function ConnectionsPage() {
   const { pending, connections, blocks } = Route.useLoaderData();
+  const { tab } = Route.useSearch();
   const router = useRouter();
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
-  const busyId = (id: string) => busyIds.has(id);
+  const [retrying, setRetrying] = useState(false);
+  const busy = (id: string) => busyIds.has(id);
+  // Your own inbox, counted for you alone: the one number on this page.
+  const requestCount = pending.ok ? pending.data.length : 0;
 
   async function act(id: string, work: () => Promise<unknown>) {
     setBusyIds((prev) => new Set(prev).add(id));
@@ -36,6 +56,10 @@ function ConnectionsPage() {
       await router.invalidate();
     } catch {
       setActionError('That didn’t go through. Try again.');
+      // Reload anyway: a failure may mean the row is stale (a request
+      // withdrawn, a connection already gone). The message is page state,
+      // so it stays through the reload.
+      await router.invalidate({ sync: true });
     } finally {
       setBusyIds((prev) => {
         const next = new Set(prev);
@@ -45,31 +69,45 @@ function ConnectionsPage() {
     }
   }
 
+  async function retry() {
+    setRetrying(true);
+    try {
+      await router.invalidate({ sync: true });
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   return (
     <div className="stack">
+      <h1 className="section-title">Connections</h1>
+      <nav className="segments" aria-label="Connections lists">
+        <SegmentLink current={tab} label="Connections" />
+        <SegmentLink current={tab} tab="requests" label="Requests" count={requestCount} />
+        <SegmentLink current={tab} tab="blocked" label="Blocked" />
+      </nav>
       {actionError ? (
         <p className="form-error" role="alert">
           {actionError}
         </p>
       ) : null}
-      {pending.length > 0 ? (
-        <>
-          <h2 className="section-title">Requests</h2>
-          {pending.map((request) => (
-            <div className="row" key={request.id}>
-              <Avatar profile={request.requester} size="row" />
-              <div className="row-body">
-                <span className="name">{request.requester.display_name}</span>
-                {request.requester.bio ? (
-                  <span className="sub">{request.requester.bio}</span>
-                ) : null}
-              </div>
-              <div className="row-actions">
+
+      {tab === 'requests' ? (
+        <ListLadder
+          state={pending}
+          what="your requests"
+          empty="No requests right now."
+          retrying={retrying}
+          onRetry={retry}
+        >
+          {(requests) =>
+            requests.map((request) => (
+              <PersonRow key={request.id} profile={request.requester} sub={request.requester.bio}>
                 {/* Accepting completes the handshake — the accent's job. */}
                 <button
                   type="button"
                   className="btn btn--connect"
-                  disabled={busyId(request.id)}
+                  disabled={busy(request.id)}
                   onClick={() => act(request.id, () => api.app.requests.accept({ id: request.id }))}
                 >
                   Accept
@@ -77,85 +115,146 @@ function ConnectionsPage() {
                 <button
                   type="button"
                   className="btn btn--quiet"
-                  disabled={busyId(request.id)}
-                  onClick={() =>
-                    act(request.id, () => api.app.requests.decline({ id: request.id }))
-                  }
+                  disabled={busy(request.id)}
+                  onClick={() => act(request.id, () => api.app.requests.decline({ id: request.id }))}
                 >
                   Decline
                 </button>
-              </div>
-            </div>
-          ))}
-        </>
-      ) : null}
-
-      <h2 className="section-title">Connections</h2>
-      {connections.length === 0 ? (
-        <p className="empty">No connections yet. Tap someone's tag to start.</p>
-      ) : (
-        connections.map((connection) => (
-          <div className="row" key={connection.id}>
-            <Avatar profile={connection.profile} size="row" />
-            <div className="row-body">
-              <span className="name">{connection.profile.display_name}</span>
-              {connection.profile.bio ? (
-                <span className="sub">{connection.profile.bio}</span>
-              ) : null}
-            </div>
-            <div className="row-actions">
-              <button
-                type="button"
-                className="btn btn--quiet"
-                disabled={busyId(connection.id)}
-                onClick={() =>
-                  act(connection.id, () => api.app.connections.remove({ id: connection.id }))
-                }
-              >
-                Remove
-              </button>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                disabled={busyId(connection.id)}
-                onClick={() =>
-                  act(connection.id, () =>
-                    api.app.blocks.block({ user_id: connection.profile.id }),
-                  )
-                }
-              >
-                Block
-              </button>
-            </div>
-          </div>
-        ))
-      )}
-
-      {blocks.length > 0 ? (
-        <>
-          <h2 className="section-title">Blocked</h2>
-          {blocks.map((block) => (
-            <div className="row" key={block.user.id}>
-              <Avatar profile={block.user} size="row" />
-              <div className="row-body">
-                <span className="name">{block.user.display_name}</span>
-              </div>
-              <div className="row-actions">
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
+      ) : tab === 'blocked' ? (
+        <ListLadder
+          state={blocks}
+          what="your block list"
+          empty="No one is blocked."
+          retrying={retrying}
+          onRetry={retry}
+        >
+          {(list) =>
+            list.map((block) => (
+              <PersonRow key={block.user.id} profile={block.user}>
                 <button
                   type="button"
                   className="btn btn--quiet"
-                  disabled={busyId(block.user.id)}
+                  disabled={busy(block.user.id)}
                   onClick={() =>
                     act(block.user.id, () => api.app.blocks.unblock({ user_id: block.user.id }))
                   }
                 >
                   Unblock
                 </button>
-              </div>
-            </div>
-          ))}
-        </>
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
+      ) : (
+        <ListLadder
+          state={connections}
+          what="your connections"
+          empty="No connections yet. Tap someone's tag to start."
+          retrying={retrying}
+          onRetry={retry}
+        >
+          {(list) =>
+            list.map((connection) => (
+              <PersonRow
+                key={connection.id}
+                profile={connection.profile}
+                sub={connection.profile.bio}
+              >
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={busy(connection.id)}
+                  onClick={() =>
+                    act(connection.id, () => api.app.connections.remove({ id: connection.id }))
+                  }
+                >
+                  Remove
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={busy(connection.id)}
+                  onClick={() =>
+                    act(connection.id, () =>
+                      api.app.blocks.block({ user_id: connection.profile.id }),
+                    )
+                  }
+                >
+                  Block
+                </button>
+              </PersonRow>
+            ))
+          }
+        </ListLadder>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One segment. Active = ink and a 2px ink underline, never the accent.
+ * Active follows the validated tab, not the raw URL: a stale ?tab=foo (or
+ * any extra param) still shows Connections, so Connections is current.
+ */
+function SegmentLink({
+  current,
+  tab,
+  label,
+  count = 0,
+}: {
+  current: Tab | undefined;
+  tab?: Tab;
+  label: string;
+  count?: number;
+}) {
+  const active = tab === current;
+  return (
+    <Link
+      to="/connections"
+      search={tab ? { tab } : {}}
+      replace
+      className={active ? 'segments__item segments__item--active' : 'segments__item'}
+      aria-current={active ? 'page' : undefined}
+      // exact keeps the router's own active marking (it adds aria-current
+      // when the raw search matches) from ever disagreeing: without it,
+      // "Connections" would partially match ?tab=requests too.
+      activeOptions={{ exact: true }}
+      activeProps={{}}
+      // Named outright: a hidden ", N pending" span inside this flex link is
+      // blockified, and the computed name would read "Requests , N pending".
+      aria-label={count > 0 ? `${label}, ${count} pending` : undefined}
+    >
+      {label}
+      {count > 0 ? (
+        <span className="badge" aria-hidden="true">
+          {count > 99 ? '99+' : count}
+        </span>
       ) : null}
+    </Link>
+  );
+}
+
+function PersonRow({
+  profile,
+  sub,
+  children,
+}: {
+  profile: CardProfile;
+  sub?: string | null;
+  children: ReactNode;
+}) {
+  return (
+    <div className="row">
+      <Avatar profile={profile} size="row" />
+      <div className="row-body">
+        <span className="name">{profile.display_name}</span>
+        {sub ? <span className="sub">{sub}</span> : null}
+      </div>
+      <div className="row-actions">{children}</div>
     </div>
   );
 }

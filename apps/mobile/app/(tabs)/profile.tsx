@@ -1,17 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { AccountSection } from '../../components/AccountSection';
+import { AvatarPicker } from '../../components/AvatarPicker';
+import { MyTags } from '../../components/MyTags';
 import { Button, Card, ErrorText, Field, Title } from '../../components/ui';
 import type { Profile } from '@withme/contract';
 import { api } from '../../lib/api';
 import { safeRedirect } from '../../lib/safe-redirect';
-import { supabase } from '../../lib/supabase';
 import { space, useTokens } from '../../lib/tokens';
-
-async function signOut() {
-  await supabase.auth.signOut();
-  router.replace('/login');
-}
 
 export default function ProfileScreen() {
   const t = useTokens();
@@ -21,7 +18,7 @@ export default function ProfileScreen() {
   const [exists, setExists] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +32,7 @@ export default function ProfileScreen() {
           setExists(true);
           setDisplayName(profile.display_name);
           setBio(profile.bio ?? '');
-          setAvatarUrl(profile.avatar_url ?? '');
+          setAvatarPath(profile.avatar_path);
         }
         setLoaded(true);
       })
@@ -54,7 +51,6 @@ export default function ProfileScreen() {
       await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
-        avatar_url: avatarUrl.trim() === '' ? null : avatarUrl.trim(),
       });
       const redirect = safeRedirect(params.redirect);
       if (redirect) {
@@ -66,7 +62,7 @@ export default function ProfileScreen() {
       setExists(true);
       setStatus('Saved.');
     } catch {
-      setError('Could not save. Avatar URLs must be https, and names 80 characters or less.');
+      setError('Could not save. Check the fields and try again.');
     } finally {
       setBusy(false);
     }
@@ -81,6 +77,8 @@ export default function ProfileScreen() {
             <ErrorText>Check your connection and try again.</ErrorText>
             <Button label="Retry" onPress={load} />
           </Card>
+          {/* Signing out stays possible when the load fails. */}
+          <AccountSection />
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -96,6 +94,14 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Card>
           <Title>{exists ? 'Your profile' : 'Create your profile'}</Title>
+          {/* The photo lives on the profile row: it needs the row to exist first. */}
+          {exists ? (
+            <AvatarPicker
+              name={displayName}
+              path={avatarPath}
+              onChange={(profile) => setAvatarPath(profile.avatar_path)}
+            />
+          ) : null}
           <Field label="Name" value={displayName} onChangeText={setDisplayName} maxLength={80} />
           <Field
             label="Bio"
@@ -105,14 +111,6 @@ export default function ProfileScreen() {
             multiline
             placeholder="A line or two about you"
           />
-          <Field
-            label="Avatar URL"
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            autoCapitalize="none"
-            placeholder="https://…"
-            keyboardType="url"
-          />
           {status ? (
             <Text accessibilityRole="text" style={{ color: t.inkMuted }}>
               {status}
@@ -120,17 +118,14 @@ export default function ProfileScreen() {
           ) : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
           <Button label={busy ? 'Saving…' : 'Save'} onPress={save} disabled={busy || !displayName.trim()} />
-          <Button label="Sign out" kind="quiet" onPress={signOut} />
         </Card>
+        {exists ? <MyTags /> : null}
+        <AccountSection />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: space.s5,
-  },
+  content: { padding: space.s5, gap: space.s4 },
 });

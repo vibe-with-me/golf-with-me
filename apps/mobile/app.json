@@ -39,7 +39,15 @@
           "includeNdefEntitlement": false
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo for your profile.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "owner": "vibe-with-me",
     "runtimeVersion": {

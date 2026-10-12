@@ -124,3 +124,7 @@ and landed across the shell PRs. Two findings from the first two derivations
   distilled from golf-with-me `bee9c9d`.
 - **My tags goes through the contract** (`app.tags.listMine` / `update`):
   the web app keeps owning no data access, even for single-row owner CRUD.
+- **Profile made whole (2026-10-11).** Two V1.1 gaps above shipped with
+  milestone 3: avatar uploads (Storage enabled, the `avatars` bucket) and
+  the account-deletion UI (Profile → Account, `delete_my_account()`),
+  alongside My tags and the Connections segments.

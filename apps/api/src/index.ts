@@ -6,6 +6,7 @@ import { cors } from 'hono/cors';
 import type { HonoEnv } from './env.ts';
 import type { ApiContext } from './lib/orpc.ts';
 import { supabaseAuth } from './middleware/jwt.ts';
+import { avatarUploadLimit } from './middleware/upload-limit.ts';
 import { appRouter } from './routers/app.ts';
 import { publicRouter } from './routers/public.ts';
 
@@ -43,6 +44,8 @@ app.use('*', (c, next) =>
     maxAge: 86_400,
   })(c, next),
 );
+
+app.use('/rpc/*', avatarUploadLimit());
 
 app.use('*', supabaseAuth());
 
