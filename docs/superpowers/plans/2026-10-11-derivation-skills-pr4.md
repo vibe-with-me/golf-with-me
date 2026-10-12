@@ -2035,6 +2035,14 @@ the list of places the brand and voice render.
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
+**Done 2026-10-12** in `ba018ad`, against `7932548`. Log: `/Users/alexeisele/dev/withme-scratch/notes/make-it-yours.md`.
+- Sweep: nothing beyond the three expected surfaces; every other match is already named in steps 3, 4, or 6.
+- Edits 1–9 applied as written, with three corrections from reading and running them:
+  - Step 3's "the first five" became "the first eight": the three new mark surfaces sit above the page-title bullet.
+  - Step 7's Local bullet adds "then relaunch the app": after a `--clear` Metro restart, a running Expo Go kept the old bundle (no Merch tab) until it was terminated and reopened.
+  - Step 4's first grep also prints the Inputs bullet's "— step 7." pointer, which is correct. `## 7.` itself never matches `step 7`.
+- Step 2, all pass. With the store set: the landing page shows "Get tags", the Merch tab is present, `/merch` shows the card, and "Open store" (`target="_blank"`) opens `https://shop.example.com/` in a new tab. The mobile Merch tab also appears after the relaunch. With the store unset: no "Get tags", no Merch tab on web or mobile, and `/merch` lands on `/gatherings`. At 64 the web header box measures 64 at both widths (56 before), and the mobile header grows 8pt while the tab bar stays the same. Both checkpoint greps print 64. The scratch run was then reverted.
+
 ---
 
 ### Task 6: Docs: roadmap, slice, README, program status, spec amendment
