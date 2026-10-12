@@ -171,6 +171,8 @@ Also:
 
 No other commit.
 
+**Done 2026-10-12.** `origin/main` was 511a26c (the merge of PR #10). The worktree `$WT` was created on `claude/proof-run` from it, and the plan was committed as 806f857 and pushed (`git push -u origin claude/proof-run`). Before that commit the program manager's answers were written in: Decision 6 is answered "skipped" (the shared stack stays up for another session, so the whole run uses `withme-starter` in stack windows and never stops it), and the stack ground rule says so. `bun install` (1529 packages), the three env copies, `mkdir -p "$NOTES"` and `chmod 700 "$S"` done; M4's `$S/notes` had already been deleted by the program manager, so `$S/notes/m5` is new. Baseline gate in a stack window: the six ports were free (553xx held by the running `withme-starter` stack, as expected), `docker system df` showed 12.1 GB of images; `bun run db:reset && bun run db:seed` succeeded first time; `bun run lint && bun run typecheck && bun run test` green (2026-10-12T21:21:22Z–21:21:39Z). **Baseline counts: db 72, contract 31, nfc 48**, equal to M3's as expected. Typecheck was replayed from turbo's shared worktree cache (8/8 cached, same content hash); the tests ran fresh (the one cached task in that run is nfc's build). The stack was reset and seeded again after the tests and is left that way. Not done here, by the program manager's instruction: the Task 9 question to Alex (the program manager asks him), and Decision 6's confirmation (already answered).
+
 ---
 
 ### Task 1: The fresh clone (the line)
@@ -198,6 +200,8 @@ git -C "$LINE" remote remove origin
 - `git -C "$LINE" status --porcelain` prints nothing.
 - No `.env` / `.dev.vars` files exist yet (`ls "$LINE"/apps/web/.env 2>&1` says no such file).
 - `$NOTES/1-setup.md` records the SHA, the clone source, and the `bun install` time.
+
+**Done 2026-10-12.** `LINE=/Users/alexeisele/dev/withme-scratch/proof-runclub`, cloned from GitHub over anonymous HTTPS (no credentials; the local fallback was not needed). `origin` removed. HEAD 511a26c on `main`, equal to `origin/main`: `line = origin/main`. Tagged `pre-make-it-yours`. `bun install`: 1529 packages, 6.78 s wall (bun 1.3.10). `git status --porcelain` empty; no `.env` / `.dev.vars` files. Log: `$NOTES/1-setup.md`. No deviations.
 
 ---
 
