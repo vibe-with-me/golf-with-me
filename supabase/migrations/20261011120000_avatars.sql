@@ -40,6 +40,7 @@ as $$
   )
 $$;
 
+revoke execute on function private.is_avatar_path(text, uuid) from public, anon;
 grant execute on function private.is_avatar_path(text, uuid) to authenticated, service_role;
 
 -- ================================================================ profiles ==
