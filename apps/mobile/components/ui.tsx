@@ -81,12 +81,15 @@ export function Button({
   onPress,
   kind = 'default',
   disabled = false,
+  inline = false,
 }: {
   label: string;
   onPress: () => void;
   /** 'connect' is the accent's only home. */
   kind?: 'default' | 'connect' | 'quiet';
   disabled?: boolean;
+  /** Size to the label instead of filling the card: for actions inside rows. */
+  inline?: boolean;
 }) {
   const t = useTokens();
   return (
@@ -96,6 +99,7 @@ export function Button({
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
+        inline && styles.buttonInline,
         kind === 'connect' && { backgroundColor: t.accent, borderColor: t.accent },
         kind === 'default' && { backgroundColor: t.surface, borderColor: t.borderInput },
         kind === 'quiet' && styles.buttonQuiet,
@@ -176,6 +180,145 @@ export function Avatar({
       <Text style={[styles.avatarInitial, { color: t.inkMuted, fontSize: size * 0.42 }]}>
         {(name.trim().charAt(0) || '?').toUpperCase()}
       </Text>
+    </View>
+  );
+}
+
+export type ListState<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; items: T[] };
+
+/** A section heading inside a screen (the mirror of web's .section-title). */
+export function SectionHeader({ children }: { children: ReactNode }) {
+  const t = useTokens();
+  return (
+    <Text accessibilityRole="header" style={[styles.sectionHeader, { color: t.ink }]}>
+      {children}
+    </Text>
+  );
+}
+
+/** The typed empty state at the bottom of the ladder. */
+export function EmptyState({ children }: { children: ReactNode }) {
+  return <Muted>{children}</Muted>;
+}
+
+/**
+ * Every list climbs the same ladder: loading → error with retry → typed
+ * empty → content. `what` completes "Couldn't load …".
+ */
+export function ListLadder<T>({
+  state,
+  what,
+  empty,
+  onRetry,
+  children,
+}: {
+  state: ListState<T>;
+  what: string;
+  empty: string;
+  onRetry: () => void;
+  children: (items: T[]) => ReactNode;
+}) {
+  if (state.status === 'loading') return <Muted>Loading…</Muted>;
+  if (state.status === 'error') {
+    return (
+      <View style={styles.ladderError}>
+        <ErrorText>{`Couldn't load ${what}.`}</ErrorText>
+        <Button label="Try again" kind="quiet" onPress={onRetry} />
+      </View>
+    );
+  }
+  if (state.items.length === 0) return <EmptyState>{empty}</EmptyState>;
+  return <>{children(state.items)}</>;
+}
+
+/**
+ * A person in a list. Actions sit on their own line under the name and
+ * wrap, so two buttons never push past the card (the Accept overflow): the
+ * same rule app.css applies to rows under 480px.
+ */
+export function PersonRow({
+  name,
+  path,
+  sub,
+  children,
+}: {
+  name: string;
+  path: string | null;
+  sub?: string | null;
+  children?: ReactNode;
+}) {
+  const t = useTokens();
+  return (
+    <View style={[styles.personRow, { backgroundColor: t.surface, borderColor: t.border }]}>
+      <View style={styles.personMain}>
+        <Avatar name={name} path={path} size={44} />
+        <View style={styles.personBody}>
+          <Text style={[styles.personName, { color: t.ink }]}>{name}</Text>
+          {sub ? (
+            <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
+              {sub}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      {children ? <View style={styles.personActions}>{children}</View> : null}
+    </View>
+  );
+}
+
+export interface SegmentItem<K extends string> {
+  key: K;
+  label: string;
+  /** Shown as an ink badge (never the accent); read as "<label>, <count> <countNoun>". */
+  count?: number;
+  countNoun?: string;
+}
+
+/** In-page segments. Selected = ink weight + a 2px ink underline, never the accent. */
+export function SegmentedTabs<K extends string>({
+  items,
+  active,
+  onChange,
+}: {
+  items: SegmentItem<K>[];
+  active: K;
+  onChange: (key: K) => void;
+}) {
+  const t = useTokens();
+  return (
+    <View accessibilityRole="tablist" style={[styles.segments, { borderBottomColor: t.border }]}>
+      {items.map((item) => {
+        const selected = item.key === active;
+        const count = item.count ?? 0;
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            accessibilityLabel={
+              count > 0 ? `${item.label}, ${count} ${item.countNoun ?? ''}`.trim() : item.label
+            }
+            onPress={() => onChange(item.key)}
+            style={[styles.segment, { borderBottomColor: selected ? t.ink : 'transparent' }]}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                { color: selected ? t.ink : t.inkMuted, fontFamily: selected ? fonts.bodySemiBold : fonts.body },
+              ]}
+            >
+              {item.label}
+            </Text>
+            {count > 0 ? (
+              <View style={[styles.badge, { backgroundColor: t.ink }]}>
+                <Text style={[styles.badgeLabel, { color: t.surface }]}>
+                  {count > 99 ? '99+' : String(count)}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -264,5 +407,66 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontFamily: fonts.displayMedium,
+  },  buttonInline: {
+    width: 'auto',
+    minHeight: TAP_TARGET,
+    paddingHorizontal: space.s4,
   },
+  sectionHeader: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    letterSpacing: -0.2,
+    marginTop: space.s4,
+  },
+  ladderError: {
+    width: '100%',
+    alignItems: 'center',
+    gap: space.s2,
+  },
+  personRow: {
+    borderWidth: 1,
+    borderRadius: radius.control,
+    paddingVertical: space.s3,
+    paddingHorizontal: space.s4,
+    gap: space.s2,
+  },
+  personMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+  },
+  personBody: { flex: 1, minWidth: 0 },
+  personName: { fontFamily: fonts.bodySemiBold, fontSize: 16 },
+  personSub: { fontFamily: fonts.body, fontSize: 14 },
+  personActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: space.s2,
+  },
+  segments: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+  },
+  segment: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.s2,
+    minHeight: TAP_TARGET,
+    paddingHorizontal: space.s2,
+    borderBottomWidth: 2,
+    marginBottom: -1,
+  },
+  segmentLabel: { fontSize: 15 },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.s2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12 },
 });
