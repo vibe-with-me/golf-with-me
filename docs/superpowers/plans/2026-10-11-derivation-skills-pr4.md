@@ -54,7 +54,7 @@
    - `app.profile.get` / `update` return `{ profile, details }`.
    - `ConnectionSchema` gains `details: ProfileDetailsSchema.nullable()`.
    - `accept_connect_request` returns `details`: it is the one definer read of `profile_details`, after the connection row exists.
-   - Writes are update-then-insert, not PostgREST `.upsert()`. Its `ON CONFLICT DO UPDATE` sets `profile_id`, which the column grant forbids. The scratch build confirms or corrects this.
+   - Writes are update-then-insert, not PostgREST `.upsert()`. Its `ON CONFLICT DO UPDATE` sets `profile_id`, which the column grant forbids. Confirmed in Task 4a: the swapped-in `.upsert()` fails `42501` "permission denied for table profile_details" on every save, the first one included (no conflict needed).
 7. **RLS tests red first.** `extend-profile` orders tests before the migration on purpose. This departs from the slice's 2/3 order: the boundary is specified before the policy that enforces it. That gives 14 new tests, plus `profile_details` added to the enumeration anon sweep and to both deletion tests (`cascade.test.ts`, through the auth admin API, and M3's `account.test.ts`, through `delete_my_account()`).
 8. **make-it-yours.**
    - A new step 7, "Merch store pointer". The old step 7 becomes step 8.
@@ -630,11 +630,13 @@ Then apply the one §2 addition the core does not carry (Task 3 added it to the 
 2. Expected: db at the post-M3 baseline +14, contract +4, all green, including the extended cascade, account, and enumeration tests. `bun run typecheck` red only in `@withme/api` and `@withme/nfc`.
 
 **Step 3: §4–§5 literally.**
-1. Follow SKILL §4 (queries and API) and §5 (SDK mirror) as written. Hit each checkpoint: after §4, `bun run typecheck` has `@withme/api` and `@withme/db` green and `@withme/nfc` red; after §5, `bun run --cwd packages/nfc-sdk typecheck` is clean.
-2. Confirm or correct Decision 6's claim that `.upsert()` fails on the column grant: in the scratch worktree only, swap `upsertOwnDetails` for a one-line `.upsert({ profile_id: userId, ...details })`, run `cd packages/db && bun test`, log the result, then revert the swap.
+1. Follow SKILL §4 (queries and API) and §5 (SDK mirror) as written. Hit each checkpoint: after §4, `bunx turbo run typecheck --continue` has `@withme/api` and `@withme/db` green and `@withme/nfc` red; after §5, `bun run --cwd packages/nfc-sdk typecheck` is clean.
+2. Confirm or correct Decision 6's claim that `.upsert()` fails on the column grant: in the scratch worktree only, swap `upsertOwnDetails` for a one-line `.upsert({ profile_id: userId, ...details })`, run `cd packages/db && bun test`, log the result, then revert the swap. The db suite never calls the query functions, so it stays green with the swap; add a throwaway test that calls `upsertOwnDetails` as the owner (first save, then a second) to see the result, and delete it with the revert.
 3. `bun run lint && bun run typecheck && bun run test`: green.
 
 **Step 4:** `git add -A && git commit -m "scratch: extend-profile §3–§5"` (local only). Close the stack window (ground rules, including the hand-back to M3). Log every place the SKILL §3–§5 text was wrong.
+
+**Done 2026-10-12** on `7932548`. The post-M3 baseline (before the cherry-pick) is db 72, contract 31, nfc 48; after §3, db 86 and contract 35. The cherry-pick conflicted in `contract/app.ts` (imports), `contract/test/schemas.test.ts` (imports, the sorted keys line, M3's appended describes), and `supabase.ts`. The fixtures auto-merged. The migration did not conflict, because it is a new file, but its card bodies still emitted `avatar_url`; they were redone from `20261011120000_avatars.sql`. Each checkpoint held, read with `bunx turbo run typecheck --continue`. Corrections are in §1, §3, and §4.
 
 ---
 
@@ -798,7 +800,8 @@ export type ProfileDetails = z.infer<typeof ProfileDetailsSchema>;
   `ProfileDetailsSchema` ever joins this pick.
 - `UpdateProfileInputSchema`: add
   `affiliation: CardLineSchema.nullable().optional()` and
-  `details: ProfileDetailsSchema.optional()`.
+  `details: ProfileDetailsSchema.optional()`. Its doc comment opens "Name
+  and bio."; make it name the new fields too.
 - The completion rule, after the `Profile` type:
 
 ```ts
@@ -1327,11 +1330,21 @@ create policy profile_details_update_own on public.profile_details
 grep -ln "'display_name', v_profile.display_name" supabase/migrations/*.sql
 ```
 
-In the starter that is `public.resolve_tag` and
-`public.accept_connect_request`. For each, copy its **newest** definition
-whole into this migration (the last file that defines it:
-`grep -l 'function public.resolve_tag' supabase/migrations/*.sql | sort | tail -1`,
-and the same for `accept_connect_request`) as `create or replace
+It lists every file that ever defined a card builder, not only the newest
+(in the starter: the initial schema, `add_gatherings`, and `avatars`). In
+the starter the functions are `public.resolve_tag` and
+`public.accept_connect_request`. Find each one's **newest** definition,
+the last file that defines it:
+
+```sh
+grep -l 'function public.resolve_tag' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
+grep -l 'function public.accept_connect_request' supabase/migrations/*.sql | grep -v _extend_profile | sort | tail -1
+```
+
+In the starter both print `supabase/migrations/20261011120000_avatars.sql`.
+The `grep -v` matters when you redo this migration, after a rebase for
+instance: it already defines both functions and would otherwise be its own
+newest. Copy each newest definition whole into this migration as `create or replace
 function`, restating every attribute (`language plpgsql`, `stable` or
 `volatile`, `security definer`, `set search_path = ''`). Then:
 
@@ -1399,7 +1412,8 @@ export async function getOwnDetails(db: Db, userId: string): Promise<ProfileDeta
 /**
  * Update, then insert. Not .upsert(): PostgREST's ON CONFLICT DO UPDATE sets
  * every payload column, profile_id included, and the column grant forbids
- * updating it. The profile row must exist first (foreign key).
+ * updating it, so Postgres refuses every upsert (42501), the first save
+ * included. The profile row must exist first (foreign key).
  */
 export async function upsertOwnDetails(
   db: Db,
@@ -1488,8 +1502,10 @@ and the query's rows pass straight through, and the contract validates
 them. `uploadAvatar`, `removeAvatar`, and `deleteAccount` need none either:
 the photo endpoints keep returning `{ profile }` alone.
 
-**Checkpoint:** `bun run typecheck` — `@withme/api` and `@withme/db` green;
-`@withme/nfc` red until §5.
+**Checkpoint:** `bunx turbo run typecheck --continue` — `@withme/api` and
+`@withme/db` green; `@withme/nfc` red until §5. (Plain `bun run typecheck`
+stops scheduling at the first failure: uncached, `@withme/nfc` fails and
+`@withme/api` never runs.)
 
 ## 5. SDK mirror (card tier only)
 
