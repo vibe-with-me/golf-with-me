@@ -4,7 +4,7 @@
 //     -> prints the ratio of one pair
 //   bun run .agents/skills/design-direction/contrast.ts --sheet docs/brand-direction.md
 //     -> reads the sheet's Colors table (| token | light | dark |), requires all
-//        eight tokens exactly once with both modes, derives the ten pairs from
+//        eight tokens exactly once with both modes, derives the twelve pairs from
 //        those values, and exits 1 if any token is missing or any pair fails.
 //        The pairs are computed from the values make-it-yours will copy, so the
 //        sheet carries no second table that could drift from them.
