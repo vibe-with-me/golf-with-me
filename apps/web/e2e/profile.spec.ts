@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { admin, claimFreshTag, signUpWithProfile } from './helpers.ts';
 
-// A landscape PNG (80×60): the client must square it and re-encode as WebP or JPEG.
+// A landscape PNG (900×600): the client must square it, shrink it to 512px, and
+// re-encode as WebP or JPEG.
 const LANDSCAPE_PNG = fileURLToPath(new URL('./fixtures/landscape.png', import.meta.url));
 
 test('a photo replaces the initial: uploaded, shown, removable', async ({ page }) => {
@@ -14,6 +15,8 @@ test('a photo replaces the initial: uploaded, shown, removable', async ({ page }
   // The page has more than one status region; the photo's lives in its field.
   const photoStatus = field.getByRole('status');
   const img = field.locator('img');
+  // Profile has rendered (the field is there) before checking it has no photo yet.
+  await expect(page.getByLabel('Add a photo')).toBeAttached();
   await expect(img).toHaveCount(0);
 
   await page.getByLabel('Add a photo').setInputFiles(LANDSCAPE_PNG);
@@ -65,6 +68,7 @@ test('My tags: a claimed tag turns off and on, and re-points at a gathering', as
   const save = owner.getByRole('button', { name: `Save where ${uid} points` });
   // A choice is staged: nothing changes until Save.
   await destination.selectOption({ index: 1 });
+  await expect(save).toBeVisible();
   await expect(owner.getByText('A tap shows your card.')).toBeVisible();
   await save.click();
   await expect(owner.getByText('A tap invites people to Smoke Tag Night.')).toBeVisible();
