@@ -24,7 +24,15 @@ port = 55324
 [realtime]
 enabled = false
 
+# Avatars live in Storage. The `avatars` bucket and its policies come from
+# supabase/migrations/20261011120000_avatars.sql (so a hosted project gets
+# them from `supabase db push`), not from a [storage.buckets] entry here.
+# Image transformation stays off: clients resize to 512px themselves, and
+# imgproxy would be one more container for nothing.
 [storage]
+enabled = true
+
+[storage.image_transformation]
 enabled = false
 
 [analytics]
