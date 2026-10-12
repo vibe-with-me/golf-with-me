@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -88,6 +88,7 @@ export function Button({
   kind = 'default',
   disabled = false,
   inline = false,
+  ref,
 }: {
   label: string;
   onPress: () => void;
@@ -96,10 +97,13 @@ export function Button({
   disabled?: boolean;
   /** Size to the label instead of filling the card: for actions inside rows. */
   inline?: boolean;
+  /** For moving screen-reader focus here when the control that had it goes away. */
+  ref?: Ref<View>;
 }) {
   const t = useTokens();
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled}

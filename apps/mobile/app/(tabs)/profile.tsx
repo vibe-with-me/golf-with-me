@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { AvatarPicker } from '../../components/AvatarPicker';
 import { Button, Card, ErrorText, Field, Title } from '../../components/ui';
 import type { Profile } from '@withme/contract';
 import { api } from '../../lib/api';
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const [exists, setExists] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function ProfileScreen() {
           setExists(true);
           setDisplayName(profile.display_name);
           setBio(profile.bio ?? '');
+          setAvatarPath(profile.avatar_path);
         }
         setLoaded(true);
       })
@@ -93,6 +96,14 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Card>
           <Title>{exists ? 'Your profile' : 'Create your profile'}</Title>
+          {/* The photo lives on the profile row: it needs the row to exist first. */}
+          {exists ? (
+            <AvatarPicker
+              name={displayName}
+              path={avatarPath}
+              onChange={(profile) => setAvatarPath(profile.avatar_path)}
+            />
+          ) : null}
           <Field label="Name" value={displayName} onChangeText={setDisplayName} maxLength={80} />
           <Field
             label="Bio"
@@ -117,9 +128,5 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: space.s5,
-  },
+  content: { padding: space.s5, gap: space.s4 },
 });
