@@ -51,3 +51,11 @@ and runs alongside 3; 5 waits for all.
 - The safety invariants of the starter are not negotiable in any milestone:
   nothing ranks, recommends, aggregates, or monetizes; no enumeration
   surface; blocks absolute and invisible; the tenant seam on every table.
+
+## Status
+
+- Milestone 1: merged (PR #6; follow-up #7).
+- Milestone 2: merged (PR #8, `4fa6c98`).
+- Milestone 3: merged (PR #9, `7932548`, 2026-10-12).
+- Milestone 4: PR #10 (derivation skills).
+- Milestone 5: waiting on 4.

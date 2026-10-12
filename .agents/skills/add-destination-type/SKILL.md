@@ -112,7 +112,13 @@ Touch `resolve_tag` only if your type changes *what resolve must return*
 (the core `gathering` type is the worked example — see the `resolve_tag`
 section of `supabase/migrations/20261008120000_add_gatherings.sql`). If
 you do, remember its contract: blocked viewers get `'disabled'`, unknown
-UIDs get `'unclaimed'`, and it never throws.
+UIDs get `'unclaimed'`, and it never throws. Redefine it from its
+**newest** definition,
+`grep -lE 'create (or replace )?function public\.resolve_tag' supabase/migrations/*.sql | sort | tail -1`,
+copied whole: the gatherings migration's body is for reading only. It and
+the older bodies emit `avatar_url`, a column the avatars migration
+dropped, and miss any card field a later migration added (extend-profile's
+`affiliation`, say).
 
 ## 4. RLS tests
 

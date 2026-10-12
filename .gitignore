@@ -39,3 +39,7 @@ expo-env.d.ts
 
 # Supabase CLI scratch: rewritten on every `supabase start`, and newer CLIs write start-secrets/ here.
 supabase/.temp/
+
+# Operator secrets an older go-live or provision run may have left in the repo root.
+.supabase-demo-db-password
+provisioned-tags.*

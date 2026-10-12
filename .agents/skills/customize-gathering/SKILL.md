@@ -110,7 +110,11 @@ In slice order:
    `grant execute on function public.create_gathering(text, timestamptz, text, text) to authenticated;`.
    If the summary carries the field, also
    `create or replace function public.resolve_tag(p_uid text) returns jsonb`
-   (copy the whole body from the gatherings migration, add the field to
+   (copy the whole body of its **newest** definition,
+   `grep -lE 'create (or replace )?function public\.resolve_tag' supabase/migrations/*.sql | sort | tail -1`,
+   not the gatherings migration's: the older bodies emit `avatar_url`, a
+   column the avatars migration dropped, and miss any card field a later
+   migration added, such as extend-profile's. Add the field to
    `v_gathering_json`, and restate every attribute:
    `language plpgsql stable security definer set search_path = ''`; the
    same signature keeps its existing grants). Re-issue the whole host column grant:

@@ -1,6 +1,6 @@
 # Skills roadmap — extension recipes, not features
 
-Decided 2026-06-11 (Alex + Claude session). Status: agreed; revised 2026-09-22 — see the dated section at the end.
+Decided 2026-06-11 (Alex + Claude session). Status: agreed; revised 2026-09-22 and extended 2026-10 — see the dated sections at the end.
 
 ## The strategy
 
@@ -128,3 +128,37 @@ and landed across the shell PRs. Two findings from the first two derivations
   milestone 3: avatar uploads (Storage enabled, the `avatars` bucket) and
   the account-deletion UI (Profile → Account, `delete_my_account()`),
   alongside My tags and the Connections segments.
+
+## Shipped 2026-10 — the derivation skills (milestone 4)
+
+`.agents/skills/provision-tags/` and `.agents/skills/extend-profile/`, and
+an update to `make-it-yours`, each built for real in a throwaway worktree,
+written down from what worked, then re-run against a fresh clone (hard
+constraints 2 and 4).
+
+- **provision-tags** (Tier 3, item 7) is a runbook over the script the
+  starter already ships (`supabase/seed/provision.ts`, `bun run
+  db:provision`, from golf-with-me `bee9c9d`). No code: random UIDs by
+  default (48 random bits behind the `04` prefix), because an unclaimed tag
+  belongs to whoever presents its UID first; the encode list handled as
+  bearer capabilities, written outside the repo; chip UIDs only for tags
+  claimed on the spot.
+- **extend-profile** (Tier 2, item 3, "onboarding") ships the two-tier
+  model: card-tier columns on `profiles`, and a connections tier in its own
+  table, `profile_details`, whose policy admits the owner and accepted
+  connections with no block either way. The build showed why it is not a
+  `profiles_select` change: RLS is per row, and the pending-request
+  recipient, the gathering co-member, and the blocker all read every column
+  of a row that policy admits. `profiles_select` stays as the gathering
+  migration left it. Completion gating is a UX gate in both clients over one
+  contract function, `isProfileComplete`, never a policy.
+- **make-it-yours** gained the store URL step (step 7), the shell heights
+  (they may change, web and mobile together), and the brand surfaces the
+  shell and Profile work added. go-live §3 lists `VITE_STORE_URL`, and §1
+  now keeps the database password in `$HOME/.config/<name>/`, outside the
+  repo.
+- **customize-gathering** and **add-destination-type** now tell a fork to
+  copy `resolve_tag`'s newest definition: the gatherings migration's body
+  still emits `avatar_url`, which the avatars migration dropped.
+- **add-marketing-site** stays a candidate until the proof run
+  (milestone 5).

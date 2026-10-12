@@ -157,6 +157,14 @@ test, not promised by UI code.
   blocked `resolve_tag` returns `disabled`; a blocked send returns the same
   bare ack as a stored one). Any new read or write path must ask: what does
   the blocked party see? The answer must be: exactly what a stranger sees.
+- **Two tiers of profile data.** A profile field is either card tier — a
+  column on `profiles`, readable by anyone holding the owner's tag and by
+  every viewer `profiles_select` admits — or connections tier: a sibling
+  table whose select policy admits the owner and accepted connections
+  only, with no block in either direction. Never put a connections-tier
+  field on `profiles`: RLS is per row, so the pending-request recipient,
+  the gathering co-member, and the blocker would read it.
+  `.agents/skills/extend-profile/` is the recipe.
 - **Security-definer RPCs for multi-step writes.** Anything involving a
   check-then-write, two tables, or a privacy-sensitive branch is a
   `security definer` function (`set search_path = ''`, `private.lock_pair`
