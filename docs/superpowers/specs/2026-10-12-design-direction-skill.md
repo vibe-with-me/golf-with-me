@@ -28,7 +28,9 @@ look is implemented in exactly two files (`apps/web/src/styles/tokens.css`,
 `apps/mobile/lib/tokens.ts`), and make-it-yours is the only path into
 them. The skill constrains `/design` to the starter's design system and
 reduces the chosen direction to a sheet, `docs/brand-direction.md`, whose
-contrast table a shipped script checks.
+Colors table a shipped script checks: it derives every required pair
+from the values make-it-yours will copy, so there is no second table to
+drift (a CodeRabbit finding on the first draft, which had one).
 
 What it holds:
 
@@ -37,9 +39,9 @@ What it holds:
   not vary (layout, radii, spacing, one accent only on the primary action,
   accent never on navigation, no gradients, fonts on Google Fonts under
   the OFL so both clients can self-host them), and lists what may.
-- A sheet template: the eight color tokens in both modes, the contrast
-  pairs in a row shape the script parses, the fonts with the exact
-  package names for web and mobile, the copy lines, the artwork list.
+- A sheet template: the eight color tokens in both modes in the row
+  shape the script parses, the fonts with the exact package names for
+  web and mobile, the copy lines, the artwork list.
 - `contrast.ts`: WCAG 2.x contrast for hex and `rgba()` (composited over
   the background, because the token files use rgba borders). It
   recomputed the proof run's pairs to the cent and showed the starter's
@@ -60,8 +62,8 @@ choice) and should be skippable by a fork that already has a brand.
 Built once before being written down (roadmap hard constraint 2): a
 climbing-gym direction ("Crux") was drawn on a Design canvas from this
 session (the same workflow `/design` wraps), reduced to a sheet, and
-checked by the script: ten pairs, all passing, with the dark input border
-at 4.48:1 and the light one at 3.22:1. Both fonts the direction chose
+checked by the script: twelve pairs, all passing, with the dark input
+border at 4.48:1 and the light one at 3.22:1. Both fonts the direction chose
 exist on both package registries (`@fontsource-variable/bricolage-grotesque`
 5.3.0, `@expo-google-fonts/bricolage-grotesque` 0.4.1). The canvas was
 not screenshotted: the in-app browser was not signed in, and signing in

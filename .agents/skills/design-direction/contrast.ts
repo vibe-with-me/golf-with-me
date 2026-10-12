@@ -1,10 +1,29 @@
 // WCAG 2.x contrast for the pairs make-it-yours requires. Part of the
 // design-direction skill; adds nothing to the app. Usage, from the repo root:
 //   bun run .agents/skills/design-direction/contrast.ts '#c2410c' '#ffffff'
-//     -> prints the ratio
+//     -> prints the ratio of one pair
 //   bun run .agents/skills/design-direction/contrast.ts --sheet docs/brand-direction.md
-//     -> checks every row of the sheet's contrast table and exits 1 on a FAIL
+//     -> reads the sheet's Colors table (| token | light | dark |), requires all
+//        eight tokens exactly once with both modes, derives the ten pairs from
+//        those values, and exits 1 if any token is missing or any pair fails.
+//        The pairs are computed from the values make-it-yours will copy, so the
+//        sheet carries no second table that could drift from them.
 type Rgb = [number, number, number];
+type Mode = 'light' | 'dark';
+
+const TOKENS = ['bg', 'surface', 'border', 'border-input', 'ink', 'ink-muted', 'accent', 'accent-ink'] as const;
+type Token = (typeof TOKENS)[number];
+
+// What must hold in each mode: [foreground token, background token, minimum ratio].
+const PAIRS: ReadonlyArray<readonly [Token, Token, number]> = [
+  ['accent-ink', 'accent', 4.5],
+  ['ink', 'surface', 4.5],
+  ['ink', 'bg', 4.5],
+  ['ink-muted', 'surface', 4.5],
+  ['ink-muted', 'bg', 4.5],
+  ['border-input', 'surface', 3],
+];
+
 // A color is #rgb, #rrggbb, or rgba(r, g, b, a). An rgba() foreground is
 // composited over the background first (the token files use rgba borders).
 function parse(color: string, over?: Rgb): Rgb {
@@ -33,23 +52,60 @@ export function ratio(fg: string, bg: string): number {
   const [l1, l2] = [lum(parse(fg, back)), lum(back)].toSorted((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
 }
+
+// The sheet's Colors table: one row per token, `| <token> | <light> | <dark> |`.
+// Every token exactly once; a duplicate or a missing token is an error.
+export function readColors(text: string): Record<Mode, Record<Token, string>> {
+  const colors = { light: {} as Record<Token, string>, dark: {} as Record<Token, string> };
+  const seen = new Set<string>();
+  const errors: string[] = [];
+  const rowPattern = /^\|\s*([a-z-]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/gm;
+  for (const [, name, light, dark] of text.matchAll(rowPattern)) {
+    if (!(TOKENS as readonly string[]).includes(name)) continue;
+    if (seen.has(name)) {
+      errors.push(`token ${name} appears more than once`);
+      continue;
+    }
+    seen.add(name);
+    colors.light[name as Token] = light;
+    colors.dark[name as Token] = dark;
+  }
+  for (const name of TOKENS) if (!seen.has(name)) errors.push(`token ${name} is missing (| ${name} | <light> | <dark> |)`);
+  if (errors.length > 0) throw new Error(errors.join('\n'));
+  return colors;
+}
+
 const args = process.argv.slice(2);
-if (args[0] === '--sheet') {
-  const text = await Bun.file(args[1]).text();
-  // Rows: | <pair name> | light|dark | <fg color> | <bg color> | <min ratio> |
-  const rows = [...text.matchAll(/^\|\s*([^|]+?)\s*\|\s*(light|dark)\s*\|\s*(#[0-9a-fA-F]{3,6}|rgba?\([^)]*\))\s*\|\s*(#[0-9a-fA-F]{3,6})\s*\|\s*([0-9.]+)\s*\|/gm)];
-  if (rows.length === 0) { console.error('no contrast rows found: | name | light or dark | fg | bg | min |'); process.exit(1); }
+if (args[0] === '--sheet' && args[1]) {
+  let colors: ReturnType<typeof readColors>;
+  try {
+    colors = readColors(await Bun.file(args[1]).text());
+  } catch (error) {
+    console.error(`${args[1]}: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
   let failed = 0;
-  for (const [, name, mode, fg, bg, min] of rows) {
-    const r = ratio(fg, bg);
-    const ok = r >= Number(min);
-    if (!ok) failed++;
-    console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} (${mode}): ${fg} on ${bg} = ${r.toFixed(2)}:1 (min ${min}:1)`);
+  for (const mode of ['light', 'dark'] as const) {
+    for (const [fg, bg, min] of PAIRS) {
+      const fgValue = colors[mode][fg];
+      const bgValue = colors[mode][bg];
+      let r: number;
+      try {
+        r = ratio(fgValue, bgValue);
+      } catch (error) {
+        failed++;
+        console.log(`FAIL ${fg} on ${bg} (${mode}): ${error instanceof Error ? error.message : String(error)}`);
+        continue;
+      }
+      const ok = r >= min;
+      if (!ok) failed++;
+      console.log(`${ok ? 'ok  ' : 'FAIL'} ${fg} on ${bg} (${mode}): ${fgValue} on ${bgValue} = ${r.toFixed(2)}:1 (min ${min}:1)`);
+    }
   }
   process.exit(failed ? 1 : 0);
 } else if (args.length === 2) {
   console.log(`${ratio(args[0], args[1]).toFixed(2)}:1`);
 } else {
-  console.error('usage: bun run contrast.ts <#fg> <#bg> | --sheet <file>');
+  console.error('usage: bun run contrast.ts <fg> <bg> | --sheet <file>');
   process.exit(2);
 }

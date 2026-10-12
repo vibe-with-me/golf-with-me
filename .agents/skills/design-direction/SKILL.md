@@ -64,8 +64,11 @@ a brand: then fill make-it-yours' Inputs directly.
   a face that passes that check.
 - `contrast.ts`, beside this file: WCAG 2.x contrast for `#hex` and
   `rgba()` values (an rgba foreground is composited over the background
-  first, the way the input border is drawn). It checks the sheet's
-  contrast table in one command.
+  first, the way the input border is drawn). Given the sheet, it reads
+  the Colors table, requires all eight tokens in both modes, and checks
+  the twelve pairs make-it-yours relies on, computed from the values
+  that will be copied; the sheet holds no second table that could
+  drift from them.
 
 ## Inputs to collect before you start
 
@@ -161,8 +164,8 @@ the resolver card, and a list of token values per mode.
 
 Write `docs/brand-direction.md` in the fork from this template. Every
 value is a literal make-it-yours will copy; nothing is "about". The
-contrast table's row shape is what `contrast.ts` parses, so keep its
-five columns.
+Colors table is what `contrast.ts` parses: keep its three columns and
+the eight token names exactly, one row each.
 
 ````markdown
 # Brand direction — <wordmark> (<Display name>)
@@ -191,20 +194,7 @@ Vertical: <one sentence>. Mood: <three words>.
 
 Splash and adaptive-icon backgrounds (`apps/mobile/app.json`): light bg, dark bg, as above.
 
-## Contrast pairs
-
-| pair | mode | fg | bg | min |
-| --- | --- | --- | --- | --- |
-| accent on accent-ink | light | #…… | #…… | 4.5 |
-| accent on accent-ink | dark | #…… | #…… | 4.5 |
-| ink on surface | light | #…… | #…… | 4.5 |
-| ink on surface | dark | #…… | #…… | 4.5 |
-| ink-muted on surface | light | #…… | #…… | 4.5 |
-| ink-muted on surface | dark | #…… | #…… | 4.5 |
-| ink-muted on bg | light | #…… | #…… | 4.5 |
-| ink-muted on bg | dark | #…… | #…… | 4.5 |
-| border-input on surface | light | rgba(…) | #…… | 3 |
-| border-input on surface | dark | rgba(…) | #…… | 3 |
+Contrast, as `contrast.ts` reported it on <date>: <paste its output>.
 
 ## Fonts (make-it-yours step 2)
 
@@ -242,12 +232,16 @@ npm view @fontsource-variable/<font> version
 npm view @expo-google-fonts/<font> version
 ```
 
-**Checkpoint:** the script prints `ok` on every row and exits 0 (a
-`FAIL` row names the pair and its ratio: darken or lighten until it
-passes, then update the artboard too, so the canvas and the sheet
-agree). Both `npm view` lines print a version; a 404 means the face
-cannot be self-hosted on one platform and must change. Two single
-values are handy while adjusting: `bun run .agents/skills/design-direction/contrast.ts '#2447c9' '#ffffff'`.
+**Checkpoint:** the script prints twelve `ok` lines (six pairs per
+mode: accent-ink on accent, ink on surface, ink on bg, ink-muted on
+surface, ink-muted on bg at 4.5:1, border-input on surface at 3:1) and
+exits 0. A `FAIL` line names the pair and its ratio: darken or lighten
+until it passes, then update the artboard too, so the canvas and the
+sheet agree. A missing or duplicated token row is an error before any
+pair is checked. Paste the output under the Colors table. Both
+`npm view` lines print a version; a 404 means the face cannot be
+self-hosted on one platform and must change. One pair on its own is
+handy while adjusting: `bun run .agents/skills/design-direction/contrast.ts '#2447c9' '#ffffff'`.
 
 ## 4. Hand off to make-it-yours
 
@@ -325,9 +319,9 @@ kept for body.
 | accent | #2447c9 | #8db2ff |
 | accent-ink | #ffffff | #0a1a4f |
 
-The script's verdict on its ten pairs: accent 7.45:1 light and 7.81:1
-dark, ink-muted on surface 5.94:1 and 6.12:1, the input border 3.22:1
-and 4.48:1, all `ok`, exit 0. Fonts: `@fontsource-variable/bricolage-grotesque`
+The script's verdict on its twelve pairs: accent 7.45:1 light and
+7.81:1 dark, ink-muted on surface 5.94:1 and 6.12:1, the input border
+3.22:1 and 4.48:1, all `ok`, exit 0. Fonts: `@fontsource-variable/bricolage-grotesque`
 5.3.0 and `@expo-google-fonts/bricolage-grotesque` 0.4.1 both exist.
 Copy: "Tap a tag. Meet a climber. Stay connected."; Merch "Chalk, tags
 and gear from the desk."; NFC "Read Crux tags to connect with people."
