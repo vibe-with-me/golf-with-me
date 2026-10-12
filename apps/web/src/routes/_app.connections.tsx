@@ -56,6 +56,10 @@ function ConnectionsPage() {
       await router.invalidate();
     } catch {
       setActionError('That didn’t go through. Try again.');
+      // Reload anyway: a failure may mean the row is stale (a request
+      // withdrawn, a connection already gone). The message is page state,
+      // so it stays through the reload.
+      await router.invalidate({ sync: true });
     } finally {
       setBusyIds((prev) => {
         const next = new Set(prev);

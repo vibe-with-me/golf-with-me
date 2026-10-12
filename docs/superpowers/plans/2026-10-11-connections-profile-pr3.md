@@ -2361,6 +2361,10 @@ function ConnectionsPage() {
       await router.invalidate();
     } catch {
       setActionError('That didn’t go through. Try again.');
+      // Reload anyway: a failure may mean the row is stale (a request
+      // withdrawn, a connection already gone). The message is page state,
+      // so it stays through the reload.
+      await router.invalidate({ sync: true });
     } finally {
       setBusyIds((prev) => {
         const next = new Set(prev);
@@ -4018,8 +4022,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```tsx
 import type { ConnectRequest, Connection } from '@withme/contract';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { AccessibilityInfo, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import {
   Button,
   ErrorText,
@@ -4033,14 +4037,25 @@ import { space, useTokens } from '../../lib/tokens';
 
 type BlockRow = Awaited<ReturnType<Api['app']['blocks']['list']>>['blocks'][number];
 type Segment = 'connections' | 'requests' | 'blocked';
+type ListKey = 'pending' | 'connections' | 'blocks';
 
-/** Settle one list into its ladder state; a failure stays on that list. */
-async function settleInto<T>(load: () => Promise<T[]>, set: (state: ListState<T>) => void) {
+/**
+ * Settle one list into its ladder state; a failure stays on that list.
+ * `isLatest` drops a stale answer: a focus reload and an action reload can
+ * overlap, and the slower one must not overwrite the newer.
+ */
+async function settleInto<T>(
+  load: () => Promise<T[]>,
+  set: (state: ListState<T>) => void,
+  isLatest: () => boolean,
+) {
+  let next: ListState<T>;
   try {
-    set({ status: 'ready', items: await load() });
+    next = { status: 'ready', items: await load() };
   } catch {
-    set({ status: 'error' });
+    next = { status: 'error' };
   }
+  if (isLatest()) set(next);
 }
 
 /**
@@ -4057,18 +4072,36 @@ export default function ConnectionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  // One counter per list: every load (a retry included) takes the next
+  // number, and only the latest number's answer lands.
+  const seq = useRef<Record<ListKey, number>>({ pending: 0, connections: 0, blocks: 0 });
+  const ticket = useCallback((list: ListKey) => {
+    const mine = ++seq.current[list];
+    return () => seq.current[list] === mine;
+  }, []);
 
   const loadPending = useCallback(
-    () => settleInto(async () => (await api.app.requests.listPending()).requests, setPending),
-    [],
+    () =>
+      settleInto(
+        async () => (await api.app.requests.listPending()).requests,
+        setPending,
+        ticket('pending'),
+      ),
+    [ticket],
   );
   const loadConnections = useCallback(
-    () => settleInto(async () => (await api.app.connections.list()).connections, setConnections),
-    [],
+    () =>
+      settleInto(
+        async () => (await api.app.connections.list()).connections,
+        setConnections,
+        ticket('connections'),
+      ),
+    [ticket],
   );
   const loadBlocks = useCallback(
-    () => settleInto(async () => (await api.app.blocks.list()).blocks, setBlocks),
-    [],
+    () => settleInto(async () => (await api.app.blocks.list()).blocks, setBlocks, ticket('blocks')),
+    [ticket],
   );
   const loadAll = useCallback(
     () => Promise.all([loadPending(), loadConnections(), loadBlocks()]),
@@ -4086,16 +4119,23 @@ export default function ConnectionsScreen() {
     setActionError(null);
     try {
       await work();
-      await loadAll();
     } catch {
-      setActionError("That didn't go through. Try again.");
-    } finally {
-      setBusyIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      const message = "That didn't go through. Try again.";
+      setActionError(message);
+      // The message sits above the lists, so bring it into view; iOS does
+      // not announce accessibilityRole="alert", so say it outright.
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      AccessibilityInfo.announceForAccessibility(message);
     }
+    // Reload either way: a failure may mean the row is stale (a request
+    // withdrawn, a connection already gone), and the reload clears it.
+    // settleInto never throws, so the busy flag always clears.
+    await loadAll();
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }
 
   const quiet = (label: string, id: string, work: () => Promise<unknown>) => (
@@ -4105,6 +4145,7 @@ export default function ConnectionsScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={{ backgroundColor: t.bg }}
       contentContainerStyle={styles.content}
       refreshControl={
