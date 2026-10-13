@@ -251,7 +251,7 @@ git -C "$LINE" remote remove origin
 - The step 1, 3, 4, 6, 7, and 8 checkpoints as the skill states them.
 - `bunx expo config --type public` shows `Run Club` / `runclub` / `com.runclub.app`.
 - The gate is green at the baseline counts (db 72, contract 31, nfc 48).
-- `docker ps --format '{{.Names}}' | grep -c supabase_db_runclub` prints `1` once the rename is done.
+- `docker ps --format '{{.Names}}' | grep -c supabase_db_runclub` prints `1` once the rename is done. (The rename was skipped, Decision 6, so the container stayed `supabase_db_withme-starter` for the whole run.)
 
 **Then:** the reviewer checks above, the deviation procedure, and a commit in the clone tagged `pre-customize-gathering`.
 
@@ -492,7 +492,7 @@ The fixes are wording only and the run was green end to end, so no re-run is nee
 > Log to `$NOTES/5-provision-tags-r<k>.md` as before.
 
 **Watch list:**
-- `DB=supabase_db_runclub`, read from the renamed `config.toml`. The `docker exec` must hit the fork's stack.
+- `DB=supabase_db_runclub`, read from the renamed `config.toml`. The `docker exec` must hit the fork's stack. (The rename was skipped, Decision 6, so `config.toml` still says `withme-starter` and the container is `supabase_db_withme-starter`.)
 - The output directory is `$HOME/withme-tags/…`: the skill's path carries the upstream brand. Record it as a cosmetic finding; it is a deviation only if it confuses the follower.
 - The claim as Lin turns the page into Lin's card **with her pace and without her Strava handle**. That is the cross-skill check, and the reviewer verifies it in the log or a screenshot.
 - A signed-out viewer sees "Connect".
@@ -559,8 +559,10 @@ Then stop the API dev server. Cross-skill checks, each logged with its output:
 ```bash
 grep -rni --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} withme apps/ supabase/seed README.md | grep -v '@withme/'     # make-it-yours step 8 sweep, re-run after the later skills: nothing
 grep -rn -i "'[^']*gathering[^']*'\|>[^<]*gathering[^<]*<" apps/web/src/routes apps/web/src/components apps/mobile/app apps/mobile/components --include='*.tsx' | grep -v "api\.app\.gatherings\|Gathering[A-Z]\|/gathering" | head    # user-facing "gathering" residue: review by eye
-docker exec supabase_db_runclub psql -U postgres -tAc "select public.resolve_tag('04BBBBBBBBBBBB')::text" | grep -o '"route_name":"[^"]*"\|"pace":"[^"]*"\|strava'   # route_name and pace, never strava
+docker exec supabase_db_withme-starter psql -U postgres -tAc "select public.resolve_tag('04BBBBBBBBBBBB')::text" | grep -o '"route_name": *"[^"]*"\|"pace": *"[^"]*"\|strava'   # route_name and pace, never strava
 ```
+
+The container is `supabase_db_withme-starter`, not `supabase_db_runclub`: the `project_id` rename was skipped (Decision 6). jsonb's text form puts a space after each colon (`"pace": "5:30/km"`), so the pattern allows one; without ` *` it prints nothing.
 
 **Expected:**
 - All green.
@@ -570,6 +572,12 @@ docker exec supabase_db_runclub psql -U postgres -tAc "select public.resolve_tag
 - The resolve prints `route_name` and `pace` and no `strava`.
 
 Write `$NOTES/6-gate.md`.
+
+**Done 2026-10-12.** On `$LINE` = `/Users/alexeisele/dev/withme-scratch/proof-runclub-provision-tags-r2` at `pre-gate` (3d472db), tree clean before and after, on the shared `withme-starter` stack (container `supabase_db_withme-starter`; rename skipped). `env | grep -c SUPABASE_SERVICE_ROLE_KEY` printed `0` in the shell before any test (ENG-752), and the six ports were free. START 23:46:10Z, END 23:48:18Z (about 2 min wall, per `6-raw/times.txt`). Log: `$NOTES/6-gate.md`, raw output in `$NOTES/6-raw/`.
+- Gate all green: reset and seed (the runclub identity); lint; typecheck 8/8; **db 87, contract 37, nfc 48**, as Tasks 3–4 predicted; API e2e **67** `ok` lines ending "handshake e2e: all checks passed"; Playwright **14** passed. The API dev server was stopped before Playwright (which starts its own worker), so two `runclub-api` workers were never registered at once. No ENG-751 hang (Playwright uses `vite preview`).
+- Brand sweep (make-it-yours step 8's current command): exactly the two expected lines, `apps/mobile/app.json` `owner` (EAS step 5 skipped) and `supabase/config.toml` `project_id` (rename skipped).
+- "gathering" residue: 17 lines, all identifiers (the `gathering` variable, `gatheringLine()`, `describeTag(tag, gatherings)`, the `'gathering'` destination type). No user-visible string.
+- `resolve_tag('04BBBBBBBBBBBB')`: `"pace": "5:30/km"` and `"route_name": "River loop, 8 km"`, no `strava`. The plan's original pattern printed nothing because jsonb text has a space after each colon; the command above now allows it (a plan-text fix, not a skill or app defect).
 
 ---
 
@@ -586,6 +594,21 @@ Use the memory-note technique. Boot by UDID if `simctl` reports a phantom boot. 
 
 **Expected:** all six pass. Any failure goes through the deviation procedure for the skill whose step it traces to, or becomes a Linear issue if it is an app defect. Write `$NOTES/7-sim.md`.
 
+**Done 2026-10-12.** On the same fork at `pre-gate` (3d472db), tree clean throughout, iPhone 17 Pro (iOS 26.5) with Expo Go, Metro and the API dev server from the fork. START 23:48:24Z, END 2026-10-13T00:01:23Z: about 13 min wall. Log: `$NOTES/7-sim.md`, screenshots `$NOTES/7-sim-*.png`. All six checks pass:
+1. Brand: the `runclub` wordmark in Archivo; tabs Runs / Connections / Merch / Profile; Merch shows the store card; the accent only on the connect-kind actions ("Join this run", "Claim tag").
+2. Completion gate: a new `@rls.test` account landed on Profile first time; Save stayed disabled with Name only; `fast` was refused with the generic save error and `5:30/km` saved; with Pace emptied, a relaunch returned to "Finish your profile".
+3. Runs: Route "Harbor 5k" on the row and the detail header; the tag pointed at the run; signed out, the tag summary showed the title, "Harbor 5k" and the time.
+4. Connections tier, both ways: Ada and Lin each see the other's Strava handle in Connections; the Requests card and both tag cards show Pace and no Strava.
+5. Cold Join: signed out, Join → sign-in → a new account → "Join this run?"; Join opened Profile, and Save returned to "Join this run?".
+6. A provisioned tag: Task 5's batch had been retired, so one fresh local tag was provisioned (`$HOME/runclub-tags/local-<stamp>`, files `-rw-------`, the fork's tree clean); it landed on "Claim this tag" as Lin, was then claimed for check 4, and the batch directory and its parent were deleted. No UID in any note; the one screenshot of the claim screen is redacted.
+
+No `PGRST303` (ENG-750) and no ENG-751 hang. The stack was reset and seeded from the fork at the end; ports free; the simulator driver's servers stopped. Observations, none of them failures:
+- The route is not on the "Join this run?" preview (title and time only). The preview reads hints the tag screen passes, not the gathering; customize-gathering §2 step 6 now names them (9343b62).
+- The pace error does not name the field or the format. Covered by extend-profile's format-rule note (a malformed value gets the generic save error; the input has a format placeholder).
+- The run's member list shows bio, not pace: extend-profile says that display is optional.
+- Two `404`s from `gatherings/get` per cold join in the API log: by design (a non-member falls back to the join card).
+- `provision.ts` prints "Provisioned 1 unclaimed tags" (the plural with a count of 1). An app observation for the report.
+
 ---
 
 ### Task 8: Phase A close-out
@@ -595,6 +618,52 @@ Use the memory-note technique. Boot by UDID if `simctl` reports a phantom boot. 
 3. Write the **Phase A Done note** into this plan: a table of runs per skill (minutes, deviations, fix commits), the order-dependences found (O1–O4 plus any new ones), and which known issues bit.
 4. Send the program manager a five-line Phase A summary for Alex. It goes with the Task 9 stop message, if Alex has not yet answered it.
 5. Leave the `runclub` stack and the line clone in place: Phase B uses them, and Task 13 cleans them up.
+
+**Phase A — Done 2026-10-12.** `git -C "$WT" status --porcelain` empty and `bun run lint` green in `$WT` after the close-out commits. The line is `/Users/alexeisele/dev/withme-scratch/proof-runclub-provision-tags-r2` at 3d472db (`pre-gate`), on the shared `withme-starter` stack (there is no `runclub` stack: the rename was skipped).
+
+**Runs per skill.** Minutes are wall time from the logs' START/END stamps; none had pauses. "Clean" means green at the final checkpoint with wording-only notes, so no re-run.
+
+| Skill | Run | Minutes | Deviations | Outcome | Fix commit |
+| --- | --- | --- | --- | --- | --- |
+| make-it-yours | r1 | 8 (21:23:36–21:31:49) | 9 (D9 an input gap) | green; step 8 sweep command changed → re-run | b160d58 |
+| make-it-yours | r2 | 8 (21:36:15–21:44:09) | 6 notes | **clean** | 77ec5f1 (wording) |
+| customize-gathering | r1 | 10 (21:44:53–21:54:41) | 11 (+1 environment) | green after fixes; commands changed → re-run | 77ec5f1 |
+| customize-gathering | r2 | 12 (21:59:52–22:12:03) | 8 | red on Storage `42P10` only: the CLI upgrade mid-run; expectation and command changed → re-run | 94361f8 |
+| customize-gathering | r3 | 10 (22:24:35–22:34:12) | 5 (+3 observations) | **clean** | b5772ed (wording, paths) |
+| extend-profile | r1 | 23 (22:35:06–22:58:18) | 19, incl. the step order (D16) | green; step order changed → re-run | f319943 |
+| extend-profile | r2 | 25 (23:02:22–23:27:44) | 8 | **clean** | 6ea5df3 (wording) |
+| provision-tags | r1 | 7 (23:28:38–23:35:15) | 11 | green; §5's `$DB` command changed → re-run | d81acb5 |
+| provision-tags | r2 | 7 (23:38:13–23:44:57) | 9 | **clean** | d220c5c (wording) |
+| gate (Task 6) | — | 2 (23:46:10–23:48:18) | plan grep only | green | this commit (plan) |
+| simulator (Task 7) | — | 13 (23:48:24–00:01:23) | 5 observations | 6/6 pass | 9343b62 (customize-gathering, the join preview) |
+
+The extend-profile minutes include its own simulator pass. Plan records: 31a5b11, 830c3e5, 14a5968, 40b8e70, 10e0e43, b3adf7b, d6656b2, 2280909, d18152b, and this commit.
+
+**Totals.**
+- Skill time on the clean path (the final run of each skill): 7:54 + 9:37 + 25:22 + 6:44 = **49 min 37 s** (about 50 min). M4's single-skill runs for comparison: make-it-yours 2, extend-profile 10.5, provision-tags 2.5.
+- All nine skill runs: about 110 min.
+- Phase A wall time: the Task 1 clone at 21:22:18Z to the gate's end at 23:48:18Z, **2 h 26 min**; to the simulator pass's end at 00:01:23Z, 2 h 39 min. That includes about 12 min between customize-gathering r2 and r3 while Alex restarted the stack under the new CLI.
+
+**Order-dependences found** (what a later skill meets because an earlier one ran):
+- make-it-yours → customize-gathering: page titles read `'Events — <wordmark>'`, not `'Events — withme'`. Fixed in customize-gathering (77ec5f1).
+- customize-gathering → make-it-yours: the URL rename moves files that make-it-yours' page-title list names (`_app.gatherings.tsx`). Only matters if make-it-yours runs again after; recorded for the report.
+- customize-gathering → extend-profile (O2): `resolve_tag`'s newest definition moves to customize-gathering's migration, while `accept_connect_request`'s stays in `avatars`, so extend-profile copies each body from its own grep. The follower did, keeping `route_name`; the text now says the grep decides (6ea5df3).
+- customize-gathering → extend-profile (O3): paths and copy after the URL rename (`run/[id].tsx` for `gathering/[id].tsx`, `_app.runs_.$id.tsx`, "Join this run?"; `gatherings.spec.ts` kept its name in this fork). "Renamed if you ran customize-gathering's URL step" notes (f319943).
+- customize-gathering → extend-profile (O1): `create_gathering`'s new required argument in extend-profile's new RLS test. The comment in the skill's code worked: the follower passed `p_route_name` both times.
+- extend-profile → provision-tags: the end-to-end claim shows the extend-profile card tier (Lin's pace, no Strava), and a brand-new account meets "First, your card" with the required Pace before "Claim this tag" (now said, d81acb5).
+- O4: the profile-creating fill grep found 12 after customize-gathering, as the text says.
+
+The order the skills ran in (make-it-yours → customize-gathering → extend-profile → provision-tags) is the order a forker should use.
+
+**Known issues that bit.**
+- ENG-751 (the claimed-card SSR hang under `vite dev`): twice, once in each provision-tags run; a restart of `apps/web`'s dev server cleared it each time.
+- ENG-750 (`PGRST303`): never seen after Alex's restart onto PostgREST 16.4; PR #11 (5bdd81d) fixed it on `main` by requiring PostgREST 16.3+.
+- ENG-752: guarded, not hit (`SUPABASE_SERVICE_ROLE_KEY` count 0 before the gate's tests).
+- Environment, both fixed by Alex: the Homebrew Supabase CLI upgrade (2.116.0 → 2.120.0) mid customize-gathering r2, which broke Storage until the stack restarted; and the Docker disk cleanup (99% → 77%) before r3.
+
+**App issues filed:** ENG-753 (the light input border at 2.97:1, and the token comments naming only Connect and Accept for the accent), ENG-754 (core's older RPCs revoke execute from `public` but not `anon`). App observations for the report, not filed: the `/login` hydration mismatch on `returnTo=/claim/…`, and `provision.ts`'s "Provisioned 1 unclaimed tags".
+
+**Skipped:** make-it-yours step 5 (EAS: it creates an Expo project, so Phase B); the `project_id` rename (Decision 6, the shared stack); provision-tags §2–§4 (production provisioning and physical tags); icon artwork (none supplied).
 
 ---
 
@@ -773,8 +842,9 @@ Commit: `git commit -m "Docs: the proof-run report (milestone 5)" …`.
 
 ```bash
 (cd "$LINE" && bunx supabase stop --no-backup)        # stops runclub and drops its throwaway volumes; if the classifier blocks it, ask Alex to run it
+                                                      # (rename skipped, Decision 6: there is no runclub stack and no supabase_db_runclub; skip this line and never stop the shared withme-starter stack)
 for d in "$S"/proof-runclub*; do rm -rf "$d"; done
-rm -rf "$HOME/withme-tags/local-"*                    # Task 5's encode lists (local, throwaway)
+rm -rf "$HOME/"*-tags/local-*                         # encode lists (local, throwaway): Task 5 used withme-tags, Task 7 runclub-tags
 lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(8786|3000|8796|9456|3010|8081) '   # nothing: stop leftover dev servers and Metro
 (cd "$WT" && bun run db:start && bun run db:reset && bun run db:seed)        # withme-starter stack back, origin/main + the branch's (doc-only) changes
 docker ps --format '{{.Names}}' | grep -c supabase_db_withme-starter          # 1
