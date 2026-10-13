@@ -671,6 +671,8 @@ The order the skills ran in (make-it-yours → customize-gathering → extend-pr
 
 ### Task 9: STOP. Alex decides.
 
+Superseded 2026-10-13 by the amendment below: not run
+
 Nothing in this task creates anything. The program manager sends Alex the message below, after Phase A is done. The decision is recorded in ENG-749.
 
 **What go-live would create.** These are the skills' own commands, applied to the fork:
@@ -722,6 +724,8 @@ No timer runs during this stop.
 
 ### Task 10a (option 1): A throwaway production run, step by step
 
+Superseded 2026-10-13 by the amendment below: not run
+
 Run it in a **dedicated terminal tab**, from `$LINE`, after Task 6's tests: no `bun test` runs in this tab afterwards (ENG-752). Every **[approve]** line means: show Alex exactly what the next command creates and wait for a clear yes. Timing covers Claude's steps only; Alex's logins and approvals are PAUSE.
 
 1. **Alex:** `supabase login`, `bunx wrangler login`, `bunx eas-cli login`. **Claude verifies** (read-only): `supabase orgs list`, `bunx wrangler whoami`, `bunx eas-cli whoami`.
@@ -768,6 +772,8 @@ Deviations go through the deviation procedure: the fix goes into go-live or make
 ---
 
 ### Task 10b (option 2): A go-live dry run
+
+Superseded 2026-10-13 by the amendment below: not run
 
 From `$LINE`, after Task 6. Log to `$NOTES/10b-dry-run.md`. Every go-live command gets one of three labels: **verified locally**, **needs an account (not run)**, or **Alex only**.
 
@@ -898,3 +904,1162 @@ PR against `main`, titled `Proof run: a fresh clone through every skill and go-l
 - **A numeric gathering field**: covered as a static gap list in the report, unless Alex swaps it in (Decision 3).
 - **EAS builds, store submission, a custom domain, encoding physical tags**: go-live and provision-tags do not cover them, or they need hardware.
 - **A second proof run in another vertical.** If this report changes skills substantially, a follow-up run is a later decision.
+
+---
+
+## Amendment 2026-10-13: real rebuilds (golf now, tailgate deferred)
+
+> This amendment replaces **Phase B** (Tasks 9, 10a, 10b), which was never run, and revises Phase C (Tasks 11–12) and Phase D (Tasks 13–15). Phase A and its Done notes stand unchanged.
+
+**Goal.** Run the skills for real on a fork that already exists: golf-with-me. It has not launched, so it is rebuilt from a fresh withme-starter tree through the skills, starting with a design uplift, and goes live for real. The throwaway Run Club go-live is dropped: it would have shown that go-live works on a fork nobody uses. A real go-live shows that, and leaves a product running. The timings, deviations and fixes go into the same acceptance report.
+
+**Tailgate is deferred (Alex, 2026-10-13).** tailgate-with-me will be rebuilt around real sporting events, which fill its gatherings, once Alex decides how to source the event data. It is not part of this milestone. Phase B″ below is kept as a draft for that later run.
+
+**What stays the same.** Literal following by a fresh subagent for each skill, with timing. The Follower brief and Watch list stay separate. Skill-text fixes are committed on `claude/proof-run`. The M5 PR carries only skills, docs and the report. Anything that bills or reaches outside the machine waits for an **[approve]** from Alex.
+
+**What is new.**
+- The `design-direction` skill runs first, on a fork that already has a brand.
+- make-it-yours step 6 (the `project_id` rename) runs for real.
+- `add-destination-type` runs as part of a sequence.
+- go-live runs for real, once. It reuses an existing EAS project and uses a Cloudflare login that can see several accounts.
+- One repository outside withme-starter, golf-with-me, receives a PR.
+
+---
+
+### Decisions (amendment; Alex answered the open questions on 2026-10-13, see the end)
+
+**A1. Rebuild, not merge-upgrade.** Golf has not launched: there are no users and no physical tags. The fork is rebuilt from scratch on today's starter. What the legacy fork built by hand is now either core code (gatherings, calm states, the store pointer, provisioning) or a skill (link destination, profile fields, rebrand).
+
+**A2. Design comes first, as an uplift.**
+- `design-direction` runs for golf with the existing brand as its references:
+  - `PRODUCT.md`;
+  - the current palette and fonts;
+  - golf's `.impeccable/critique/2026-06-12T18-48-26Z__apps-web-src.md`.
+- The skill says to skip itself when a brand exists. Here that is overridden on purpose, because the goal is an uplift. The follower is told so, and the report records it as a use the skill does not name.
+- The run gives 2–3 named directions. Alex picks one.
+- The output is `docs/brand-direction.md` in the rebuild. `contrast.ts --sheet` must print 12 `ok` lines and exit 0.
+- Exactly eight color tokens.
+- Golf gets icon artwork: today it ships the starter's template icons byte for byte.
+- **How the artboards are made and where Alex sees them.**
+  - If the session's skill list has `design` (Claude Design, a research preview), the follower runs `/design` with the skill's brief from `$WT`, so it reads the starter's `tokens.css`. The canvas is on Alex's claude.ai account and private to it, and `/design` prints its link.
+  - As of 2026-10-12 the program manager's skill list has no `design` entry. The default is therefore the skill's own alternative: "hand the same brief to the agent directly". The follower draws the six boards per direction as one self-contained HTML file. The program manager publishes it as a **private Artifact** on claude.ai (the `Artifact` tool, after a `quickstart` with `intent: "design"`) and sends Alex the link. Alex compares and comments there.
+  - The sheet records that link as the canvas link.
+  - `/design-sync` (the skill's optional §5) is skipped.
+
+**A3. Repo mechanics: no force push, ever.**
+- Tag golf's current `main` as `legacy-2026-06` (annotated) and push the tag **[approve]**.
+- The `rebuild` branch lives in a new worktree of that repo, `.claude/worktrees/rebuild`. That path is already ignored by the repo's `.git/info/exclude`.
+- **Commit 1 replaces the tree** with withme-starter `origin/main` at a recorded sha. That removes golf's tracked `.supabase-demo-db-password` and its eight `supabase/.temp/*` files.
+- **Program manager's refinement:** commit 1 is made with `git commit-tree` from the starter's tree, with **two parents**: `legacy-2026-06` first, the starter sha second.
+  - Its tree is byte-identical to the starter's, which can be checked by tree hash.
+  - The starter becomes an ancestor, so later starter fixes (ENG-753, ENG-754, M5's skill texts) arrive in the fork with a plain `git merge` instead of a conflict across the whole tree.
+  - Alex chose two parents (answered 2026-10-13). The single-parent fallback (`git rm -r .`, `git archive | tar -x`, a normal commit) is not used.
+- Commit 2 syncs the skill texts from `claude/proof-run`, because `origin/main` does not yet carry Phase A's fixes.
+- Then one commit per skill. A fork-specific fix goes into its skill's commit.
+- Then the PR `rebuild` → `main` **[approve]** before the push and before opening the PR. Merge with a merge commit after CI, and after CodeRabbit if it reviews these repos.
+- **What CI exists:**
+  - Golf (like tailgate) carries the starter's older `.github/workflows/ci.yml`: lint, typecheck, build, publint/attw, Supabase CLI 2.84.2, `bun run test`. It also carries `release.yml` (publishes `@withme/nfc` on `nfc-v*` tags) and `dependabot.yml`.
+  - Golf has no `.coderabbit.yaml`. Its history has no merge commit: it was pushed straight to `main` and never had a PR. So whether CodeRabbit reviews it is unknown until the first PR (G11 records it).
+  - Commit 1 brings the starter's current `ci.yml`, which adds CLI 2.120.0 and the Playwright smoke in workerd. Pushing a changed workflow file needs the `workflow` token scope. Tailgate's `docs/DEPLOY.md` notes that the stored HTTPS token lacks it, so G2 checks.
+  - `release.yml` stays in the fork. It is dormant unless someone pushes an `nfc-v*` tag, and the report notes it as a make-it-yours gap.
+
+**A4. What the rebuild does not carry.**
+- The marketing sites (`apps/public`) are dropped. They stay on the legacy tag, and a later `add-marketing-site` skill will cover them.
+- Also dropped:
+  - golf's `.impeccable/` (it critiques the legacy UI, and G1 reads it from the legacy tag);
+  - the legacy dedicated local ports.
+- **Program manager's default:** `PRODUCT.md` is carried forward. It is restored from the legacy tag in the design commit, edited only where the chosen direction contradicts it (the accent's name). The design work and future `/impeccable` runs read it.
+- The starter's `docs/superpowers/` is kept, as a forker would keep it.
+- Golf's staging worktree and branch, `claude/staging-mobile-build-deploy-f73d84`, are superseded and left untouched. The tailgate repo is not touched at all in this milestone.
+
+**A5. Golf mapping.**
+- **Names:** wordmark `golfwithme`, display name `Golf with Me`, id `co.golfwithme.app`, scheme `golfwithme`, slug `golfwithme`, workers `golfwithme-api` / `golfwithme-web`, `project_id = "golfwithme"`.
+  - The names are fixed inputs to the design brief, not proposals: the EAS project `@vibe-with-me/golfwithme` requires the slug.
+  - The `project_id` is new on purpose. The legacy stack's Docker volumes are named `golf-with-me`.
+- **Gathering:**
+  - Nouns round / rounds, tab `Rounds`, URL `/rounds`.
+  - Core `title` is the round's name and stays required, labelled "Round name".
+  - customize-gathering adds a required `course_name` ("Course", 1–120). That is the skill's worked example exactly, with "Course · when · where".
+  - `starts_at` is labelled "Tee time": on mobile, the date field stays "Date" and the time field reads "Tee time".
+  - `location` stays optional.
+  - The members heading is "Players", the legacy fork's word.
+  - Join-preview hints stay title and time only (the skill's default). The golf critique flagged hint-borne course text as spoofable, and the resolver card already shows the course.
+- **Profile** (extend-profile, card tier only):
+  - `handicap`: `numeric(3,1)`, −10.0…54.0, optional, CHECK `profiles_handicap_range`.
+  - `home_club`: text 1–80, optional, CHECK `profiles_home_club_length`.
+  - The card line reads "HCP 8.4 · Pebble Creek GC".
+- **The plus-handicap convention, reconsidered.** The critique flagged "-5 for +5" as a leak of the storage convention, and asked that "+5" be accepted as input.
+  - Storage keeps WHS order: a plus handicap is stored negative, +2.4 as −2.4. The range CHECK and numeric ordering stay natural.
+  - No surface ever shows or accepts a minus sign. Inputs accept `+2.4`, `2.4`, `12`, and blank (clear). Displays print `+2.4` for a stored −2.4. A typed `-3` is refused.
+  - The rule lives in one place: two pure helpers in the contract, `parseHandicap(text)` and `formatHandicap(n)`, next to `HandicapSchema = z.number().min(-10).max(54).multipleOf(0.1)`. Both clients import them, the way they import `isProfileComplete`. Contract tests cover the helpers.
+  - This is extend-profile's "typed fields take the same steps; the CHECK mirrors the zod rule" note made concrete. The skill has one sentence for it, so expect deviations and a "Typed fields" paragraph as the fix. Decision 3 of the main plan predicted roughly +30–60 minutes for a typed field.
+  - Alex chose this shape (answered 2026-10-13): numeric, with the plus shown and no minus on any screen. The text-with-a-format-CHECK alternative is not used.
+- **Connections-only fields:** none. A connections-tier field was considered and none is natural: handicap and home club are the introduction itself.
+- **Required for completion:** none (answered 2026-10-13).
+- **add-destination-type:** the `link` destination, identical to its worked example. It is reachable through the SDK and API only; the skill leaves a claim-UI option to the fork, and none is built.
+- **provision-tags:** local only.
+
+**A6. Tailgate mapping. Deferred 2026-10-13:** tailgate will be rebuilt around real sporting events once Alex decides how to source event data; not part of this milestone. The mapping below is the 2026-10-12 draft, kept for that later run; it does not model sporting events and will change.
+- **Names:** wordmark `tailgatewithme`, display name `Tailgate with Me`, id `co.tailgatewithme.app`, scheme `tailgatewithme`, slug `tailgatewithme`, workers `tailgatewithme-api` / `tailgatewithme-web`, `project_id = "tailgatewithme"`.
+- **Gathering:**
+  - Nouns tailgate / tailgates, tab `Tailgates`, URL `/tailgates`.
+  - Create heading "Host a tailgate", button "Host tailgate"; members heading "Crew".
+  - `title` is labelled "Title". `location` is optional, as in core; the legacy fork required it, and making it required again would need a CHECK and RPC change no skill covers.
+  - `starts_at` is labelled "Kickoff for the lot" on web; on mobile, "Date" plus "Kickoff".
+  - No extra gathering field. customize-gathering therefore runs §1 (nouns and URLs) only: the first nouns-only run.
+- **Profile:** card tier `team` ("Team") and `signature_dish` ("Signature dish"), each text 1–80, optional, with CHECKs `profiles_team_length` and `profiles_signature_dish_length`. The card line reads "Chiefs · Burnt-end chili".
+  - A connections-only field was considered. A payment handle for chipping in is the closest fit, but payment handles invite misuse, so the answer is none.
+- **add-destination-type:** link. **provision-tags:** local.
+
+**A7. Hosting per app, free plans.**
+- **Supabase:**
+  - The org "Golf With Me" exists. The new project `golfwithme` is created fresh in it, in `us-east-1` unless Alex says otherwise.
+  - Golf's old project `oszinjbbwzztqeqkhoof` is paused. Alex deletes it after go-live (answered 2026-10-13). That retires the database password committed in its history; there is no history rewrite.
+  - Tailgate's org "Tailgate With Me" and its paused staging project `wntdmgxmrinagmqrefpt` are left as they are until the tailgate rebuild.
+- **Cloudflare:**
+  - Account "Golf With Me".
+  - Wrangler is logged in to three accounts, so the fork pins its account with `"account_id"` in both `wrangler.jsonc` files. Committing it is fine: the id is not a secret. `CLOUDFLARE_ACCOUNT_ID` must be unset in the deploy shell.
+  - Why it matters: golf's legacy workers with the same names (`golfwithme-api`, `-web`, `-public`) are live on `vibe-with-me.workers.dev`, which is another account. A deploy to the wrong account would silently replace them.
+- **Expo:**
+  - Owner `vibe-with-me`. The EAS project is reused, not created: golf `6a004be3-f3b4-4ec5-be7d-ff58a61fc77a` (`@vibe-with-me/golfwithme`, committed in legacy `67f8bc0`).
+  - The reuse means make-it-yours step 5 links rather than creates: `eas init --id <projectId>`.
+- **Who does what:** every billable or outward step is **[approve]**. Alex does the logins (done for supabase, wrangler and eas on 2026-10-13; re-checked read-only at G10), the dashboard steps, the signed-in checks, and every permanent delete.
+
+**A8. The local stack.**
+- The rebuild runs make-it-yours step 6 for real, which renames `project_id`. Before G4, step 6's text is fixed to stop first (P0.1). The order bug has been known since M4, and the golf run verifies the fix instead of rediscovering it.
+- The fresh tree's `project_id` is still `withme-starter`. So the stop-first step, run from the rebuild, stops the shared `withme-starter` stack: the one stack window of the rebuild.
+  - The program manager confirms before G4 that no other session needs `withme-starter`.
+  - `withme-starter` is restarted from `$WT` at G12.
+- The ports are the same for every project, so one stack runs at a time.
+- Before the stack window:
+  - `colima ssh -- df -h /var/lib/docker` must show use below 85%.
+  - `docker system df` is recorded.
+  - Never prune or remove images or volumes. That is Alex's job, per the memory note.
+
+**A9. Literal following, adapted to real products.**
+- Each skill is still run by a fresh subagent, with timing, as in Phase A, and the logs keep the same format.
+- What changes is the deviation procedure. See "Deviation procedure (amended)": a fork-specific deviation is fixed in the fork and logged rather than re-run, while skill-text defects are still fixed in `claude/proof-run`.
+- Golf gets the full gate and a simulator pass (G9) before go-live. Go-live does not start unless both are green.
+
+**A10. Report and PRs.**
+- The acceptance report (Phase C) covers Run Club Phase A, the golf rebuild, and golf's go-live.
+- The M5 PR (Phase D) carries only skill and doc fixes plus the report.
+- A separate PR in `vibe-with-me/golf-with-me` carries the app.
+
+**A11. Order.** Golf G0–G12, in order. The batching default (tailgate's T0–T1 right after G1) no longer applies: tailgate is deferred.
+
+---
+
+### Ground rules for the rebuilds (in addition to the plan's)
+
+- **Variables:**
+
+  ```bash
+  WT=/Users/alexeisele/dev/withme-starter/.claude/worktrees/proof-run   # skill fixes land here, as in Phase A
+  STARTER=/Users/alexeisele/dev/withme-starter
+  S=/Users/alexeisele/dev/withme-scratch
+  NOTES="$S/notes/m5"
+  GOLF=/Users/alexeisele/dev/golf-with-me;      G="$GOLF/.claude/worktrees/rebuild";  GN="$NOTES/golf"
+  # TAIL, T and TN (tailgate) return with the deferred Phase B″
+  ```
+
+- **Where work happens:**
+  - Write only in `$G`, its re-run worktrees (`…/.claude/worktrees/rebuild-<skill>-r<k>`), `$WT` (skill fixes and plan records), and `$NOTES`.
+  - Never write in golf's main checkout or its staging worktree, or anywhere in the tailgate repo.
+  - Never write in the other withme-starter worktrees.
+  - Read the legacy code only in G0 and G1, by the program manager. Followers never see it.
+- **Tags.** The `pre-<skill>` tags are local only and are deleted at G12. Only `legacy-2026-06` is pushed. Never `git push --tags`.
+- **The stack window** (A8):
+  - Ports 55320–55324, 8786, 3000, 8796, 9456, 3010, and 8081 are free.
+  - `env | grep -c SUPABASE_SERVICE_ROLE_KEY` prints `0` before any local test (ENG-752).
+  - Use `CI=1 bunx playwright test`.
+  - Drive the simulator per the memory note.
+- **The go-live tab:**
+  - G10 runs in a dedicated terminal tab, opened after the gate.
+  - No `bun test` or `bun run test` ever runs in that tab (ENG-752).
+  - Every block that sources `.env.demo-seed` runs in a subshell.
+- **Credentials.** Claude never types, pastes, or reads aloud a password, key or token. Exceptions:
+  - the local stack's test accounts;
+  - the demo identity on the local stack;
+  - the public account and project ids.
+
+  Service-role keys reach only `.env.demo-seed` (0600), via go-live's Python.
+- **Logs and timing** follow the plan's protocol:
+  - `$GN/<task>-<skill>-r<k>.md`;
+  - START, END, PAUSE and RESUME stamps;
+  - Alex's choices, approvals, logins and dashboard steps are PAUSE.
+- **Commits in the fork:**
+  - `git -C "$G" add -A && git -C "$G" commit -m "<skill>: golfwithme" -m "<what and why>" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`, then `git -C "$G" tag pre-<next-skill>`.
+  - The tree is never committed with `.env*`, `.dev.vars`, `supabase/.temp/`, or `provisioned-tags.*`. The starter's `.gitignore` covers each, and `git -C "$G" status --porcelain --ignored | grep -E '\.env|\.dev\.vars|\.temp|provisioned'` shows them only as `!!`.
+- **Skill sync.** Before each skill run, if `$WT`'s skill texts changed since the fork's last sync, commit a sync into the fork:
+
+  ```bash
+  rsync -a --delete "$WT/.agents/skills/" "$G/.agents/skills/" && cp "$WT/docs/the-slice.md" "$G/docs/the-slice.md"
+  git -C "$G" add -A .agents/skills docs/the-slice.md
+  git -C "$G" commit -m "skills: proof-run fixes at claude/proof-run $(git -C "$WT" rev-parse --short HEAD)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  ```
+
+  `.agents/skills/**` and `docs/the-slice.md` are the only paths `claude/proof-run` changes outside `docs/superpowers/`. Check with `git -C "$WT" diff --name-only origin/main...HEAD -- . ':!docs/superpowers'`. The final sync happens at G11, so the product repo ships the final texts.
+
+### Deviation procedure (amended)
+
+Every deviation is logged as in Phase A: the step, what the text says, what happened, and the reading taken. Each one is classified as one of four kinds:
+
+1. **Skill-text defect (S).**
+   - Fix it in `$WT` and commit, as in Phase A, then sync it into the fork before the next skill.
+   - **Re-run** only if the fixed text would produce a different fork: a command, an order, or an expected output changed, *and* the fork's state differs from what the fixed text yields.
+   - Otherwise the program manager checks the fork against the fixed text and records "verified, not re-run".
+   - At most **two runs** per skill per app. A second failing run stops and goes to Alex.
+2. **Fork-specific (F).** The product needs something the skill rightly leaves to the fork (the handicap helpers, the EAS link, the account pin).
+   - Fix it in the fork, in that skill's commit, and log it as a fork choice with the reason.
+   - If another fork would hit the same gap, also write an S note.
+3. **App defect in core (A).**
+   - File a Linear issue under P-ENG-39, as Phase A did with ENG-753 and ENG-754.
+   - Fix it in the fork only if it blocks go-live, with the issue linked in the commit body.
+   - Never fix it in `claude/proof-run`, because the M5 PR carries no app code.
+4. **Environment (E).** Log only.
+
+**How a re-run works.** It uses a new worktree at the tag, never a reset of the live branch before the re-run is green.
+
+```bash
+R="$GOLF/.claude/worktrees/rebuild-<skill>-r2"
+git -C "$GOLF" worktree add --detach "$R" pre-<skill>
+rsync -a --delete "$WT/.agents/skills/" "$R/.agents/skills/"; cp "$WT/docs/the-slice.md" "$R/docs/the-slice.md"
+git -C "$R" add -A .agents/skills docs/the-slice.md && git -C "$R" commit -m "skills: proof-run fixes at claude/proof-run $(git -C "$WT" rev-parse --short HEAD)"
+git -C "$R" tag -f pre-<skill>
+for f in apps/api/.dev.vars apps/web/.env apps/mobile/.env; do [ -f "$G/$f" ] && cp "$G/$f" "$R/$f"; done
+(cd "$R" && bun install)
+# if the re-run is clean: git -C "$G" reset --hard "$(git -C "$R" rev-parse HEAD)"   (rebuild is unpushed until G11: no force push)
+# then: git -C "$GOLF" worktree remove "$R"
+```
+
+---
+
+### What Alex must do or approve, in order
+
+**Before the start**
+1. ~~Answer the open questions.~~ Done 2026-10-13: see "Answered 2026-10-13" at the end.
+2. If Docker use is at or above 85% at the stack window, prune images when asked (A8).
+
+**Golf**
+
+3. **G1:** pick a golf direction on the private Artifact (up to three iteration rounds). Approve the icon mark.
+4. **G2 [approve]:** push the tag `legacy-2026-06` to `vibe-with-me/golf-with-me`. If `gh auth status` lacks the `workflow` scope, run `gh auth refresh -h github.com -s workflow`.
+5. **G10 (go-live, about 60–90 min present):**
+   1. If any login has expired, log in again (`supabase login`, `bunx wrangler login`, `bunx eas-cli login`).
+   2. **[approve]** link the EAS project `@vibe-with-me/golfwithme` (`eas init --id 6a004be3-…`).
+   3. **[approve]** create the Supabase project `golfwithme` in "Golf With Me" (region `us-east-1` unless you say otherwise), then link it and run `db push`.
+   4. In the dashboard: Storage, confirm the `avatars` bucket (public, 1 MiB, JPEG/WebP).
+   5. **[approve]** the production seed.
+   6. In the Cloudflare dashboard, account "Golf With Me": read out the account's workers.dev subdomain, registering one if none exists.
+   7. **[approve]** the API Worker deploy and its three secrets.
+   8. **[approve]** the web Worker deploy.
+   9. In the Supabase dashboard: Authentication, URL Configuration. Set the Site URL and the Redirect URL.
+   10. Run the authed-path check script that Claude wrote.
+   11. Do a throwaway sign-up with an address that can confirm, check where the confirmation link points, then Profile → Account → Delete account.
+   12. **[approve]** `eas update` to branch `demo`.
+   13. Optionally, open the update in Expo Go on your phone.
+6. **G11 [approve]:** push `rebuild` and open the PR into `main`. Claude merges with a merge commit after CI, and after CodeRabbit if it reviews this repo. If CodeRabbit is not installed on the repo, Claude asks you whether CI plus the code review suffices.
+7. **G12, teardown** (both deletes answered yes on 2026-10-13):
+   1. Delete the old Supabase project `oszinjbbwzztqeqkhoof` (permanent).
+   2. Delete the legacy workers `golfwithme-api`, `golfwithme-web` and `golfwithme-public` from the account behind `vibe-with-me.workers.dev`, after the new ones are verified.
+   3. Optionally, remove the legacy local Docker volumes named `golf-with-me`.
+   4. Optionally, say yes to fast-forwarding the golf main checkout.
+
+**Tailgate:** nothing in this milestone (deferred; see Phase B″). Decide later how the rebuild sources real sporting events.
+
+**M5**
+
+8. Nothing to approve. Claude merges the M5 PR under the operating rules and reports.
+
+---
+
+### P0: Pre-flight (program manager, in `$WT`)
+
+1. **Fix make-it-yours step 6's order.** It has been known since M4.
+   - Replace the `project_id` bullet with:
+     - If you rename `project_id`, stop the running stack first, while `config.toml` still names it: `bun run db:stop`.
+     - Then rename.
+     - Then `bun run db:start`, then `bun run db:reset && bun run db:seed`. The renamed project starts on new, empty volumes.
+     - A fresh fork's `project_id` is still `withme-starter`, so that stop also stops any other checkout of the starter on this machine.
+   - Commit: `make-it-yours: stop the old stack before renaming project_id`.
+   - **Done:** `ab153b8`.
+2. **Record the amendment.**
+   - Append this amendment to the plan.
+   - Mark Tasks 9, 10a and 10b with one line: "Superseded 2026-10-13 by the amendment below: not run".
+   - Commit: `Plan: amendment 2026-10-13, the golf rebuild (tailgate deferred)`.
+   - Push `claude/proof-run`.
+3. **Linear.**
+   - Append A1–A11 and the 2026-10-13 answers to ENG-749, including the tailgate deferral.
+   - Create one issue under P-ENG-39: "Golf rebuild and go-live".
+4. ~~Collect Alex's answers to the open questions.~~ Done 2026-10-13.
+
+**Expected:** `git -C "$WT" status --porcelain` is empty and `bun run lint` is green in `$WT`.
+
+---
+
+## Phase B′: golf-with-me
+
+### G0: Inventory → the inputs sheet (program manager; about 20 min; no stack)
+
+```bash
+mkdir -p "$GN" && chmod 700 "$S"
+git -C "$GOLF" fetch origin
+git -C "$GOLF" status --porcelain                         # empty
+git -C "$GOLF" rev-parse --short origin/main              # f35d6c3
+git -C "$GOLF" worktree list                              # main + staging-mobile-build-deploy-f73d84 (untouched)
+git -C "$GOLF" ls-files | grep -cE '^\.supabase-demo-db-password$|^supabase/\.temp/'   # 9
+git -C "$GOLF" show origin/main:apps/mobile/app.json | grep -nE '"(slug|scheme|bundleIdentifier|package|owner|projectId)"'
+git -C "$GOLF" ls-tree --name-only origin/main .github/workflows; git -C "$GOLF" cat-file -e origin/main:.coderabbit.yaml 2>/dev/null || echo "no .coderabbit.yaml"
+git -C "$STARTER" fetch origin && git -C "$STARTER" rev-parse origin/main   # the STARTER_SHA candidate (250edfd as of 2026-10-12)
+```
+
+**Then:**
+1. **Baseline the legacy palette.** Write the legacy Colors table from `$GOLF/apps/web/src/styles/tokens.css` (light `:root` and the dark block) into `$GN/legacy-colors.md`, in the sheet's three-column format. Run `bun run "$WT/.agents/skills/design-direction/contrast.ts" --sheet "$GN/legacy-colors.md"`. Expect 12 `ok` lines; the legacy light input border is 3.08:1. Record the output; it is the "before" of the uplift.
+2. **Map legacy commits to the rebuild**, in `$GN/0-inputs.md`:
+
+   | Legacy commit | Rebuild |
+   | --- | --- |
+   | `8e3f88b` rebrand | G1 design-direction + G4 make-it-yours |
+   | `f54a56e` link | G7 |
+   | `9c0a66f` handicap and home club | G6 |
+   | `17b0425` Rounds | core gathering + G5 |
+   | `67f8bc0` EAS | G10 (make-it-yours step 5, linked) |
+   | `bee9c9d` fulfillment and provisioning | core store pointer + G8 |
+   | `7d270a3` critique fixes | a static check, item 3 |
+   | `45fa484` noopener | a static check of core's "Open store" link: `rel` includes `noopener` |
+   | `0605229`, `f35d6c3` `apps/public` | dropped (A4) |
+   | `98c65b7` README | starter README + make-it-yours step 3 |
+
+3. **Check the critique's P0 and P1 findings statically against the starter tree at `STARTER_SHA`.** One line each: present in core / missing (a Linear issue if it is core's) / the fork's to do.
+   - Malformed `/t/<uid>` and unknown routes land on a calm card (`__root.tsx` `errorComponent` / `notFoundComponent`; UID normalization in the web loader).
+   - The tap moment has a loading state.
+   - A wordmark footer on the resolver.
+   - The login subtitle from `returnTo`.
+   - Accept carries the accent.
+   - Narrow-width consent actions.
+
+   G9 rechecks them live.
+4. **Write the inputs sheet** `$GN/0-inputs.md`, holding every input the G-briefs quote:
+   - A5's names and mappings, plus the copy listed in G5;
+   - seed values: Ada `8.4` / `Pebble Creek GC`; Lin `+1.2` (stored −1.2, so the seed shows the plus convention) / `Riverbend Muni`; Ada's round "Saturday dawn nine", course "Pebble Creek GC", location "First tee";
+   - the seed identity `*@demo.golfwithme.local` / `golfwithme-demo-1`, the legacy fork's;
+   - the store: none (answered 2026-10-13);
+   - the fork repo URL `https://github.com/vibe-with-me/golf-with-me`;
+   - the design references and mood (G1);
+   - `STARTER_SHA`;
+   - the EAS project id.
+5. **Check the stack window's preconditions:**
+   - `colima ssh -- df -h /var/lib/docker` reads below 85%;
+   - `docker system df` (record the output);
+   - `docker volume ls --format '{{.Name}}' | grep -c golf-with-me` (the legacy volumes, recorded for G12).
+
+**Expected:** `$GN/0-inputs.md` complete. The program manager reviews it against A5 and the 2026-10-13 answers.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G1: design-direction, an uplift (literal; Alex picks; about 30 min of agent time plus Alex's choosing)
+
+**Follower brief:**
+
+> You are producing a brand direction for "Golf with Me", an existing NFC tap-to-connect app for golfers that is being rebuilt on withme-starter. Work from `$WT` (give the literal path), read-only. Follow `.agents/skills/design-direction/SKILL.md` literally, §1 to §3, as if new to this codebase. Do not read `docs/superpowers/`. Do not edit any file in `$WT`. Your outputs go to `$GN/design/` (give the literal path).
+>
+> This fork already has a brand, and the skill says to skip it in that case. Run it anyway: the goal is an **uplift** of the existing brand, not a new one. Pass the brand as the brief's References.
+>
+> Inputs:
+> - Vertical and audience: "Golfers meeting at the tee or the range. A stranger taps your tag and sees your card (handicap, home club), or joins the round your tag points at, outdoors, one-handed, often in sun glare."
+> - Mood: "clubhouse, dew, scorecard".
+> - Brand names, **fixed, not proposed**: wordmark `golfwithme`, display name `Golf with Me`. Their treatment (case, tracking) may vary.
+> - References, attached as files and quoted in the brief:
+>   - `$GN/ref/PRODUCT.md` (copied from the legacy tag);
+>   - the current palette in `$GN/legacy-colors.md` (one green accent, `#15803d` light and `#4ade80` dark, on cool grass neutrals);
+>   - the fonts Archivo (display) and Inter (body);
+>   - the critique `$GN/ref/critique.md`. Address its design points: "zero golf in the visual language beyond green neutrals", "where's the golf in the card?", and its note on the landing tagline's cadence.
+> - At least one direction stays in the green family (an evolution). At least one moves further.
+> - No store yet: the sheet still carries the Merch copy.
+> - Icon: the app has no artwork. Each direction describes a mark for a 1024px app icon, drawn as a flat SVG shape.
+>
+> `/design`: if it is in your skill list, use it as the skill says. If not, take the skill's alternative: write the boards yourself as ONE self-contained HTML file, `$GN/design/boards.html`. Each named direction gets a section with its six boards (resolver card, shell, landing; light and dark) at 390×844, its eight token values per mode, its two font families, its mark as inline SVG, and one sentence on fit. Google Fonts `<link>`s are allowed in the boards only. Then stop and report the file path: the program manager shows it to the owner.
+>
+> After the owner picks (the program manager will tell you the direction and any changes), do §3:
+> - Write the sheet to `$GN/design/brand-direction.md` from the skill's template. Names row: `golfwithme | Golf with Me | co.golfwithme.app | golfwithme`.
+> - Run the skill's checks with the script's absolute path: `bun run "$WT/.agents/skills/design-direction/contrast.ts" --sheet "$GN/design/brand-direction.md"`, and `npm view` for both font packages.
+> - For the Artwork rows, write the chosen mark as `$GN/design/art/icon.svg` and `android-icon-foreground.svg` (the mark inside the central 66% safe zone, transparent background). Render them:
+>
+>   ```bash
+>   rsvg-convert -w 1024 -h 1024 icon.svg -o icon.png
+>   magick icon.png -alpha off icon.png
+>   rsvg-convert -w 1024 -h 1024 android-icon-foreground.svg -o android-icon-foreground.png
+>   magick icon.png -define icon:auto-resize=48,32,16 favicon.ico
+>   ```
+>
+>   All of these run inside `$GN/design/art/`.
+>
+> Log to `$GN/1-design-direction-r<k>.md`: START/END/PAUSE/RESUME stamps (the owner's choosing is PAUSE), the commands and trimmed outputs, and every deviation: the step, what the text says, what happened, and what you did. Finish with the skill's §3 checkpoint output and the deviation list.
+
+**The program manager, between the boards and §3:**
+- Publish `boards.html` as a private Artifact: `Artifact` `quickstart` with `intent: "design"`, then publish. Send Alex the link with one line per direction.
+- Iterate at most three rounds, relaying Alex's notes to the follower via `SendMessage`.
+- Record the pick and the Artifact link, which the sheet carries as the canvas link.
+- Before the brief goes out, copy the references: `git -C "$GOLF" show legacy-2026-06:PRODUCT.md`. The tag does not exist yet at G1, so use `origin/main`. Do the same for the critique file, into `$GN/ref/`.
+
+**Watch list:**
+- **The skip-if-branded line.** Did the follower stall on it, or on the brief's "Brand names: propose"? Expected fix (S): an "Uplift of an existing brand" paragraph covering what goes in References, that names may be fixed, and that the legacy values are run through `contrast.ts` first.
+- **The brief's copy.** It draws "Join this gathering", "Events" and "two gathering cards", the starter's nouns. customize-gathering has not run yet, so is the follower drawing "rounds" (an improvisation) or the literal text? Either way it is an order-dependence: design-direction runs before customize-gathering. Fix candidate: "use your vertical's nouns if you already know them; customize-gathering applies them later".
+- **No path from mark to PNG.** The skill's Artwork rows name files, but no skill renders them. This is the first time icon artwork is produced in the program; the report lists it as hand work. A one-line `rsvg-convert` note in §3 is a fix candidate.
+- **Shape.** The sheet has exactly eight token rows. The script prints 12 `ok` lines and exits 0. `npm view` prints a version for `@fontsource-variable/<font>` and `@expo-google-fonts/<font>`.
+- **Icon checks.**
+  - `sips -g hasAlpha "$GN/design/art/icon.png"` → `hasAlpha: no` (iOS rejects alpha).
+  - `sips -g pixelWidth -g pixelHeight` → 1024 each.
+- **Rules.** No direction proposes a second accent, a tinted card, or an accent tab. Reject any that does, under the skill's "What must not move".
+- `git -C "$WT" status --porcelain` is empty after the run: the follower edited nothing in `$WT`.
+
+**Expected:**
+- Two or three named directions on the Artifact, and Alex's pick recorded.
+- `$GN/design/brand-direction.md` with the contrast output pasted under its Colors table.
+- `$GN/design/art/` holding `icon.svg`, `icon.png`, `android-icon-foreground.svg`, `android-icon-foreground.png` and `favicon.ico`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G2: Repo prep [approve] (program manager; about 10 min)
+
+```bash
+git -C "$GOLF" fetch origin
+git -C "$GOLF" tag -a legacy-2026-06 -m "golf-with-me before its rebuild on withme-starter (2026-10)" origin/main
+git -C "$GOLF" rev-parse --short 'legacy-2026-06^{commit}'      # f35d6c3
+gh auth status 2>&1 | grep -i 'scopes'                           # record; 'workflow' needed at G11
+git -C "$GOLF" remote get-url origin                             # https://github.com/vibe-with-me/golf-with-me.git
+```
+
+**[approve]**, showing Alex the tag name, the commit, and the remote:
+
+```bash
+git -C "$GOLF" push origin refs/tags/legacy-2026-06
+git -C "$GOLF" ls-remote --tags origin 'legacy-2026-06*'         # the tag and its ^{} line pointing at f35d6c3…
+```
+
+**Read-only facts for G11** (record them; nothing changes):
+
+```bash
+gh pr list -R vibe-with-me/golf-with-me --state all --limit 5    # expect none: the repo never had a PR
+gh api repos/vibe-with-me/golf-with-me --jq '.private, .default_branch, .allow_merge_commit'   # true, main, true
+gh api repos/vibe-with-me/golf-with-me/branches/main/protection 2>&1 | head -1                  # likely 404 / not protected
+```
+
+If `allow_merge_commit` is `false`, ask Alex before G11: the merge needs a merge commit.
+
+Then the starter's objects, fetched from the local clone (no network to the starter):
+
+```bash
+STARTER_SHA=<from $GN/0-inputs.md>
+git -C "$GOLF" fetch "$STARTER" "+refs/remotes/origin/main:refs/remotes/upstream/main"
+test "$(git -C "$GOLF" rev-parse refs/remotes/upstream/main)" = "$(git -C "$STARTER" rev-parse "$STARTER_SHA")" && echo "upstream = STARTER_SHA"
+```
+
+If `origin/main` moved after G0, re-record `STARTER_SHA`, and note why it moved.
+
+**Expected:** the tag is on the remote at `f35d6c3`, `upstream = STARTER_SHA`, and the facts are recorded. No remote branch is touched.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G3: The fresh-tree commit, the skills sync, the baseline (program manager; about 15 min plus install)
+
+```bash
+TREE=$(git -C "$GOLF" rev-parse "$STARTER_SHA^{tree}")
+C1=$(git -C "$GOLF" commit-tree "$TREE" -p legacy-2026-06 -p "$STARTER_SHA" \
+  -m "Rebuild golf-with-me on withme-starter ${STARTER_SHA:0:7}" \
+  -m "The tree is withme-starter's at ${STARTER_SHA:0:7}, byte for byte; the legacy app stays on tag legacy-2026-06. The starter is the second parent, so later starter changes merge. This drops the legacy tree's tracked .supabase-demo-db-password and supabase/.temp/* (the old project is deleted after go-live) and apps/public (a later add-marketing-site)." \
+  -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>")
+git -C "$GOLF" worktree add -b rebuild "$G" "$C1"
+test "$(git -C "$G" rev-parse 'HEAD^{tree}')" = "$(git -C "$STARTER" rev-parse "$STARTER_SHA^{tree}")" && echo "tree = starter"
+git -C "$G" ls-files | grep -E '^\.supabase-demo-db-password$|^supabase/\.temp/|^apps/public/' | wc -l   # 0
+git -C "$G" log --oneline -1 --format='%h %p'                     # C1 with two parents: f35d6c3 and STARTER_SHA
+```
+
+Then:
+1. Commit the skills sync (ground rules) and tag it `pre-design-direction`.
+2. Install: `(cd "$G" && bun install)`. Per the memory note, a worktree needs its own install.
+3. Copy the env files from their examples: `cp -n apps/api/.dev.vars.example apps/api/.dev.vars`, and the same for the web and mobile `.env` files.
+4. Run a baseline gate in a granted window on the still-shared `withme-starter` stack. The fresh tree's `project_id` is `withme-starter`, so this resets the same stack `$WT` uses, with an identical schema: `bun run db:reset && bun run db:seed && bun run lint && bun run typecheck && bun run test`.
+
+The copied env files are deleted again before G4: make-it-yours copies them itself (`rm apps/api/.dev.vars apps/web/.env apps/mobile/.env`).
+
+**Expected:**
+- `tree = starter`, 0 legacy files, and C1 has two parents.
+- The gate is green at **db 73, contract 31, nfc 48**: Phase A's 72 plus `stack.test.ts` from PR #11. Record the actual numbers; they are golf's baseline.
+- `git -C "$G" status --porcelain` is empty.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G4: The design commit, then make-it-yours with the real `project_id` rename (literal; about 20–30 min)
+
+**Program manager first** (the design-direction commit):
+- `mkdir -p "$G/docs/brand"`.
+- Copy the sheet to `$G/docs/brand-direction.md`.
+- Copy the SVG sources to `$G/docs/brand/`. This is a fork choice: the scratch directory is deleted at the end, and the skill's "outside the repo" would lose them.
+- Restore `PRODUCT.md` from `legacy-2026-06`, editing only where it contradicts the direction (A4).
+- Commit `design-direction: <Direction name>` and tag `pre-make-it-yours`.
+- Rendered PNGs stay in `$GN/design/art/`; make-it-yours step 8 places them.
+
+**Follower brief:**
+
+> You are rebranding the rebuilt Golf with Me fork at `$G` (give the literal path). Start at `README.md`'s "Extending a fork", then follow `.agents/skills/make-it-yours/SKILL.md` literally, top to bottom, as if new to the codebase. Do not read `docs/superpowers/`. Do not open anything outside `$G`, except the artwork directory named below.
+>
+> Your inputs are in `docs/brand-direction.md` (Names, Colors, Fonts, Copy, Artwork). In addition:
+> - wrangler names `golfwithme-api` / `golfwithme-web`; `project_id = "golfwithme"`;
+> - fork repository URL `https://github.com/vibe-with-me/golf-with-me`;
+> - rebrand the seed identity to `*@demo.golfwithme.local` with password `golfwithme-demo-1`;
+> - no store URL: skip step 7 and say so;
+> - artwork files: `$GN/design/art/icon.png`, `android-icon-foreground.png` and `favicon.ico` (give the literal paths).
+>
+> Do every step except step 5 (EAS), which is done later, at go-live. Skip it and say so.
+>
+> Environment notes, which are not part of the skill:
+> - Run Playwright as `CI=1 bunx playwright test`.
+> - Run no command against a remote service (supabase link/projects/orgs, wrangler deploy/login, eas).
+> - The local Supabase stack is yours for this task, including stopping the running `withme-starter` stack where the skill says to stop the stack.
+> - Never remove Docker images or volumes.
+>
+> Log to `$GN/4-make-it-yours-r<k>.md`: START/END/PAUSE/RESUME stamps, every command and its trimmed output, and every deviation (the step, what the text says, what happened, what you did). Do not fix the skill. Finish with step 8's checks and the list of deviations.
+
+**Watch list:**
+- **Step 6, run for real for the first time** (P0.1's fixed text):
+  - `bun run db:stop` under `withme-starter` stops the shared stack;
+  - the rename follows;
+  - `db:start` brings up `supabase_db_golfwithme` on 553xx;
+  - then reset and seed.
+  - Checks: `docker ps --format '{{.Names}}' | grep -c '^supabase_db_golfwithme$'` prints `1`, and `grep -c supabase_db_withme-starter` prints `0`. Any port conflict or stall is a deviation of the fixed text.
+- **The `vibe-with-me` org in the step 8 sweep.** Expect two lines the skill calls unacceptable or does not list:
+  - `"owner": "vibe-with-me"` in `app.json`. Step 5 is deferred, and after G10 the same owner stays legitimately: the fork's EAS owner *is* the upstream org.
+  - The README badge `github.com/vibe-with-me/golf-with-me`: the fork lives in the upstream's GitHub org.
+
+  Expected fix (S): a "fork in the same org" filter, acceptable when `projectId` ≠ `cf56d2f1…` and the badge names the fork's repo.
+- **`golfwithme` contains `withme`.** The skill's extra filter (`grep -viE 'golfwithme|golf with me'`) must be found and used, at step 3 and step 8.
+- **Fonts.** The step 2 checkpoint holds for whatever the sheet names. If it keeps Archivo, Phase A's naming fixes apply.
+- **ENG-753.** The sheet's input border already passes 3:1 (`contrast.ts`), so step 1's "raise it until the fix lands" sentence should be a no-op. Record whether the follower raised it anyway.
+- **Step 8 artwork.** `icon.png` and the Android foreground replace the template files. Expect no `favicon` wiring (the web app ships none; `mkdir -p apps/web/public` for `favicon.ico`). `sips -g hasAlpha apps/mobile/assets/icon.png` → `no`.
+- **Reviewer checks after the run:**
+  - `git -C "$G" diff pre-make-it-yours --stat` touches no `supabase/migrations/`, `packages/db/test/` or `packages/contract/src/`.
+  - The token files are value-identical to the sheet: compare all 16 values by script.
+
+**Expected:**
+- The step 1, 3, 4, 6 and 8 checkpoints as the skill states them.
+- `bunx expo config --type public` shows `Golf with Me` / `golfwithme` / `co.golfwithme.app` (and the upstream owner and `projectId` until G10).
+- The gate is green at G3's counts.
+- The visual check shows the sheet's accent on "Join this gathering" and nowhere else, in the sheet's display face. The design-direction §4 checkpoint is the same check.
+
+**Then:** the deviation procedure. Commit `make-it-yours: golfwithme`, tag `pre-customize-gathering`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G5: customize-gathering, rounds and `course_name` (literal; about 15–25 min)
+
+**Follower brief:**
+
+> You are customizing the gathering in the Golf with Me fork at `$G`. Follow `.agents/skills/customize-gathering/SKILL.md` literally, §1 then §2, as if new to the codebase. Do not read `docs/superpowers/`; do not open anything outside `$G`.
+>
+> Inputs:
+> - nouns: singular "round", plural "rounds"; tab label `Rounds`;
+> - URL segment `/rounds`: web `_app.rounds.tsx` and `_app.rounds_.$id.tsx`, mobile `(tabs)/rounds.tsx` and `round/[id].tsx`;
+> - copy:
+>   - the create heading reads "Create a round" and its button "Create round";
+>   - the title field's label is "Round name", placeholder "e.g. Saturday dawn nine";
+>   - the start field's label is "Tee time" on web; on mobile the date field stays "Date" and the time field reads "Tee time";
+>   - the location field stays "Location (optional)", placeholder "Where to meet";
+>   - the members heading reads "Players";
+> - one new field `course_name`: text, required, at most 120 characters, form label "Course", shown on rows, on the detail header, and on the resolve summary. It is the skill's worked example; do not add it to the join preview's hints;
+> - seed: Ada's round has title "Saturday dawn nine", course "Pebble Creek GC", location "First tee". Rewrite the seed's console text in golf words.
+>
+> Environment notes: Playwright as `CI=1 bunx playwright test`. No remote services. The stack is yours. The seed identity is `*@demo.golfwithme.local` / `golfwithme-demo-1`.
+>
+> Log to `$GN/5-customize-gathering-r<k>.md` as before. Finish with the skill's closing gate: the verification gate from `docs/the-slice.md`, including the API e2e and Playwright.
+
+**Watch list:**
+- **The "Title" → "Round name" relabel is an order-dependence inside the skill.** §1 changes the label, while §2.7's Playwright grep is `grep -rn "getByLabel('Title')"`, so after the relabel it finds nothing. Expected fix (S): "the title field's label, or yours after §1".
+- **Copy the sweep cannot catch.** "Who's coming" → "Players" contains no "gathering". Expect a deviation and an addition to §1's "Copy the sweep cannot catch" list (web `_app.gatherings_.$id.tsx` line ~241, mobile `gathering/[id].tsx` line ~260).
+- **Mobile's two date fields.** The labels "Date" / "Tee time" are input, and §1's text knows nothing of them. Record any guess.
+- **The worked example, run exactly.** `courseWhenAndWhere()`; `gatheringLine()` reads "Title · Course · when · where"; the `42501` expectation in the anon test; the caller grep; `revoke … from public, anon`. Phase A's fixes should make this run clean. Every deviation here is a fresh one.
+- **The safety reviewer checks** as in Phase A Task 3 (no §3 mechanism touched; the 17 original tests changed only by the argument and the `42501` expectation; the summary carries `course_name` only).
+
+**Expected:**
+- §1: lint, typecheck, reset and seed, Playwright 14.
+- §2: db 74 (73 + the CHECK case); contract 32 or more (record it); nfc 48; `nfc-sdk` typecheck clean; `supabase.ts` has `course_name`; API e2e ends "handshake e2e: all checks passed", with the course checks; Playwright 14.
+
+**Then:** commit `customize-gathering: golfwithme`, tag `pre-extend-profile`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G6: extend-profile, card tier only, with one typed field (literal; about 45–75 min)
+
+**Follower brief:**
+
+> You are adding vertical profile fields to the Golf with Me fork at `$G`. Follow `.agents/skills/extend-profile/SKILL.md` literally, §1 to §9, as if new to the codebase. Do not read `docs/superpowers/`; do not open anything outside `$G`.
+>
+> Inputs. Both fields are **card tier**; this fork has **no connections-tier field**.
+> - `handicap`, label "Handicap", optional:
+>   - a WHS handicap index, stored as `numeric(3,1)` from −10.0 to 54.0, one decimal;
+>   - zod `HandicapSchema = z.number().min(-10).max(54).multipleOf(0.1)`, and the SQL CHECK `profiles_handicap_range` mirrors it;
+>   - a "plus" handicap is stored negative (+2.4 is stored as −2.4), but **no screen shows or accepts a minus sign**:
+>     - inputs accept `+2.4`, `2.4`, `12` or blank (blank clears);
+>     - every display prints `+2.4` for a stored −2.4 and `8.4` for 8.4;
+>     - a typed `-3` is refused;
+>   - put that rule in two pure functions in the contract, next to the schema: `parseHandicap(text: string): number | null | undefined` (`undefined` = refused) and `formatHandicap(value: number): string`, with contract tests. Both clients import them, as they import `isProfileComplete`.
+> - `home_club`, label "Home club", optional, 1–80 characters, CHECK `profiles_home_club_length`.
+> - The card line reads "HCP 8.4 · Pebble Creek GC". Show whichever parts are set.
+> - Required for completion: no field beyond what the starter already requires.
+> - Seed: Ada `8.4` and "Pebble Creek GC"; Lin `+1.2` and "Riverbend Muni".
+> - Test values: wherever the worked example writes `'E2E Club'`, use home club `'E2E Links'`; for `'Smoke Club'`, use `'Smoke Links'`.
+>
+> This fork has already run customize-gathering: gatherings are "rounds" at `/rounds`, mobile `round/[id].tsx`, and `create_gathering` takes a required `p_course_name`.
+>
+> Environment notes:
+> - Playwright as `CI=1 bunx playwright test`.
+> - §7's simulator pass: drive Expo Go with agent-device and simctl per `/Users/alexeisele/.claude/projects/-Users-alexeisele-dev-withme-starter/memory/ios-simulator-driving-technique.md`, not `expo start --ios`. Start Metro with `cd apps/mobile && bunx expo start --port 8081 --clear`, without `CI=1`.
+> - A known local issue, not a skill defect: a claimed card's SSR may hang in `vite dev`; restart `apps/web`'s dev server.
+> - No remote services. The stack is yours. Sign in only with the fork's seed identity, or with fresh `@rls.test` addresses on the local stack.
+>
+> Log to `$GN/6-extend-profile-r<k>.md` as before.
+
+**Watch list:**
+- **The card-only path, for the first time.** The skill says "Card-only: skip `details` everywhere, including `ConnectionSchema`", but the skip lines are spread across about 1,350 lines.
+  - Record every place the follower had to decide.
+  - Record what was left of `profile-fields.test.ts`: the count of card-tier tests against Phase A's 14.
+  - Do the `getProfile` / `updateProfile` outputs still gain `details`?
+- **No required vertical field.** The skill's gate, its test "completion needs every required field", and §8's "every profile-creating fill" all assume a required field (`affiliation`). Expected deviation: whether to install the gate with `['display_name']`, or to skip it. Fix candidate (S): one paragraph, "if no vertical field is required…".
+- **The typed field.** Deviations to expect:
+  - the forms post strings, so where does `parseHandicap` sit;
+  - what the mobile keyboard is (`numbers-and-punctuation`, because `decimal-pad` has no `+`);
+  - `numeric` in the generated types (`number`) and in `resolve_tag`'s jsonb (a JSON number);
+  - `isProfileComplete` accepting a non-string (already in the skill);
+  - the format-rule note not fitting a numeric field.
+
+  Record the minutes the typed field cost. T6 (tailgate's two text fields) is deferred, so the report compares them with Phase A's extend-profile run instead, and says the comparison is rough. Expected fix (S): a "Typed fields" paragraph next to "A field with a format rule".
+- **The plus convention, end to end.** API e2e or contract tests show `+1.2` ↔ −1.2. Lin's seeded card shows `+1.2`. `-3` is refused with the generic save error, or refused client-side; record which.
+- **Newest bodies.** `resolve_tag`'s newest is customize-gathering's migration, which carries `course_name`. `accept_connect_request`'s is `avatars`. Reviewer check: `grep -n course_name "$G"/supabase/migrations/*_extend_profile.sql` finds at least one hit, in `resolve_tag`.
+- **The safety reviewer checks** as in Phase A Task 4. There is no connections tier, so `profile_details` must not exist: `grep -c profile_details "$G"/supabase/migrations/*_extend_profile.sql` prints `0`, unless the follower built it, which is a deviation.
+
+**Expected:**
+- §1 contract green, record the count; §2 red first, then §3 green, record db.
+- The gate green; API e2e ends "all checks passed" with the new card-tier lines; Playwright 14.
+- §7's simulator checks pass.
+
+**Then:** commit `extend-profile: golfwithme`, tag `pre-add-destination-type`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G7: add-destination-type, link (literal; about 15–25 min)
+
+**Follower brief:**
+
+> You are adding a destination type to the Golf with Me fork at `$G`. Follow `.agents/skills/add-destination-type/SKILL.md` literally, §1 to §9, as if new to the codebase. Do not read `docs/superpowers/`; do not open anything outside `$G`.
+>
+> Input: the skill's worked example, unchanged: `{ type: 'link', url }`, https only, at most 2048 characters. No claim-UI change (the skill's scope note).
+>
+> This fork has already run customize-gathering (rounds, `course_name`) and extend-profile (card-tier `handicap` and `home_club`).
+>
+> Environment notes: as before. For §9's runtime check, you may provision a local tag with `bun run db:provision` from an output directory outside the repo, as the provision-tags skill describes, and claim it as a seed user. Keep every UID out of everything except your log.
+>
+> Log to `$GN/7-add-destination-type-r<k>.md` as before.
+
+**Watch list:**
+- **§2.** "latest definition in `20261008120000_add_gatherings.sql`" is still true after customize-gathering and extend-profile: neither touches `tags_destination_shape`. Confirm with `grep -l tags_destination_shape supabase/migrations/*`.
+- **§3.** `resolve_tag` is untouched. Reviewer check: `grep -c resolve_tag "$G"/supabase/migrations/*_add_link_destination.sql` prints `0`.
+- **§9's runtime check needs a tag claimed as a link, and the skill does not say how** (the claim UI only claims `profile`). Expected deviation: the follower uses an SDK script (`authed.claim`) or an owner's PostgREST update. Fix candidate (S): one sentence giving the path.
+- **The trap test.** The "rejects unknown destination types" specimen is swapped to an invented type.
+- `curl … /t/<UID>` prints `status=307 location=https://…`, and a profile tag still returns 200.
+
+**Expected:**
+- contract +4 or so (record it); db +2; `nfc-sdk` typecheck clean.
+- API e2e with "link destination round-trips through claim and resolve" and "all checks passed"; Playwright 14.
+
+**Then:** commit `add-destination-type: link`, tag `pre-provision-tags`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G8: provision-tags, local (literal; about 10 min)
+
+**Follower brief:** Phase A Task 5's brief, with:
+- `$G` as the checkout;
+- the identity `lin@demo.golfwithme.local` / `golfwithme-demo-1`;
+- the chip UID `04D00D00D00D07`;
+- the log `$GN/8-provision-tags-r<k>.md`;
+- "Do not open anything outside `$G` except your batch directory."
+
+**Watch list:**
+- `DB="supabase_db_golfwithme"`, read from the renamed `config.toml`: the first time the derivation meets a renamed `project_id`.
+- The batch lands under `$HOME/golfwithme-tags/` (the wordmark rule, d220c5c).
+- The claim as Lin shows her card with `+1.2 · Riverbend Muni`. That is the cross-skill check with G6's display rule.
+- Phase A's other checks: a signed-out viewer sees "Connect"; a stale claim gets "already claimed"; a brand-new account meets "First, your card", or no profile step at all if there is no required field. Record which.
+
+**Expected:** Phase A Task 5's outputs, plus §4's retirement. No commit (provisioning changes no files); tag `pre-gate`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G9: The full gate and the simulator pass (program manager or a verification subagent; about 30–40 min)
+
+**The gate.** Phase A Task 6's commands, from `$G`. Then the cross-skill checks:
+
+```bash
+grep -rniE --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} 'withme|vibe-with-me' apps/ packages/ supabase/ README.md \
+  | grep -v '@withme/' | grep -v '^supabase/migrations/' | grep -v '^packages/nfc-sdk/' | grep -viE 'golfwithme|golf with me'
+# expected: only app.json's owner (step 5 still deferred) and the README badge, if G4's sweep fix is not in yet
+grep -rn -i "'[^']*gathering[^']*'\|>[^<]*gathering[^<]*<" apps/web/src/routes apps/web/src/components apps/mobile/app apps/mobile/components --include='*.tsx' \
+  | grep -v "api\.app\.gatherings\|Gathering[A-Z]\|/gathering" | head          # identifiers only
+docker exec supabase_db_golfwithme psql -U postgres -tAc "select public.resolve_tag('04BBBBBBBBBBBB')::text" \
+  | grep -o '"course_name": *"[^"]*"\|"handicap": *[-0-9.]*\|"home_club": *"[^"]*"'   # course, 8.4, Pebble Creek GC
+```
+
+**The simulator pass**, as in Phase A Task 7: iPhone 17 Pro, Expo Go, Metro and the API from `$G`. Screenshots to `$GN/9-sim-*.png`.
+
+1. **Brand.** The wordmark `golfwithme` in the sheet's display face. Tabs Rounds / Connections / Profile (no Merch unless there is a store). The accent only on primary actions. The new icon is not visible in Expo Go; say so.
+2. **Handicap.**
+   - A new `@rls.test` account saves `+2.4` and sees `+2.4` on its card.
+   - `-3` is refused.
+   - `54.1` is refused.
+   - Blank clears the field.
+   - Lin's card shows `+1.2`.
+3. **Rounds.**
+   - Create "Sunday nine" with Course "Riverbend Muni".
+   - The row and the header show the course.
+   - Point the tags at the round.
+   - The tag opened signed out shows the title, the course and the tee time.
+   - The heading reads "Players".
+4. **Cold Join.** Signed out, Join leads to sign-up, then to "Join this round?", and Join completes.
+5. **Link.** A tag claimed as a link (from G7's method) opened at `exp://127.0.0.1:8081/--/t/<uid>` hands off to Safari with the URL. Coming back shows the "Open link" card.
+6. **Provisioned tag.** A fresh local tag lands on "Claim this tag".
+7. **Critique recheck** (G0's list, live): the malformed `/t/banana` gets a calm card on web and mobile; the tap moment shows a loading card; the resolver shows the wordmark footer.
+
+**Expected:** the gate is green and its counts are recorded; the sweep prints only the expected lines; checks 1–7 pass. Any failure goes through the deviation procedure, and G10 does not start until all are green. Write `$GN/9-gate-sim.md`.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G10: go-live, step by step (Alex present; about 60–90 min; a dedicated terminal tab)
+
+The follower is the program manager: go-live is approval-gated throughout, so it is not a fresh subagent. Read `.agents/skills/go-live/SKILL.md` literally and log against it in `$GN/10-go-live.md`. Every **[approve]** shows Alex exactly what the next command creates, and waits. Deploy from `rebuild` HEAD and record that sha.
+
+0. **Pre-flight** (read-only):
+   - `env | grep -cE 'SUPABASE_SERVICE_ROLE_KEY|CLOUDFLARE_ACCOUNT_ID'` prints `0`.
+   - `supabase orgs list` shows "Golf With Me"; record its id.
+   - `supabase projects list` shows `oszinjbbwzztqeqkhoof` paused.
+   - `bunx wrangler whoami` lists three accounts; record the "Golf With Me" account id.
+   - `bunx eas-cli whoami` names Alex's user, a member of `vibe-with-me`.
+   - If any login fails: PAUSE, and Alex logs in.
+1. **[approve] make-it-yours step 5, linking the existing EAS project** (a fork-specific deviation from the step's "creates a fresh project"). In `$G/apps/mobile`:
+   - Remove `extra.eas.projectId` and `updates.url` (keep `"owner": "vibe-with-me"`).
+   - Run:
+
+     ```bash
+     bunx eas-cli init --id 6a004be3-f3b4-4ec5-be7d-ff58a61fc77a --non-interactive
+     bunx eas-cli update:configure --non-interactive
+     bunx eas-cli project:info            # @vibe-with-me/golfwithme, ID 6a004be3-…
+     ```
+
+   - Checkpoint: `bunx expo config --type public` shows owner `vibe-with-me`, `projectId` `6a004be3-…` (≠ `cf56d2f1-…`), and `updates.url` ending in it.
+   - Commit `make-it-yours (step 5): link @vibe-with-me/golfwithme`.
+   - Watch: go-live §4.1's `eas-cli init --non-interactive --force`. Run it after the link and record whether it is a no-op. That is the step 5 / §4.1 overlap carried over from Phase A.
+2. **[approve] go-live §1 in "Golf With Me":**
+   - The password file `$HOME/.config/golfwithme/supabase-db-password` (0600).
+   - `supabase projects create golfwithme --org-id <golf org id> --region us-east-1 --db-password "$DB_PASS"`.
+     - **If it fails on the free-project limit:** stop and ask Alex (answered 2026-10-13: proceed, stop at the first limit error).
+   - Wait until `supabase projects list` shows it healthy.
+   - Then `link` and `db push`, through `SUPABASE_DB_PASSWORD`.
+   - Checkpoint: `db push` lists **seven** migrations (the starter's four, plus course name, extend profile, link destination) and ends `Finished supabase db push`.
+   - **Alex:** in the dashboard, Storage: `avatars` is public, 1 MiB, JPEG/WebP.
+   - Run the key fetch from the `$G` root. Checks: `ls -l .env.demo-seed` shows `-rw-------`; `git -C "$G" check-ignore .env.demo-seed` prints the path; `env | grep -c SUPABASE_SERVICE_ROLE_KEY` prints `0`.
+3. **[approve] the production seed**, in the skill's subshell. It creates the demo identity, Ada's round, and the demo tags.
+   - The unclaimed `04AAAAAAAAAAAA` stays for the demo. provision-tags says to claim or delete it before real users arrive, and the report carries that as an open item.
+4. **Cloudflare account pin** (a fork-specific deviation, and a go-live gap):
+   - Add `"account_id": "<Golf With Me id>"` to `apps/api/wrangler.jsonc` and `apps/web/wrangler.jsonc`.
+   - `bunx wrangler deploy --dry-run` in each app is green.
+   - Commit `go-live: pin the Golf With Me Cloudflare account`.
+   - **Alex:** read out the account's workers.dev subdomain `<gsub>` from the dashboard, registering one if the account has none. `<gsub>` must not be `vibe-with-me`.
+   - Expected fix (S): go-live §2 gains "if `wrangler whoami` lists more than one account, pin `account_id` in both configs before the first deploy", plus the subdomain note.
+5. **[approve] go-live §2, the API Worker:**
+   - `cd apps/api && bunx wrangler deploy`, retrying on 5xx.
+   - The printed URL must be `https://golfwithme-api.<gsub>.workers.dev`. **If it is on `vibe-with-me.workers.dev`, stop:** the wrong account was used.
+   - The secrets subshell, with `CORS_ORIGIN=https://golfwithme-web.<gsub>.workers.dev`. `bunx wrangler secret list` names the three.
+   - Checkpoints:
+     - `curl -s https://golfwithme-api.<gsub>.workers.dev/health` returns `{"ok":true}`;
+     - an anonymous SDK resolve of `04BBBBBBBBBBBB`, as a throwaway `bun -e` run from `$G/apps/api` so `@withme/nfc` resolves, with nothing written to the tree: `claimed`, Ada's card with `handicap` 8.4 and her home club, and the gathering summary with `course_name`.
+6. **[approve] go-live §3, the web Worker:**
+   - `apps/web/.env.production`: the API URL, the Supabase URL, the publishable key, and `VITE_DEMO_CREDENTIALS=ada@demo.golfwithme.local / golfwithme-demo-1` (answered 2026-10-13: seed production and show the demo credentials). No store.
+   - `bun run build && bunx wrangler deploy` → `https://golfwithme-web.<gsub>.workers.dev`.
+   - Checkpoints, with the bodies checked in Python:
+     - `/` returns 200 with `golfwithme`;
+     - `/t/04BBBBBBBBBBBB` returns 200 with Ada's card and the course (this proves the service binding);
+     - `/t/banana` returns a calm card, not a 500.
+   - **Alex:** in the Supabase dashboard, Authentication → URL Configuration:
+     - Site URL `https://golfwithme-web.<gsub>.workers.dev`;
+     - Redirect URLs `https://golfwithme-web.<gsub>.workers.dev/**`.
+
+     go-live does not have this step and README's Deploy step 2 does. Expected fix (S): add it to go-live §3 with the dashboard path.
+   - **Alex:** run `$GN/authed-check.ts`, which Claude writes. It signs in as the demo user with supabase-js and the publishable key, then calls the app router's `profile.get`, so it exercises JWKS.
+   - **Alex:** a throwaway sign-up on the live site, with an address that can confirm. The default SMTP delivers only to org members. Record the host the confirmation link points at: the workers.dev origin, not `localhost:3000`. Then Profile → Account → Delete account succeeds. If it fails with `permission denied for table users`, stop.
+7. **[approve] go-live §4, mobile:**
+   - `apps/mobile/.env.production`: the `EXPO_PUBLIC_*` mirrors.
+   - `bunx eas-cli update --branch demo --environment production --message "golfwithme rebuild <sha>" --non-interactive` prints the update group.
+   - The export check: `NODE_ENV=production bunx expo export --platform ios --no-bytecode --output-dir "$GN/verify-export"`. The production URLs are present; `localhost:8786` and `127.0.0.1:55321` are absent.
+   - Optional, **Alex:** expo.dev → the project → Updates → the group → Preview, opened in Expo Go on his phone.
+   - Note for the report: no build exists for this runtime and channel, so the export check is the automated mobile checkpoint, as in go-live.
+8. **No production provisioning.** There is no custom domain, and provision-tags rule 6 forbids encoding a `workers.dev` origin.
+9. **Record:**
+   - the deployed sha;
+   - the three URLs (the API Worker, the web Worker, and the EAS update group's link);
+   - the project ref;
+   - every checkpoint's result;
+   - the minutes, with the PAUSEs.
+
+   Afterwards, `env | grep -c SUPABASE_` prints `0` in the tab.
+
+Deviations go through the procedure. Re-running a production step needs a new approval. By default, the text is fixed and the step is recorded "not re-run against production".
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G11: The golf PR and merge (program manager; about 30–60 min including CI)
+
+1. **Final skill sync** if `$WT` moved. Then the full gate from `$G`, with the counts unchanged since G9 apart from the sync, plus:
+   - `git -C "$G" log --oneline legacy-2026-06..rebuild --first-parent`, which lists commit 1, the syncs, and one commit per skill;
+   - `git -C "$G" diff --stat <deployed sha> HEAD`, which shows only skill texts, if anything.
+2. **Push readiness.** `gh auth status` shows the `workflow` scope (commit 1 changes `ci.yml`). If it does not, Alex runs `gh auth refresh -h github.com -s workflow`, or the push goes over SSH (`git@github.com:vibe-with-me/golf-with-me.git`).
+3. **[approve]** `git -C "$G" push -u origin rebuild`, then the PR:
+   - command: `gh pr create -R vibe-with-me/golf-with-me --base main --head rebuild --title "Rebuild Golf with Me on withme-starter, live" --body-file "$GN/pr-body.md"`;
+   - body: why (A1); the tree check (`tree = starter`); the commit list; the brand direction and its contrast output; the inputs; the gate counts; the simulator results; the go-live URLs and checkpoints; what was dropped (A4); the legacy tag; the line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+4. **Review.** The diff is the whole tree, so CodeRabbit may skip it for size. The review covers the per-skill commits: `superpowers:requesting-code-review` over `pre-make-it-yours..rebuild`, because commit 1 is verified by its tree hash.
+   - Wait about 15 min for CodeRabbit. Record whether it reviewed.
+   - Handle the findings with `superpowers:receiving-code-review`.
+5. **Merge.** Once CI is green and CodeRabbit is clean (or, if it does not review this repo, once Alex agrees): `gh pr merge <n> -R vibe-with-me/golf-with-me --merge`. Then `git -C "$GOLF" fetch origin` and `git -C "$GOLF" log --oneline -1 origin/main`, which shows the merge commit.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+### G12: Teardown and local cleanup (Alex for the deletes; about 15 min)
+
+**Alex** (permanent; Claude prints the exact list and verifies afterwards):
+- `supabase projects delete oszinjbbwzztqeqkhoof`, or in the dashboard. This retires the database password in the legacy history.
+- The legacy workers in the account behind `vibe-with-me.workers.dev`, once the new ones are verified (answered 2026-10-13). With that account selected, per command: `bunx wrangler delete --name golfwithme-public`, then `golfwithme-web`, then `golfwithme-api`.
+- Optional: the legacy local volumes, `docker volume ls --format '{{.Name}}' | grep golf-with-me`, then `docker volume rm …`.
+
+**Claude:**
+
+```bash
+(cd "$G" && bun run db:stop)                                   # the golfwithme stack; volumes kept (use --no-backup only if Alex wants them gone)
+rm -f "$G/.env.demo-seed"                                      # refetchable with `supabase projects api-keys`; the password file in $HOME/.config/golfwithme stays
+rm -rf "$HOME/golfwithme-tags"                                 # local encode lists (G8, G9)
+git -C "$GOLF" tag -l 'pre-*' | xargs -n1 git -C "$GOLF" tag -d
+(cd "$WT" && bun run db:start && bun run db:reset && bun run db:seed)   # withme-starter back
+docker ps --format '{{.Names}}' | grep -c '^supabase_db_withme-starter$'  # 1
+lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(8786|3000|8796|9456|3010|8081) '  # nothing
+```
+
+After the merge: `git -C "$GOLF" worktree remove "$G"`. The `.env.production` files go with it; a redeploy writes them again.
+
+Optional, with Alex's yes: fast-forward the main checkout, `git -C "$GOLF" merge --ff-only origin/main && (cd "$GOLF" && bun install)`. It deletes the working-tree copy of `.supabase-demo-db-password`, which is harmless once the project is gone.
+
+**Verify:**
+- `supabase projects list` has no `oszinjbbwzztqeqkhoof`.
+- `curl -s -o /dev/null -w '%{http_code}\n' https://golfwithme-web.vibe-with-me.workers.dev/` is not 200, if the legacy workers were deleted.
+- The new URLs still answer 200.
+
+**Done YYYY-MM-DD.** (to write)
+
+---
+
+## Phase B″: tailgate-with-me
+
+**Deferred 2026-10-13: tailgate will be rebuilt around real sporting events once Alex decides how to source event data; not part of this milestone.**
+
+The T sections below are the 2026-10-12 draft, kept for that later run. They predate the decision: they model a tailgate as a free-form gathering with no event data (T5 adds no field), and they assume A6's mapping and the unconfirmed EAS project `fe37d421-…`. Their "open question" references point to the 2026-10-12 list, which "Answered 2026-10-13" replaced. Expect T0, T1, T5 and T6 to be rewritten, and the stack and approval steps to be re-checked, before any of it runs.
+
+Each T task is its G twin with the substitutions below: `$T` and `$TN`, the names from A6, and the "Tailgate With Me" org, account and EAS project. Every Follower brief is written out in full from the G brief, with its inputs swapped. It never says "as golf did". Only the differences are listed here.
+
+### T0: Inventory → inputs sheet
+
+The same as G0, plus:
+- `git -C "$TAIL" rev-parse --short origin/main` prints `47dc022`.
+- The worktrees: main, `naming-cheer-tailgate-9859b4` (detached), and `staging-mobile-build-deploy-ce5652`. All untouched.
+- Tracked strays: `supabase/.temp/cli-latest` only.
+- `app.json` has no `owner`, `projectId` or `updates`.
+- Read-only from the staging worktree: `apps/mobile/app.json` shows `projectId` `fe37d421-…` and owner `vibe-with-me` (uncommitted). Alex confirms it in open question 7.
+- `supabase/.temp/project-ref` there names `wntdmgxmrinagmqrefpt`.
+- **The legacy palette sheet:** warm neutrals, ember `#c4220c` / `#ff5c33`, Oswald + Inter. The ninth token `accent-hover` is left out of the table and noted.
+- **The commit map:**
+
+  | Legacy commit | Rebuild |
+  | --- | --- |
+  | `f17c92c` rebrand | T1 + T4 |
+  | `a211693` link | T7 |
+  | `92d2aeb` team and dish | T6 |
+  | `f44546b` Tailgates | core + T5 |
+  | `9233943` fulfillment, calm states, demo | core + T8 |
+  | `01e5528` card polish ("identity hierarchy, tailgate block, states") | a static check: where the polish changed layout, it is not carried (design-direction varies look, not structure); list it as a fork follow-up candidate |
+  | `3c09c89` dedicated ports | dropped (A8) |
+  | `39cfab5` `apps/public` | dropped (A4) |
+  | `47dc022` `docs/DEPLOY.md` | go-live; its Auth-URL and SSH notes go into T10 and the go-live fixes |
+
+- **Legacy workers.** `docs/DEPLOY.md` was never executed (the README has an `example.workers.dev` URL). Alex confirms whether any `tailgatewithme-*` workers exist in any account.
+- **Inputs:**
+  - the seed identity `*@demo.tailgatewithme.local` / `tailgatewithme-demo-1`;
+  - seed values: Ada "Chiefs" / "Burnt-end chili"; Lin "Eagles" / "Smoked queso"; Ada's tailgate "Lot C before the Chiefs game", location "Lot C, row 12";
+  - the repo `https://github.com/vibe-with-me/tailgate-with-me`.
+
+### T1: design-direction, an uplift
+
+G1's brief, with these inputs:
+- **Vertical:** "Tailgaters in a stadium lot before kickoff: a stranger taps your tag and sees your card (team, signature dish), or joins the tailgate your tag points at, loud, one-handed, in sunlight, on stadium Wi-Fi."
+- **Mood:** "ember, asphalt, kickoff".
+- **Names, fixed:** `tailgatewithme` / `Tailgate with Me`.
+- **References:**
+  - `PRODUCT.md` ("Loud crowd, calm app"; the anti-references);
+  - the legacy palette;
+  - Oswald and Inter;
+  - the legacy icon set (`apps/mobile/assets/icon.png`: a white rounded-square outline with a center dot, on ember).
+- **Icon rule:** keep the mark (the skill copies a logo, it never redraws one). If the chosen accent changes, re-draw the same geometry as `icon.svg` in the new accent and render it as in G1. The legacy Android foreground is 512 px; the new one is 1024.
+- **The legacy ninth token:** say in "Not this" that `accent-hover` is dropped: eight tokens only.
+
+**Watch, in addition to G1's:**
+- Does the brief's "eight token values" collide with the legacy nine?
+- Is the copied mark treated as a logo (not redrawn by an artboard)?
+
+### T2: Repo prep [approve]
+
+G2 with `$TAIL`, the tag at `47dc022`, and `vibe-with-me/tailgate-with-me`. The same read-only facts.
+
+### T3: Fresh tree, sync, baseline
+
+G3 with `$T`.
+- `STARTER_SHA` is `origin/main` at T3. It may differ from golf's if the starter merged app fixes in between; record it and say why.
+- The removed-file check is `supabase/.temp/cli-latest` and `apps/public/`, so 0 remain.
+- The baseline counts are recorded.
+
+### T4: Design commit + make-it-yours (with the rename)
+
+G4 with these differences:
+- `project_id = "tailgatewithme"`; workers `tailgatewithme-api` / `-web`; seed identity `*@demo.tailgatewithme.local` / `tailgatewithme-demo-1`; the artwork from T1; no store.
+- **The stack.** The program manager re-confirms that `withme-starter` is free. Step 6 stops it again, since G12 restarted it.
+
+**Watch:** the brand filter `tailgatewithme|tailgate with me`, and the same `vibe-with-me` sweep lines. If G4 fixed the sweep, this checks the fix.
+
+### T5: customize-gathering, nouns only (§1)
+
+**Brief inputs:**
+- nouns "tailgate" / "tailgates"; tab `Tailgates`;
+- the URL `/tailgates`: web `_app.tailgates.tsx` and `_app.tailgates_.$id.tsx`, mobile `(tabs)/tailgates.tsx` and `tailgate/[id].tsx`;
+- the create heading "Host a tailgate", its button "Host tailgate";
+- "Title", placeholder "e.g. Lot C before the Chiefs game";
+- start label "Kickoff for the lot" on web; on mobile, "Date" and "Kickoff";
+- "Location (optional)", placeholder "e.g. Lot C, row 12";
+- the members heading "Crew";
+- **no new field**;
+- seed title, location and console text in tailgate words.
+
+**Watch:**
+- **The nouns-only path.** Does the follower know to stop after §1? The skill's closing gate sits at the end of §2. Expected fix (S): "a fork with no new field stops after §1's checkpoint and runs the verification gate".
+- "Who's coming" → "Crew", and "Create a gathering" → "Host a tailgate". The heading is caught by the sweep; the members heading is not (see G5).
+- The seed's `p_title` and `p_location` are edited without §2.2. §1's "Copy the sweep cannot catch" covers them.
+
+**Expected:**
+- db, contract and nfc counts unchanged from T3's baseline;
+- Playwright 14, with URL assertions on `/tailgates`;
+- API e2e "all checks passed".
+
+### T6: extend-profile, card tier only, two text fields
+
+**Brief inputs:**
+- `team` ("Team") and `signature_dish` ("Signature dish"): card tier, optional, 1–80, with CHECKs `profiles_team_length` / `profiles_signature_dish_length`;
+- the card line "Chiefs · Burnt-end chili";
+- no connections tier;
+- no required field beyond the starter's (or per open question 2);
+- seed Ada "Chiefs" / "Burnt-end chili", Lin "Eagles" / "Smoked queso";
+- test values: `'E2E Club'` → team `'E2E Crew'`; `'Smoke Club'` → `'Smoke Crew'`.
+
+**Watch:** the card-only path a second time, with any G6 skill fixes in. These are the worked example's own shapes (text, length CHECK), so this is the cleanest data point. The report compares T6's minutes with G6's to price the typed field.
+
+### T7: add-destination-type, link
+
+G7 with `$T`. If G7 fixed the §9 claim-as-link sentence, this checks the fix.
+
+### T8: provision-tags, local
+
+G8 with:
+- the identity `lin@demo.tailgatewithme.local` / `tailgatewithme-demo-1`;
+- the chip UID `04D00D00D00D09`;
+- `DB=supabase_db_tailgatewithme`;
+- batches under `$HOME/tailgatewithme-tags/`;
+- the claim showing "Eagles · Smoked queso".
+
+### T9: Gate and simulator
+
+G9 with:
+- the brand filter `tailgatewithme|tailgate with me`;
+- the container `supabase_db_tailgatewithme`;
+- the resolve grep `'"team": *"[^"]*"\|"signature_dish": *"[^"]*"'`.
+
+**Simulator** checks 1, 3, 4, 5, 6 and 7, with check 2 replaced: Team and Signature dish save and show on the card. The members heading reads "Crew". The join preview reads "Join this tailgate?".
+
+### T10: go-live
+
+G10 with:
+- the org "Tailgate With Me";
+- the project `tailgatewithme`, password file `$HOME/.config/tailgatewithme/`;
+- the Cloudflare account "Tailgate With Me", subdomain `<tsub>`, workers `tailgatewithme-api` / `-web`;
+- `VITE_DEMO_CREDENTIALS=ada@demo.tailgatewithme.local / tailgatewithme-demo-1`.
+
+**EAS:**
+- `app.json` has no `owner` (the legacy fork removed it, and the fresh tree carries the starter's `vibe-with-me` owner, which is the right one).
+- `bunx eas-cli init --id fe37d421-0732-4fb3-90ed-e78263f519c9 --non-interactive` → `@vibe-with-me/tailgatewithme`.
+- If Alex finds no such project (open question 7): **[approve]** the literal step 5 instead. Set `owner` to `vibe-with-me` first, so `eas init` does not land the project under the personal account.
+
+**Checkpoint:** the resolve shows `team` and `signature_dish`; `/t/04BBBBBBBBBBBB` shows Ada's card and her tailgate.
+
+### T11: The tailgate PR and merge
+
+G11 with `vibe-with-me/tailgate-with-me`, titled `Rebuild Tailgate with Me on withme-starter, live`.
+
+### T12: Teardown
+
+G12 with these deletes:
+- the staging project `wntdmgxmrinagmqrefpt` (Alex);
+- any legacy `tailgatewithme-*` workers T0 found (Alex);
+- the `tailgate-with-me` volumes, optional (Alex);
+- the stack stopped, `withme-starter` restarted, tags deleted, the worktree removed after the merge (Claude).
+
+The staging worktrees stay as they are (A4).
+
+---
+
+## Phase C (revised): the report
+
+### Task 11 (revised): The acceptance report
+
+**File:** `$WT/docs/superpowers/reports/<YYYY-MM-DD>-proof-run.md`. The sections of the original Task 11, extended:
+
+1. **Verdict.** Is a derivation "no longer barebones"? The evidence now includes a real product, rebuilt and live.
+2. **The forks.**
+   - Run Club (Phase A, local, throwaway).
+   - Golf with Me (rebuilt and live): the inputs, `STARTER_SHA`, the legacy tag, the chosen direction with its Artifact link, and the PR link.
+   - Tailgate with Me: one line, deferred 2026-10-13 until the sporting-event data source is decided.
+3. **Timings.** One table per fork: a row per run, wall minutes and minutes minus pauses, the deviations, and the fix commit. Clean-path totals per fork.
+   - Comparisons:
+     - G6 against Phase A's extend-profile run, a rough price of a typed field (the cleaner T6 comparison is deferred with tailgate);
+     - customize-gathering with a field, golf against Run Club;
+     - first-time skills (design-direction, add-destination-type, go-live);
+     - Alex's time (all PAUSE) as its own column.
+4. **Deviations and fixes**, per skill across the two forks, each classed S, F, A or E.
+5. **Order-dependence.** Phase A's list plus anything new: design before customize-gathering's nouns, the relabel against §2.7's grep, card-only extend-profile after a gathering field, link after extend-profile. Then the recommended order: design-direction → make-it-yours → customize-gathering → extend-profile → add-destination-type → provision-tags → gate and simulator → go-live.
+6. **What a derivation gets free, and what was hand work.**
+   - Free: Phase A's list.
+   - Hand work: icon rendering, the EAS link, the Cloudflare account pin, the Auth URLs, the workers.dev subdomain, `PRODUCT.md`, the handicap convention.
+   - Still not covered: SMTP, a custom domain, physical encoding, EAS builds and store submission, the marketing site, `release.yml` in a fork, and the unclaimed demo tag in production.
+7. **Known issues.** ENG-750, -751, -752, -753 and -754, and any new issues, with where each one bit.
+8. **Go-live.** Golf: each checkpoint, the URLs, the cost incurred (expected $0), the teardown of the old project and workers, and the Auth Site URL finding. The superseded Run Club options are named in one line.
+9. **Not covered.** `readTagUid` on a physical chip; encoding; app-store builds; multi-tenant; add-marketing-site; golf's legacy staging branch (the tab bar, EAS staging builds); the tailgate rebuild (deferred).
+
+Commit `Docs: the proof-run report (milestone 5)`.
+
+### Task 12 (revised): Program status and the spec pointer
+
+As originally written. Status also links the golf PR and its live URLs, and notes tailgate as deferred.
+
+---
+
+## Phase D (revised): the M5 PR
+
+### Task 13 (revised): Cleanup
+
+```bash
+for d in "$S"/proof-runclub*; do rm -rf "$d"; done                      # Phase A's clones
+rm -rf "$HOME"/withme-tags/local-* "$HOME"/runclub-tags 2>/dev/null     # Phase A's encode lists, if any remain
+docker ps --format '{{.Names}}' | grep -c '^supabase_db_withme-starter$'   # 1 (restored at G12)
+docker ps --format '{{.Names}}' | grep -c '^supabase_db_golfwithme$'       # 0
+lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(8786|3000|8796|9456|3010|8081) '   # nothing
+xcrun simctl shutdown all
+```
+
+- Keep `$NOTES` until the PR body is written (Task 14), then delete it. Delete `$GN/design/art/` with it: the sources are in the fork's `docs/brand/`.
+- `git -C "$GOLF" worktree list` shows only main and the untouched staging worktree.
+
+### Task 14 (revised): Gate, push, PR
+
+As originally written, with these changes:
+- `git diff --name-only origin/main...HEAD` lists `.agents/skills/**` and `docs/**` only.
+- The PR body gains:
+  - the golf PR and live URLs;
+  - golf's timing table;
+  - the design direction;
+  - the go-live outcome;
+  - Alex's list as it actually ran;
+  - one line on the tailgate deferral.
+
+### Task 15 (revised): Review, merge, report
+
+As originally written, with these changes:
+- **Linear:**
+  - ENG-748 Done;
+  - the golf rebuild issue Done, with its PR link;
+  - ENG-749 gains A1–A11 and Alex's answers, including the tailgate deferral;
+  - the P-ENG-39 status update.
+- **Memory notes:**
+  - update the app-shell direction note's resume point, naming the tailgate deferral;
+  - add a technique note (fork rebuild mechanics, a two-parent commit 1, `eas init --id`, the wrangler account pin, the workers.dev subdomain, the Auth Site URL);
+  - add golf's live URLs and project ref to a project memory.
+
+---
+
+### Time budget (estimates; the logs give the real ones)
+
+| | Golf |
+| --- | --- |
+| Inventory | 20 min |
+| design-direction | 30 min + Alex |
+| Repo prep + fresh tree + baseline | 30 min |
+| make-it-yours | 20–30 min |
+| customize-gathering | 15–25 min |
+| extend-profile | 45–75 min |
+| add-destination-type | 15–25 min |
+| provision-tags | 10 min |
+| Gate + simulator | 30–40 min |
+| go-live (Alex present) | 60–90 min |
+| PR + merge | 30–60 min |
+| Teardown | 15 min |
+| **Total** | **about 6–8 h wall**, about 2 h of it Alex's |
+
+Cost: $0 expected, on the free plans everywhere. If `supabase projects create` hits the free-project limit, the run stops and asks (answer 1 below).
+
+---
+
+### Answered 2026-10-13
+
+Alex accepted every default, and deferred tailgate.
+
+1. **Supabase free-project headroom.** Proceed; stop at the first `projects create` limit error and ask.
+2. **Required for completion.** None: `handicap` and `home_club` are optional, and the follower meets the skill's no-required-field gap.
+3. **Handicap.** `numeric(3,1)`, a plus handicap stored negative, with the plus shown and no minus on any screen (`parseHandicap` / `formatHandicap`).
+4. **Store URLs.** None: no Merch tab, no "Get tags" link; make-it-yours step 7 is skipped.
+5. **Production demo data.** Seed production and show the demo credentials on the landing page. No SMTP; SMTP is an open item in the report.
+6. **Golf's legacy workers.** Alex deletes `golfwithme-api`, `-web` and `-public` on `vibe-with-me.workers.dev` after the new ones are verified (G12).
+7. **Golf's old Supabase project.** Alex deletes `oszinjbbwzztqeqkhoof` after go-live (G12).
+8. **Commit 1's shape.** Two parents: `legacy-2026-06` first, the starter sha second.
+9. **Tailgate.** Deferred: it will be rebuilt around real sporting events once Alex decides how to source event data. The tailgate EAS project question (`fe37d421-…`) returns with that run. Batching (A11) no longer applies.
