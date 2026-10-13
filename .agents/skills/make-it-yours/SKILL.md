@@ -230,18 +230,23 @@ names no brand, so there only the title and badge change):
 **Wordmark treatment.** Set the weight and tracking from the sheet's
 Wordmark row, the same on web and mobile. Case is the wordmark string
 itself (above); add no `text-transform`. Web: the `.wordmark` rule in
-`apps/web/src/styles/app.css` (the AppShell header link and the landing
-`<h1 className="wordmark">`; `.shell-header .wordmark` sets only size).
+`apps/web/src/styles/app.css` (the AppShell header link, the landing
+`<h1 className="wordmark">`, and the resolver footer;
+`.shell-header .wordmark` sets only size).
 The landing h1 also matches `.card h1` (weight 600), which outranks
 `.wordmark`: write the selector as `.wordmark, .card h1.wordmark`.
+The resolver footer (`WordmarkFooter` in `apps/web/src/routes/t.$uid.tsx`)
+ships without the class, so it renders in body type: give its link
+`className="wordmark"` (`<Link to="/" className="wordmark">`). It keeps
+its own size and takes the sheet's face, weight and tracking.
 Mobile: `styles.wordmark` in `apps/mobile/components/Header.tsx`, the
 only mobile wordmark. Mobile fonts are static weights: add a
 `wordmark` key to the `fonts` map in `apps/mobile/lib/tokens.ts` naming
 the nearest weight the package exports (a half step rounds down: 750 →
 `Archivo_700Bold`), load it in `_layout.tsx`'s `useFonts` (step 2), and
 set `letterSpacing` to the tracking in em times the `fontSize`
-(-0.035em at 20 → -0.7). The other marks (login hint, CalmStates and
-resolver footer links) render in body type; leave them.
+(-0.035em at 20 → -0.7). The other marks (the login hint and the
+CalmStates links) render in body type; leave them.
 
 **Caution:** if you also rewrite *action* copy (button labels like
 "Connect", "Claim tag", "Accept", the "Name" field label), the Playwright
@@ -262,8 +267,9 @@ upstream attribution link, those are the only acceptable matches), and
 `grep -n nfcPermission apps/mobile/app.json` shows your new copy.
 If your new brand itself contains the string `withme` (e.g.
 `golfwithme`), this and every later brand sweep needs an extra filter
-for your own strings — `| grep -viE 'golfwithme|golf with me'` — the
-checkpoints are about OLD-brand residue, not the substring.
+for your own strings — `| grep -viE '<wordmark>|<display name>'`, e.g.
+`| grep -viE 'golfwithme|golf with me'` — the checkpoints are about
+OLD-brand residue, not the substring.
 `app.json` is deliberately NOT in the bulk grep here — its remaining
 `withme` values (name/slug/scheme/bundle ids) are step 4's job; the
 final sweep in step 8 catches everything.
@@ -391,10 +397,15 @@ grep -rniE --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
   'withme|vibe-with-me' apps/ packages/ supabase/ README.md \
   | grep -v '@withme/' \
   | grep -v '^supabase/migrations/' \
-  | grep -v '^packages/nfc-sdk/'
+  | grep -v '^packages/nfc-sdk/' \
+  | grep -viE '<wordmark>|<display name>'
 ```
 
-returns nothing. What the filters drop, and why a fork leaves it:
+returns nothing. Fill in the last line when your wordmark or display
+name contains `withme` (e.g. `'golfwithme|golf with me'`): without it
+every line of your own brand prints, because `withme` matches inside it.
+If neither contains `withme`, delete that line. What the other filters
+drop, and why a fork leaves it:
 
 - `supabase/migrations/` — the first migration's header comment names
   `withme-starter`. Migrations are history: never edit an applied one.
