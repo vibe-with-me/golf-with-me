@@ -3,7 +3,8 @@
 //   bun run .agents/skills/design-direction/contrast.ts '#c2410c' '#ffffff'
 //     -> prints the ratio of one pair
 //   bun run .agents/skills/design-direction/contrast.ts --sheet docs/brand-direction.md
-//     -> reads the sheet's Colors table (| token | light | dark |), requires all
+//     -> reads the table under the sheet's "## Colors" heading
+//        (| token | light | dark |), requires all
 //        eight tokens exactly once with both modes, derives the twelve pairs from
 //        those values, and exits 1 if any token is missing or any pair fails.
 //        The pairs are computed from the values make-it-yours will copy, so the
@@ -54,13 +55,17 @@ export function ratio(fg: string, bg: string): number {
 }
 
 // The sheet's Colors table: one row per token, `| <token> | <light> | <dark> |`.
+// Only the section under the `## Colors` heading is read, up to the next `## `,
+// so a row in another table (a Copy row named `surface`) cannot collide.
 // Every token exactly once; a duplicate or a missing token is an error.
 export function readColors(text: string): Record<Mode, Record<Token, string>> {
   const colors = { light: {} as Record<Token, string>, dark: {} as Record<Token, string> };
   const seen = new Set<string>();
   const errors: string[] = [];
+  const section = /^## Colors\b[^\n]*\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text);
+  if (!section) throw new Error('no "## Colors" heading');
   const rowPattern = /^\|\s*([a-z-]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/gm;
-  for (const [, name, light, dark] of text.matchAll(rowPattern)) {
+  for (const [, name, light, dark] of section[1].matchAll(rowPattern)) {
     if (!(TOKENS as readonly string[]).includes(name)) continue;
     if (seen.has(name)) {
       errors.push(`token ${name} appears more than once`);
