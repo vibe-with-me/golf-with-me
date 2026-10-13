@@ -1463,7 +1463,15 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 
 **Then:** the deviation procedure. Commit `make-it-yours: golfwithme`, tag `pre-customize-gathering`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** Run 1: START 02:48:14Z, END 02:56:51Z (about 8.5 min). Every checkpoint held. Step 6's fixed order worked the first time: stop, rename, start, reset, seed; the stack is now `golfwithme`. Gate green at G3's counts: db 73, contract 31, nfc 48. The handshake e2e and Playwright (14) were green too. Visual check: the accent shows only on "Join this gathering", in both themes. Log: `$GN/4-make-it-yours-r1.md`.
+- Deviations and fixes, in `399d78f` (make-it-yours: fixes from the golf run):
+  - D1: `PHOTO_FILL` in `apps/web/src/lib/avatar.ts` is a third copy of the light surface. Step 1 now names it, and its old-neutral grep reaches it.
+  - D3: the sheet's wordmark treatment had no seam in the skill. Step 3 now names the places: web `.wordmark` (selector `.wordmark, .card h1.wordmark`, because `.card h1` outranked it on the landing page) and mobile `Header.tsx` (a static-weight `fonts.wordmark`, letterSpacing = em × fontSize).
+  - D4: a fork in the starter's own GitHub org now has an accepted case in the step 8 sweep: the README badge naming the fork's repo, and `"owner": "vibe-with-me"` once `projectId` ≠ `cf56d2f1…`. A filter keeps the sweep pass/fail.
+  - D2 (the sheet said Archivo already ships) is design-direction wording, fixed in PR 14.
+- D1 and D3 were applied in the fork by following the new text. No full re-run: the rest of the run is unaffected. `PHOTO_FILL` was already `#fafcfb`. The wordmark is Archivo 750 at -0.035em on web (computed 750 / -1.12px at 32px; `$GN/design/r1-visual/wordmark-after.png`) and `Archivo_700Bold` at -0.7 on mobile. Lint, typecheck and the gate were green again (73 / 31 / 48).
+- The sweep with the new filter leaves one line: `app.json`'s `"owner": "vibe-with-me"`. That is expected while step 5 is deferred to G10.
+- Fork commit `fdeca00` (make-it-yours: golfwithme), tag `pre-customize-gathering`. The diff from `pre-make-it-yours` touches no migrations, db tests or contract source.
 
 ---
 
