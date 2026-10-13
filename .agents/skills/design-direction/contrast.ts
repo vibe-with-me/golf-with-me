@@ -3,7 +3,7 @@
 //   bun run .agents/skills/design-direction/contrast.ts '#c2410c' '#ffffff'
 //     -> prints the ratio of one pair
 //   bun run .agents/skills/design-direction/contrast.ts --sheet docs/brand-direction.md
-//     -> reads the sheet's Colors table (| token | light | dark |), requires all
+//     -> reads the sheet's "## Colors" table (| token | light | dark |), requires all
 //        eight tokens exactly once with both modes, derives the twelve pairs from
 //        those values, and exits 1 if any token is missing or any pair fails.
 //        The pairs are computed from the values make-it-yours will copy, so the
@@ -54,13 +54,23 @@ export function ratio(fg: string, bg: string): number {
 }
 
 // The sheet's Colors table: one row per token, `| <token> | <light> | <dark> |`.
-// Every token exactly once; a duplicate or a missing token is an error.
+// Only the "## Colors" section is read when the sheet has one, so a header or
+// cell elsewhere that happens to be a token name (the Copy table once had a
+// `surface` column) is never mistaken for a color row. Every token exactly
+// once; a duplicate or a missing token is an error.
+export function colorsSection(text: string): string {
+  const heading = /^##\s+Colors\b[^\n]*\n/m.exec(text);
+  if (!heading) return text;
+  const start = heading.index + heading[0].length;
+  const next = /^##\s/m.exec(text.slice(start));
+  return next ? text.slice(start, start + next.index) : text.slice(start);
+}
 export function readColors(text: string): Record<Mode, Record<Token, string>> {
   const colors = { light: {} as Record<Token, string>, dark: {} as Record<Token, string> };
   const seen = new Set<string>();
   const errors: string[] = [];
   const rowPattern = /^\|\s*([a-z-]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/gm;
-  for (const [, name, light, dark] of text.matchAll(rowPattern)) {
+  for (const [, name, light, dark] of colorsSection(text).matchAll(rowPattern)) {
     if (!(TOKENS as readonly string[]).includes(name)) continue;
     if (seen.has(name)) {
       errors.push(`token ${name} appears more than once`);

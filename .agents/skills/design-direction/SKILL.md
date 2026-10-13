@@ -164,8 +164,10 @@ the resolver card, and a list of token values per mode.
 
 Write `docs/brand-direction.md` in the fork from this template. Every
 value is a literal make-it-yours will copy; nothing is "about". The
-Colors table is what `contrast.ts` parses: keep its three columns and
-the eight token names exactly, one row each.
+Colors table is what `contrast.ts` parses: keep the `## Colors` heading,
+its three columns and the eight token names exactly, one row each. The
+script reads only that section, so the other tables are free to use any
+headers.
 
 ````markdown
 # Brand direction — <wordmark> (<Display name>)
@@ -205,7 +207,7 @@ Contrast, as `contrast.ts` reported it on <date>: <paste its output>.
 
 ## Copy (make-it-yours step 3 and 7)
 
-| surface | file | line |
+| screen | file | line |
 | --- | --- | --- |
 | landing promise | apps/web/src/routes/index.tsx | <Tap a tag. …> |
 | Merch card | apps/web/src/routes/_app.merch.tsx, apps/mobile/app/(tabs)/merch.tsx | <Tags and gear from the store.> |
