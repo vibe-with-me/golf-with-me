@@ -1588,7 +1588,32 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 
 **Then:** commit `extend-profile: golfwithme`, tag `pre-add-destination-type`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** Run 1: START 03:23:01Z, END 03:43:22Z (about 20 min, including the simulator pass; the typed field cost about 9 min of it). Log: `$GN/6-extend-profile-r1.md`.
+- §1: contract 32 → 28 pass / 4 red (the skill's four) → 39 (+7, not +5).
+- §2: red at 74 pass / 4 fail, all `PGRST204`: the four card-tier tests.
+- §3: db 78 (+4). Typecheck red only for `@withme/api` and `@withme/nfc`, as predicted; §4 and §5 closed them.
+- Gate: lint clean, typecheck 8/8, contract 39, db 78, nfc 48; API e2e "all checks passed" (66 ok, 7 new); Playwright 14 on the first run.
+- Simulator: all 8 checks pass.
+  - The tag resolve shows the card line.
+  - Seeded Lin is complete and shows `+1.2`.
+  - `+2.4` saved → stored −2.4 → shown `+2.4`.
+  - `-3` refused client-side, with no request sent.
+  - The claimed tag shows `HCP +2.4`.
+  - Cold Connect and cold Join each return to where they started.
+  - A new account is gated to Profile.
+- No `profile_details`: only a comment in the migration mentions it.
+- Safety checks passed:
+  - `profiles_select` untouched;
+  - `CARD_COLUMNS` = `id, display_name, avatar_path, bio, handicap, home_club`;
+  - `course_name` kept in the `resolve_tag` copy.
+- Deviations D1–D22 in the log. Fixed in the skill by `8d9597c` (`extend-profile: card-only, no required field, typed fields (from the golf run)`):
+  - Card-only path (D1, D5, D7, D10, D13, D16, D21): a "card-only fork" list near "Pick a tier": what each step skips, the card-tier red count, contract four plus the fork's own tests.
+  - No required field (D2, D3, D12, D14, D17, D18, D19): a "No required vertical field" list: `['display_name']`, claim pages and Save unchanged, the seeded users already complete, no Playwright fills, and the mobile gate's new tabs-mount redirect, stated as intended.
+  - Typed field (D4, D6, D8, D11, D15): "A typed field" next to the format rule: parse/format in the contract with a round-trip test, refusal before sending (an `undefined` key is dropped silently and the form says "Saved."), `numeric` rounding before the CHECK, the keyboard choice. §9 now says the counts depend on the tiers (golf: db 4, contract 7, API 7).
+  - Grep (D20): §8's grep is `grep -rn "getByLabel('Name'" apps/web/e2e`, so it finds the `{ exact: true }` calls.
+  - D9 (types not committed mid-run) and D22 (the test-value renames) were the brief's setup.
+- No re-run: the fork is correct, and the fixes are text only.
+- Fork commit `b4bbe9d` (extend-profile: golfwithme), tag `pre-add-destination-type`.
 
 ---
 
