@@ -1321,7 +1321,12 @@ git -C "$STARTER" fetch origin && git -C "$STARTER" rev-parse origin/main   # th
 - `$GN/design/brand-direction.md` with the contrast output pasted under its Colors table.
 - `$GN/design/art/` holding `icon.svg`, `icon.png`, `android-icon-foreground.svg`, `android-icon-foreground.png` and `favicon.ico`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** START 02:08:16Z; boards handed over at PAUSE 02:16:47Z (about 8.5 min of agent time); the owner picked direction 1, **Dew**, unchanged except that the quiet "What's Golf with Me?" link comes out; RESUME 02:19:22Z, END 02:20:56Z. `/design` was not in the follower's skill list, so it took the fallback and drew `$GN/design/boards.html`. The Artifact (the canvas link): https://claude.ai/artifact/BVTdwCggjGK6T2rE9gZAmD. Log: `$GN/1-design-direction-r1.md`. The follower wrote nothing in `$WT`.
+- Three directions (Dew, Scorecard, Clubhouse), all 12 `ok`, exit 0, on scratch Colors tables.
+- Dew in the sheet `$GN/design/brand-direction.md`: accent pair 6.49:1 light and 9.13:1 dark, border-input 3.25:1 and 4.58:1 (legacy: 5.02/8.55 and 3.08 light). Archivo and Inter kept: `@fontsource-variable/*` 5.3.0, `@expo-google-fonts/*` 0.4.2.
+- Art rendered in `$GN/design/art/`: `icon.png` 1024×1024 with `hasAlpha: no`; the Android foreground, with the mark in the accent on transparent inside the 66% safe zone; `favicon.ico` 48/32/16.
+- Deviations 1–16 in the log. Fixed in the skill by `a06b607` (`design-direction: fixes from the golf run`): `contrast.ts` reads only the table under `## Colors` and the template's Copy header is now `copy` (D14, the bug: a verbatim sheet exited 1). Also fixed: the uplift paragraph (D1); the HTML-and-Artifact fallback for `/design` (D3); the brief matched to what the starter renders, with vertical card content as an extend-profile proposal and new card treatments flagged as code changes (D4, D5, D7, D9); the vertical's nouns and the order-dependence (D6); the wordmark weight as one setting (D8); the render commands, the checks and the Android foreground rule in §3 (D12, D13); owner changes to the boards (D15). D2, D10, D11 and D16 were the brief's own setup and needed no text change.
+- No re-run. The design output is the owner's choice and stands, and the fixes are text and script only. Self-checks on `a06b607`: the golf sheet gives 12 `ok`, exit 0; the template filled with the starter's own tokens fails only the light border-input at 2.97:1 (ENG-753).
 
 ---
 
