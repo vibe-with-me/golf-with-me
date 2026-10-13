@@ -96,8 +96,9 @@ Supabase local. The tests are the spec.
 
 ### Local, zero cloud accounts
 
-Prereqs: [Bun](https://bun.sh), [Supabase CLI](https://supabase.com/docs/guides/cli),
-Docker.
+Prereqs: [Bun](https://bun.sh), [Supabase CLI](https://supabase.com/docs/guides/cli)
+2.118 or newer (older CLIs ship a PostgREST that sporadically rejects a fresh
+sign-in's token as "issued at future"), Docker.
 
 ```sh
 bun install
@@ -173,6 +174,7 @@ Growth beyond the handshake ships as agent-executable skills in
 bound by the slice and safety discipline in
 [`docs/the-slice.md`](docs/the-slice.md):
 
+- `design-direction` — a vertical but no brand yet: Claude's `/design` on the starter's own screens, reduced to make-it-yours' inputs with the contrast verified.
 - `make-it-yours` — rebrand: tokens, fonts, wordmark, app identity, store URL.
 - `customize-gathering` — the gathering's nouns and fields.
 - `extend-profile` — vertical profile fields, card or connections-only, and completion gating.
