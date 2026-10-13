@@ -164,8 +164,10 @@ the resolver card, and a list of token values per mode.
 
 Write `docs/brand-direction.md` in the fork from this template. Every
 value is a literal make-it-yours will copy; nothing is "about". The
-Colors table is what `contrast.ts` parses: keep its three columns and
-the eight token names exactly, one row each.
+Colors table is what `contrast.ts` parses: keep the `## Colors` heading,
+its three columns and the eight token names exactly, one row each. The
+script reads only that section, so the other tables are free to use any
+headers.
 
 ````markdown
 # Brand direction — <wordmark> (<Display name>)
@@ -200,12 +202,14 @@ Contrast, as `contrast.ts` reported it on <date>: <paste its output>.
 
 | role | family | web package | mobile package |
 | --- | --- | --- | --- |
-| display | <Family> | @fontsource-variable/<font> | @expo-google-fonts/<font> |
-| body | <Family, or "Inter (kept)"> | … | … |
+| display | <Family, or "Space Grotesk (starter)"> | @fontsource-variable/<font> | @expo-google-fonts/<font> |
+| body | <Family, or "Inter (starter)"> | … | … |
+
+A fresh starter ships Space Grotesk for display and Inter for body. Each row names the family make-it-yours step 2 will end with; "(starter)" means that step is skipped for the row. The comparison is always to the starter, never to a brand the fork had before.
 
 ## Copy (make-it-yours step 3 and 7)
 
-| surface | file | line |
+| screen | file | line |
 | --- | --- | --- |
 | landing promise | apps/web/src/routes/index.tsx | <Tap a tag. …> |
 | Merch card | apps/web/src/routes/_app.merch.tsx, apps/mobile/app/(tabs)/merch.tsx | <Tags and gear from the store.> |
@@ -305,8 +309,7 @@ Built once before this text was written. Vertical: a bouldering gym
 whose members tap a tag at the desk; mood "chalk, rope, Tuesday night";
 wordmark `crux`, display name `Crux`. Direction "Chalk and cobalt":
 cool chalk-grey neutrals instead of the starter's warm ones, a cobalt
-accent for the one button, Bricolage Grotesque for display over Inter
-kept for body.
+accent for the one button, Bricolage Grotesque for display over the starter's Inter for body.
 
 | token | light | dark |
 | --- | --- | --- |
