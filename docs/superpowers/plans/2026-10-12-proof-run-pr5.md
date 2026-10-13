@@ -1644,7 +1644,24 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 
 **Then:** commit `add-destination-type: link`, tag `pre-provision-tags`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** Run 1: START 03:44:59Z, END 03:52:14Z (about 7 min). Log: `$GN/7-add-destination-type-r1.md`.
+- §1: contract 39 → 44 (+5: accept, the skill's three rejects, a length reject); the trap specimen swapped to `{ type: 'teleport' }`.
+- §2: reset and seed clean; no type drift.
+- §3: `resolve_tag` untouched (0 mentions in the migration).
+- §4: db 78 → 80 (+2). §6: `nfc-sdk` typecheck clean.
+- Gate: lint clean, typecheck 8/8, contract 44, db 80, nfc 48; API e2e 67/67 with "link destination round-trips through claim and resolve"; Playwright 14.
+- §9 runtime: the link tag curls `307 → https://example.com/menu`; the profile tag 200 after one ENG-751 web dev restart. Link taps are logged as scans.
+- The tag was claimed as a link by a seeded-user script (the db package's local client, `claim_tag` with a link destination) against two tags provisioned locally per provision-tags §1; the output directory was deleted afterwards.
+- Incident: while appending to its log, the follower used an unquoted heredoc whose backticks ran the provision command twice from the repo root. That made 20 local tags and gitignored `provisioned-tags.*` files in the repo root (mode 644). The files were deleted and the stack reset and seeded; UIDs are only in the local log; nothing was committed.
+- Deviations 1–7 in the log. Fixed in the skill by `e8bc46d` (`add-destination-type: fixes from the golf run`):
+  - The claim-as-link path (2): §9 now gives the seeded-user script against tags provisioned per provision-tags §1, UIDs kept in variables, the output deleted afterwards.
+  - `db:provision` (3): it resolves only from the repo root, so §9 calls the script file directly, as provision-tags §1 does. The brief's environment note was wrong here; T7's brief drops it.
+  - The heredoc incident (7): §9 warns never to paste provisioning commands into an unquoted heredoc or log append.
+  - The ENG-751 hang (1): §9 points at provision-tags §1's restart.
+  - Observations: §1 names `destination.ts`'s stale header comment; §2's reset line may end ` on branch …`; §8 says the mobile fallback card is minimal and typecheck-only, so the hand-off and card belong to the simulator pass; §9 names the API dev port, 8786.
+  - No fix: 4 (an empty parent removed with `rmdir`), 5 (one e2e capture written to `/tmp`, deleted, no UIDs), 6 (the length reject, within "a reject case per validation rule").
+- No re-run: the fork is correct, and the fixes are text only.
+- Fork commit `0994f01` (add-destination-type: link), tag `pre-provision-tags`.
 
 ---
 
