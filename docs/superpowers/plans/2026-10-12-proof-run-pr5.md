@@ -1843,6 +1843,17 @@ The follower is the program manager: go-live is approval-gated throughout, so it
 
 Deviations go through the procedure. Re-running a production step needs a new approval. By default, the text is fixed and the step is recorded "not re-run against production".
 
+**G10 progress 2026-10-13** (not Done; the owner's checks are pending):
+- EAS linked (`9c15802`).
+- DB: the existing project `oszinjbbwzztqeqkhoof`, reset by Alex (`db reset --linked`), with all 7 migrations; no new project.
+- Keys fetched (`.env.demo-seed` 0600; legacy `anon`, no publishable key). The `avatars` bucket verified via the API. Seed done.
+- Cloudflare pin `5d36727`; the subdomain `golfwithme` registered by Alex.
+- API `https://golfwithme-api.golfwithme.workers.dev`: `/health` ok after ~2 min; the anonymous SDK resolve of `04BB…` returns Ada, handicap 8.4, Pebble Creek GC, the round and its course.
+- Web `https://golfwithme-web.golfwithme.workers.dev` (deployed by Alex): `/`, `/t/04BB…` and `/t/banana` verified; the bundle has the production URLs and no localhost.
+- Mobile: update group `16e2daa9-474b-47e5-a0c8-8c7dafc85964` on branch `demo`; the export check shows the production URLs and no localhost.
+- go-live text fixed from the run (`1dc8508`).
+- **Pending:** the Auth URL configuration, the authed check, and the throwaway sign-up + delete.
+
 **Done YYYY-MM-DD.** (to write)
 
 ---
