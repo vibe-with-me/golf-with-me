@@ -45,7 +45,55 @@ The worked example: a card-tier `affiliation` ("Riverside GC", "Chiefs",
 words before you start and keep the shapes. A fork with only one tier skips
 the other tier's lines. Connections-only: still redefine
 `accept_connect_request` (for `details`), skip `resolve_tag`. Card-only:
-skip `details` everywhere, including `ConnectionSchema`.
+skip `details` everywhere, as below.
+
+**A card-only fork** (golf-with-me: handicap and home club) keeps both
+card builders and skips every `details` line:
+
+- §1: no `ProfileDetailsSchema`, no `details` on `UpdateProfileInputSchema`
+  or `ConnectionSchema`, and `contract/app.ts` untouched (its
+  `getProfile` / `updateProfile` outputs change only to carry `details`).
+  "A connection always carries the details key" drops, and so do the
+  `contact_handle` lines in the other tests: the checkpoint is four more
+  than before, plus the fork's own field tests, not five.
+- §2: only the `card tier` describe (one CHECK test per card field). The
+  red checkpoint is that describe's tests, each on `PGRST204`, not the
+  fourteen; no change to `enumeration.test.ts`, `cascade.test.ts`, or
+  `account.test.ts` (each addition there is connections tier). §3's
+  green checkpoint is the same count over the baseline.
+- §3: no `profile_details` table, trigger, grants, or policies, and no
+  `v_details` block in `accept_connect_request`.
+- §4: `CARD_COLUMNS`, `ProfileCard`, `upsertOwnProfile` only. No
+  `DETAILS_COLUMNS`, `getOwnDetails`, `upsertOwnDetails`, or
+  `listConnections` change, and the API router is unchanged:
+  `updateProfile` already passes its input whole to `upsertOwnProfile`.
+- §6, §7: no Contact field; `PersonRow` (web and mobile) and both
+  Connections screens unchanged. The seed updates the card fields only,
+  and the simulator's "connected accounts see each other's contact" check
+  does not apply.
+- §8: the API e2e asserts the card tier on every card surface (update and
+  get, resolve, the pending request, accept, a connection) in place of the
+  `details` asserts; the `handshake.spec.ts` block checks the card line on
+  Bob's view of Ada's tag in place of Contact under `/connections`.
+
+**No required vertical field.** When every new field is optional,
+`REQUIRED_PROFILE_FIELDS = ['display_name']`, and:
+
+- §1: "completion needs every required field" becomes a name alone
+  completes and a blank one does not; "a typed required value counts …
+  even 0" drops (keep it only when a typed field is required).
+- §6, §7: the claim pages stay as they are (the name alone, "First, your
+  name", the name error copy), and Save's `disabled` stays
+  `busy || !displayName.trim()` on both Profile forms.
+- §7: the seeded users are already complete. The seed edit is for the
+  card only; the "would send Lin to 'Finish your profile'" check does
+  not apply.
+- §8: no Playwright fill changes; only the new `handshake.spec.ts` block.
+- Install both gates anyway. With only the name required, the mobile gate
+  is a has-a-profile gate, and that still changes mobile: a signed-in
+  account with no profile is now sent to Profile when the tabs mount
+  (before, only Connect and Join pushed `/profile`). That is intended: it
+  matches web's `ShellRoute`.
 
 **A field with a format rule** (a pace like `5:30/km`, a postcode) swaps
 the example's length rule for a pattern at every layer; nothing else moves.
@@ -77,6 +125,37 @@ the example's length rule for a pattern at every layer; nothing else moves.
   value reaches the API and comes back as the form's generic save error
   ("Could not save. Check the fields and try again."); field-level
   messages are the fork's to add.
+
+**A typed field** (a numeric handicap) needs a step a string does not: the
+forms post text, so turning text into the value is code. The regex
+mirroring above does not apply; this does.
+
+- Contract (§1): next to the field's schema
+  (`HandicapSchema = z.number().min(-10).max(54).multipleOf(0.1)`), two
+  pure functions both clients import: `parseHandicap(text: string):
+  number | null | undefined` (blank is `null` and clears the field, a
+  valid entry is the value, `undefined` is refused; it range-checks with
+  the schema itself) and `formatHandicap(value: number): string`
+  (golf-with-me stores a plus handicap negative and prints `+2.4`, never
+  a minus). Their contract tests include a round-trip over the whole
+  stored range (every step from -10.0 to 54.0: format, parse, schema),
+  which is also the evidence that `multipleOf(0.1)` is float-safe.
+- SQL (§3): `numeric(p,s)` rounds on insert before the CHECK runs (8.45 is
+  stored as 8.5), so the CHECK enforces the range
+  (`profiles_handicap_range check (handicap is null or handicap between
+  -10.0 and 54.0)`) and precision is zod's alone. §2's test is "is
+  range-checked": one past each end refused, both ends accepted. The card
+  builders' `jsonb_build_object` carries it as a JSON number, so card
+  types are `number | null`.
+- Forms (§6, §7): keep the field as text, seeded with `formatHandicap`.
+  Save parses first; on `undefined` it shows a field message and sends
+  nothing. Never put an `undefined` key into the patch: the input schema's
+  `.optional()` drops it silently, the API saves everything else, and the
+  form says "Saved." over a value it threw away. After a save, re-print
+  the field with `formatHandicap`. On mobile, `keyboardType="decimal-pad"`
+  has no `+` or `-` key: a signed value needs
+  `keyboardType="numbers-and-punctuation"` (on web, skip
+  `inputMode="decimal"` for the same reason).
 
 ## The map
 
@@ -1266,12 +1345,15 @@ assert(!JSON.stringify(await anon.resolve(uid)).includes('@e2e.alice'), 'resolve
 ```
 
 `apps/web/e2e/`: affiliation is required for completion, so every step
-that creates a profile — `grep -n "getByLabel('Name').fill" apps/web/e2e/*.ts`,
+that creates a profile — `grep -rn "getByLabel('Name'" apps/web/e2e`,
 on the Profile form and the claim page's first-profile form, including the
 shared `signUpWithProfile` and `claimFreshTag` in `helpers.ts` — fills
 `getByLabel('Affiliation')` right after (steps that only assert a Name
-value need nothing). In the starter the grep finds twelve, all
-profile-creating: `handshake.spec.ts` 2, `helpers.ts` 2,
+value need nothing). The grep stops at the quote so it also finds
+`getByLabel('Name', { exact: true })`, which a fork that ran
+customize-gathering's relabel fix writes on every Name call. In the
+starter it finds seventeen: five `toHaveValue` asserts in `shell.spec.ts`
+and twelve fills, all profile-creating: `handshake.spec.ts` 2, `helpers.ts` 2,
 `gatherings.spec.ts` 2 (renamed if you ran customize-gathering's URL
 step), `shell.spec.ts` 6; each gets
 `.getByLabel('Affiliation').fill('Smoke Club')` on the same page. A
@@ -1294,10 +1376,13 @@ assertion (Bob sees Smoke Ada under `/connections`):
 
 The verification gate from `docs/the-slice.md`, then
 `cd apps/api && bun run e2e` (API dev server in another shell) ending
-`handshake e2e: all checks passed`, with the eight new extend-profile lines
-among the checks, and `cd apps/web && bun run test:e2e`. In the build this
-was distilled from: db fourteen and contract five over the baseline, the
-API e2e green, and every Playwright spec green on the first run.
+`handshake e2e: all checks passed`, with the new extend-profile lines
+among the checks, and `cd apps/web && bun run test:e2e`. The counts depend
+on the tiers. In the build this was distilled from (both tiers): db
+fourteen and contract five over the baseline, eight new API e2e lines, and
+every Playwright spec green on the first run. Golf-with-me (card-only, two
+card fields, one typed, nothing required beyond the name): db four,
+contract seven, API e2e seven.
 
 ## What must not move
 
@@ -1335,7 +1420,8 @@ API e2e green, and every Playwright spec green on the first run.
 ## Scope notes
 
 - Typed fields (a numeric handicap, an enum) take the same steps; the CHECK
-  mirrors the zod rule (golf-with-me used a numeric range CHECK).
+  mirrors the zod rule (golf-with-me used a numeric range CHECK), and the
+  text-to-value step is in "A typed field" above.
   `isProfileComplete` already accepts a set non-string value.
 - A required field (in `REQUIRED_PROFILE_FIELDS`) also needs its input and
   its `disabled` condition in both Profile forms and both claim forms;
