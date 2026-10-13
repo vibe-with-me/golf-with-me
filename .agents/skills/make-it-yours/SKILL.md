@@ -86,6 +86,12 @@ and dark background values or the native splash will flash the old brand:
   (light bg) and the `expo-splash-screen` plugin entry's
   `backgroundColor` (light bg) + `dark.backgroundColor` (dark bg).
 
+And one place copies the light `--color-surface`:
+
+- `apps/web/src/lib/avatar.ts` → `PHOTO_FILL`, the fill baked under a
+  transparent photo when an avatar is cropped. Set it to the new light
+  surface value (light only: every viewer sees the same file).
+
 **The one-accent rule.** The palette is near-monochrome with exactly one
 vivid accent, and the accent appears only on the primary action of a
 screen: Connect, Accept, Claim tag, and Join (the resolver's "Join this
@@ -113,7 +119,9 @@ grep -rn --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
 returns nothing (old accent fully evicted from both files; the
 exclusions matter — stale build output under `dist/` still contains the
 old values and would false-fail this). Repeat for each old neutral you
-replaced. Then `bun run lint && bun run typecheck` — both green.
+replaced, over the same `apps/` tree so it reaches `app.json` and
+`avatar.ts` too (the starter's light surface `#fffdf9` is also
+`PHOTO_FILL`). Then `bun run lint && bun run typecheck` — both green.
 If you changed the header height,
 `grep -n 'shell-nav-height:' apps/web/src/styles/tokens.css` and
 `grep -n 'headerHeight' apps/mobile/lib/tokens.ts` show the same number.
@@ -218,6 +226,22 @@ names no brand, so there only the title and badge change):
   line which must match the seed (previous bullet).
   `apps/mobile/README.md`'s occurrences are all `@withme/*` names — no
   change there.
+
+**Wordmark treatment.** Set the weight and tracking from the sheet's
+Wordmark row, the same on web and mobile. Case is the wordmark string
+itself (above); add no `text-transform`. Web: the `.wordmark` rule in
+`apps/web/src/styles/app.css` (the AppShell header link and the landing
+`<h1 className="wordmark">`; `.shell-header .wordmark` sets only size).
+The landing h1 also matches `.card h1` (weight 600), which outranks
+`.wordmark`: write the selector as `.wordmark, .card h1.wordmark`.
+Mobile: `styles.wordmark` in `apps/mobile/components/Header.tsx`, the
+only mobile wordmark. Mobile fonts are static weights: add a
+`wordmark` key to the `fonts` map in `apps/mobile/lib/tokens.ts` naming
+the nearest weight the package exports (a half step rounds down: 750 →
+`Archivo_700Bold`), load it in `_layout.tsx`'s `useFonts` (step 2), and
+set `letterSpacing` to the tracking in em times the `fontSize`
+(-0.035em at 20 → -0.7). The other marks (login hint, CalmStates and
+resolver footer links) render in body type; leave them.
 
 **Caution:** if you also rewrite *action* copy (button labels like
 "Connect", "Claim tag", "Accept", the "Name" field label), the Playwright
@@ -385,9 +409,22 @@ README demo line and the `.env` example lines with it), an upstream
 attribution link in the README, and `supabase/config.toml`'s
 `project_id` if you kept it (step 6 makes the rename optional).
 
-Not acceptable: `"owner": "vibe-with-me"` in `apps/mobile/app.json`.
-It means step 5 is undone, so the app still points at the upstream EAS
-project; the sweep stays red until step 5 runs.
+Not acceptable: `"owner": "vibe-with-me"` in `apps/mobile/app.json`
+while `extra.eas.projectId` is still `cf56d2f1-…`. It means step 5 is
+undone, so the app still points at the upstream EAS project; the sweep
+stays red until step 5 runs.
+
+A fork in the same GitHub org as the starter (`vibe-with-me/<your-repo>`)
+has two more correct matches: the README CI badge naming the fork's own
+repo (step 3), and `"owner": "vibe-with-me"` once step 5 has given
+`app.json` the fork's own `projectId`. Append this to the sweep, with
+`<your-repo>` filled in; it drops the owner line only after step 5:
+
+```sh
+  | grep -v '^README.md:[0-9]*:.*github\.com/vibe-with-me/<your-repo>/' \
+  | if grep -q cf56d2f1-eaec-406b-be9c-972519a6be84 apps/mobile/app.json; \
+    then cat; else grep -v '^apps/mobile/app.json:[0-9]*: *"owner": "vibe-with-me",$'; fi
+```
 
 Finally the visual check, which needs BOTH dev servers: in one shell
 `cd apps/api && bun run dev` (the web loaders call the API Worker on
