@@ -1737,7 +1737,29 @@ docker exec supabase_db_golfwithme psql -U postgres -tAc "select public.resolve_
 
 **Expected:** the gate is green and its counts are recorded; the sweep prints only the expected lines; checks 1–7 pass. Any failure goes through the deviation procedure, and G10 does not start until all are green. Write `$GN/9-gate-sim.md`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** By a verification subagent, on `$G` at `pre-gate` (`e15a850`), tree clean before and after, on the `golfwithme` stack. START 03:59:45Z, END 04:22:13Z (about 22 min: the gate about 2 min, the simulator pass about 21). Log: `$GN/9-gate-sim.md`, raw output in `$GN/9-raw/`.
+- Gate green at G7's counts: lint clean, typecheck 8/8, db 80, contract 44, nfc 48, API e2e 67 `ok` lines ending "all checks passed", Playwright 14.
+- Sweep: with the brand filter (`golfwithme|golf with me`) and the same-org append, it prints only `apps/mobile/app.json`'s `"owner": "vibe-with-me"` line, as expected while EAS (step 5) is deferred to G10.
+- "gathering" residue: identifiers only (variables, the `'gathering'` destination type, `describeTag`'s argument, select keys, doc comments). No user-visible "gathering"; every device surface read "round".
+- `resolve_tag('04BBBBBBBBBBBB')` shows handicap 8.4, home_club "Pebble Creek GC", course_name "Pebble Creek GC".
+- Simulator 7/7 (iPhone 17 Pro, Expo Go):
+  1. Brand: the Archivo wordmark, tabs Rounds / Connections / Profile, no Merch, the accent on primaries only; the icon is not visible in Expo Go.
+  2. Handicap: `+2.4` saved and shown; `-3` and `54.1` refused; blank clears; Lin's card reads `+1.2`.
+  3. Rounds: the course shows in the row and the header; "Players".
+  4. Cold Join: sign-up, then "Join this round?", then Join completes.
+  5. Link: the hand-off to Safari works, and coming back shows the "Open link" card.
+  6. Provisioned tag: lands on "Claim this tag".
+  7. Critique recheck: `/t/banana` gets the calm card on web and mobile; the loading card shows; the web footer shows the wordmark.
+- Findings:
+  - The web resolver's footer wordmark rendered in Inter 400, not the display face: `WordmarkFooter`'s link had no `wordmark` class. Fixed in the fork by `0618f8c` (`make-it-yours: the footer wordmark uses the display face`; `pre-gate` moved to it; lint, typecheck 8/8, db 80, contract 44, nfc 48 green; computed style now Archivo Variable 750 at -0.035em). Fixed in the skill by `f13f6fe`.
+  - The step 8 sweep needed the brand filter to be usable on a brand containing `withme` (36 brand lines without it). `f13f6fe` puts `grep -viE '<wordmark>|<display name>'` in the command block itself.
+  - Mobile wordmark 700 vs web 750: the nearest static weight, by design.
+  - For the report (core): the malformed-tag card's copy ("Give it another tap in a moment" / "…live link…") is also the network-failure copy, so it reads as transient.
+  - "Join this round?" shows no course: by the brief (the preview reads the hints the tag screen passes).
+  - Players and request rows show the bio, not the handicap: extend-profile makes that display optional.
+  - The ENG-751 dev hang reproduced (a full `load` of the claimed `/t/<UID>` in `vite dev`), even right after a restart. A note for ENG-751.
+  - One provisioned UID reached the subagent's session transcript only (local; the batch was deleted and the stack reset). It is in no log, raw file or screenshot.
+- No re-run: the gate and the simulator passed, and the fork fix is one class name, re-gated above.
 
 ---
 
