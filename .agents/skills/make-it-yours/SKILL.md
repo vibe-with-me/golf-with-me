@@ -308,6 +308,9 @@ its own:
 3. `bunx eas update:configure` — restores `updates.url` pointing at the
    new project.
 
+A fork reusing an EAS project it already has links it instead of
+creating one: see go-live §4, step 1.
+
 **Checkpoint:** `app.json` carries the fork owner's `owner` and a
 `projectId` ≠ `cf56d2f1-eaec-406b-be9c-972519a6be84`, and `updates.url`
 ends with that new projectId.
