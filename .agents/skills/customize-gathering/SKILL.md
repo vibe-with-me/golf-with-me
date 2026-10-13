@@ -102,12 +102,28 @@ without containing "gathering"; rewrite it for your vertical too:
 - the create form's title placeholder, `"e.g. Rooftop listening session"`,
   in `apps/web/src/routes/_app.gatherings.tsx` and
   `apps/mobile/app/(tabs)/gatherings.tsx` (or the files you renamed);
+- the form labels, in the create form and in the detail's `EditForm`
+  (`_app.gatherings_.$id.tsx`, mobile `gathering/[id].tsx`): the title
+  label `Title`; the start label, one `Starts` field on web, two fields
+  `Date` and `Time` on mobile; `Location (optional)`, and the location
+  placeholder `"Where to find it"` (create forms only);
+- the members heading `Who's coming` on the detail screen
+  (web `_app.gatherings_.$id.tsx`, mobile `gathering/[id].tsx`);
 - the seed's gathering, in `supabase/seed/index.ts`: its `p_title`
   (`'Rooftop listening session'`), its `p_location`
   (`'The roof, 14 Loom St'`), and the console text it prints
   ("hosts a gathering Lin joined", "inviting you to her gathering"). §2
   step 2 edits the same `create_gathering` call when a field is added,
   so the title and location can change there in the same edit.
+
+A relabel can make a Playwright selector ambiguous: `getByLabel` matches
+a case-insensitive substring, so a title labelled "Round name" also
+matches the profile step's `getByLabel('Name')`, and during a route
+transition the fill can land in the wrong field (a disabled Save, a
+timeout). After relabelling, `grep -rn "getByLabel(" apps/web/e2e` and
+give every selector that could now match two fields `{ exact: true }`
+(e.g. `getByLabel('Name', { exact: true })`), the shared `helpers.ts`
+included.
 
 The API's REST paths (`/gatherings…` in `packages/contract/src/contract/app.ts`)
 are internal identifiers: leave them.
@@ -192,7 +208,9 @@ In slice order:
    changed semantically is the new column (`Row`/`Insert`/`Update`)
    and the new `p_` argument (`grep -n course_name` on the file), plus
    anything that newer generator adds to every table alike (CLI 2.120.0
-   adds `ComputedFields: never` to each).
+   adds `ComputedFields: never` to each, and turns an argument-less
+   function's `Args: never` into `Args: Record<PropertyKey, never>`;
+   both harmless).
 3. **Tests.** Every db test that calls the RPC passes the new argument —
    the caller grep under the map lists them. In core:
    `gatherings.test.ts`'s `createGathering()` helper; the anon call in
@@ -250,7 +268,8 @@ In slice order:
    the field, and §12 asserts it on the created gathering and on the
    anonymous summary. In `apps/web/e2e`, a required field needs a fill in
    every Playwright step that creates a gathering, or the create fails:
-   `grep -rn "getByLabel('Title')" apps/web/e2e` finds them
+   a grep for the title field's label, or the label you gave it in §1
+   (`grep -rn "getByLabel('Title')" apps/web/e2e` in core), finds them
    (`gatherings.spec.ts` and `profile.spec.ts` in core). The seed was
    done in step 2, and that edit can carry §1's new seed title too.
 
