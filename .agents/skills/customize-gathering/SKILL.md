@@ -237,6 +237,14 @@ In slice order:
    ("Course · when · where"; `''` shows nothing), call it from the rows
    and the detail header, and have `gatheringLine()` use it, so the tag
    card reads "Title · Course · when · where".
+   The join preview ("Join this gathering?") does not fetch the gathering:
+   it shows display-only hints, `title` and `starts_at`, that the tag
+   screen passes along. Web: `t.$uid.tsx`'s Join `Link` `search`, read by
+   the detail route's `Hints` / `validateSearch`. Mobile: `GatheringHints`
+   and `gatheringHref()` in `lib/gathering-link.ts`, read by the detail
+   screen's `useLocalSearchParams` and passed again on its redirect. If a
+   tapper should see the field before joining, add it to those hints and
+   to the preview's hint line on both platforms.
 7. **E2E.** `apps/api/e2e/handshake.e2e.ts`: every
    `gatherings.create` the caller grep lists (§12 and §17 in core) passes
    the field, and §12 asserts it on the created gathering and on the
