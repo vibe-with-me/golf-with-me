@@ -1510,7 +1510,25 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 
 **Then:** commit `customize-gathering: golfwithme`, tag `pre-extend-profile`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** Run 1: START 03:02:09Z, END 03:22:02Z (about 20 min). Log: `$GN/5-customize-gathering-r1.md`.
+- §1: Playwright 10 passed / 4 failed, then 14 after D1's exact-label fix.
+- §2: contract 32; db 74 (73 + the CHECK case); `nfc-sdk` typecheck failed with TS2322 until step 5, then clean; root typecheck 8/8.
+- Gate: contract 32, nfc 48, db 74, API e2e "all checks passed" (59 ok), Playwright 14.
+- Migration `20261013030000_gathering_course_name.sql`.
+- Safety checks passed:
+  - no §3 mechanism appears in the migration diff;
+  - the new `create_gathering` has `revoke … from public, anon` and a grant to `authenticated`;
+  - the host column grant is re-issued with `course_name`;
+  - the original tests changed only by the new argument, the anon test's `42501` expectation and the type literal;
+  - the summary carries `course_name` only.
+- Deviations D1–D7 in the log. Fixed in the skill by `3cd942a` (`customize-gathering: fixes from the golf run`):
+  - D1: a relabel can make a Playwright `getByLabel` ambiguous. It matches a case-insensitive substring, so "Round name" also matches the profile step's `getByLabel('Name')`. The fill landed in the wrong field during the /rounds → /profile transition, and 4 specs timed out at a disabled Save. §1 now says to grep `getByLabel(` and add `{ exact: true }` where two fields could match. The fork did this at 17 sites in 4 files. Core's own e2e would benefit from `{ exact: true }` on `getByLabel('Name')` (a test-robustness candidate; nothing filed).
+  - D3: §1's "Copy the sweep cannot catch" list now names the form labels (title; start, one web field, mobile `Date` + `Time`; location), the location placeholder, and the members heading "Who's coming".
+  - D5: §2 step 2 now notes that newer CLIs turn `Args: never` into `Args: Record<PropertyKey, never>` for argument-less functions. Harmless.
+  - D6: §2 step 7's grep is now "the title field's label, or the label you gave it in §1".
+  - D2 (`CI=1`), D4 (no commit of `supabase.ts` mid-run) and D7 (the 18th test is the CHECK case the step asks for) were the brief's setup or confirmed the text, and needed no change.
+- No re-run: the fork is correct, and the fixes are text only.
+- Fork commit `8ea842a` (customize-gathering: golfwithme), tag `pre-extend-profile`.
 
 ---
 
