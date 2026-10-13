@@ -1655,7 +1655,7 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 - Incident: while appending to its log, the follower used an unquoted heredoc whose backticks ran the provision command twice from the repo root. That made 20 local tags and gitignored `provisioned-tags.*` files in the repo root (mode 644). The files were deleted and the stack reset and seeded; UIDs are only in the local log; nothing was committed.
 - Deviations 1–7 in the log. Fixed in the skill by `e8bc46d` (`add-destination-type: fixes from the golf run`):
   - The claim-as-link path (2): §9 now gives the seeded-user script against tags provisioned per provision-tags §1, UIDs kept in variables, the output deleted afterwards.
-  - `db:provision` (3): it resolves only from the repo root, so §9 calls the script file directly, as provision-tags §1 does. The brief's environment note was wrong here; T7's brief drops it.
+  - `db:provision` (3): it resolves only from the repo root, so §9 calls the script file directly, as provision-tags §1 does. The brief's environment note was wrong here; T7 reuses G7's brief, so drop that note there.
   - The heredoc incident (7): §9 warns never to paste provisioning commands into an unquoted heredoc or log append.
   - The ENG-751 hang (1): §9 points at provision-tags §1's restart.
   - Observations: §1 names `destination.ts`'s stale header comment; §2's reset line may end ` on branch …`; §8 says the mobile fallback card is minimal and typecheck-only, so the hand-off and card belong to the simulator pass; §9 names the API dev port, 8786.
