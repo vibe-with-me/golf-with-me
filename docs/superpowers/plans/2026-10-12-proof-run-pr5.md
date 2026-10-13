@@ -1682,7 +1682,22 @@ The copied env files are deleted again before G4: make-it-yours copies them itse
 
 **Expected:** Phase A Task 5's outputs, plus §4's retirement. No commit (provisioning changes no files); tag `pre-gate`.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-13.** Run 1: START 03:53:23Z, END 03:58:41Z (about 5 min). Log: `$GN/8-provision-tags-r1.md`.
+- `$DB` = `supabase_db_golfwithme`: the renamed `project_id` was read from `config.toml` as written.
+- The batch landed under `$HOME/golfwithme-tags/` (the wordmark rule).
+- §1 checkpoint: the expected output, the three files 0600, the repo clean, three `unclaimed` rows.
+- End to end: signed out, `/t/<UID>` → `/claim/<UID>` → `/login?returnTo=%2Fclaim%2F<UID>`. The claim as Lin shows her card with "HCP +1.2 · Riverbend Muni" and no minus anywhere: the cross-skill check with G6 passed. A signed-out viewer sees "Connect" and no claim offer; Ada's stale claim page gets "This tag has already been claimed."
+- A brand-new account gets "First, your name" (no required vertical field in this fork), then "Claim this tag" with the UID.
+- §5 (local): the insert returned 1 row, the count printed 1, and a re-insert returned 0 rows.
+- §4 retirement after stopping both dev servers: the batch directory and its empty parent removed, the repo clean. The stack was reset and seeded afterwards.
+- One ENG-751 hang (a full load of the claimed `/t/<UID>`), cleared by the skill's restart as written.
+- Deviations 1–3 in the log. Fixed in the skill by `f081728` (`provision-tags: fixes from the golf run`):
+  - The profile-step heading (1): the skill now says "First, your name" without a required vertical field, "First, your card" with one.
+  - Dev-server log modes (2): the logs in `$OUT` were 0644 because `umask 077` covered only the provisioning subshell (the 0700 directory kept them private); the skill now starts the dev servers under `umask 077`, with the one-line form.
+  - The ENG-751 hang (3): a known issue; the restart text worked, no change.
+- For the report: `web-dev.log` held a React hydration-mismatch warning on `/login` (server `<div class="card" aria-busy>` vs client `<form class="card">`), unrelated to the hang.
+- No re-run: the fixes are text only.
+- No fork commit; tag `pre-gate` at `e15a850`.
 
 ---
 
