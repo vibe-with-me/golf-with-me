@@ -290,7 +290,12 @@ ends with that new projectId.
   this binding; a mismatch deploys a web app that cannot resolve tags
   server-side.
 - `supabase/config.toml` → `project_id` (optional; names the local
-  Docker stack — if changed, `bun run db:stop && bun run db:start`).
+  Docker stack). If you rename it, stop the running stack first, while
+  `config.toml` still names it: `bun run db:stop`. Then rename. Then
+  `bun run db:start`, then `bun run db:reset && bun run db:seed`: the
+  renamed project starts on new, empty volumes. A fresh fork's
+  `project_id` is still `withme-starter`, so that stop also stops any
+  other checkout of the starter on this machine.
 - The `.env` files you created up front are *stack* config, not brand:
   local values stay as the `.example` files ship them (after step 3,
   `apps/web/.env` still matches `apps/web/.env.example` line for line).
