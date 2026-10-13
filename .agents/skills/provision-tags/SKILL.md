@@ -151,7 +151,10 @@ view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
   prints three `04…|unclaimed` lines.
 - End to end, with both dev servers up (`cd apps/api && bun run dev` and
   `cd apps/web && bun run dev`; an agent adds `> "$OUT/api-dev.log" 2>&1`
-  and `> "$OUT/web-dev.log" 2>&1`): open one encode URL signed out.
+  and `> "$OUT/web-dev.log" 2>&1`, and starts each under `umask 077` so
+  those logs, which carry the UIDs, are 0600 like the batch files:
+  `(umask 077; cd apps/web && bun run dev > "$OUT/web-dev.log" 2>&1)`, the
+  same for `apps/api`): open one encode URL signed out.
   `/t/<UID>` goes to `/claim/<UID>`, which sends you to sign in
   (`/login?returnTo=%2Fclaim%2F<UID>`). Sign in there as the seed's demo
   user (`lin@demo.withme.local` / `withme-demo-1`, or your rebranded
@@ -161,8 +164,10 @@ view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
   else, with "Connect", and never offers a claim. A second account that
   presses "Claim tag" on a claim page it opened before the claim landed
   gets "This tag has already been claimed." A brand-new account first gets
-  the profile step ("First, your card", with any required profile fields)
-  before "Claim this tag"; fill it in, or use a second seeded user.
+  the profile step before "Claim this tag": "First, your name" (Name
+  only) in the starter and in a fork whose extend-profile required no
+  vertical field, "First, your card" (Name plus the required fields) when
+  it made one required; fill it in, or use a second seeded user.
   If `/t/<UID>` hangs after the claim under `vite dev` (a known dev-server
   SSR hang, ENG-751), restart `apps/web`'s dev server: stop the running
   `bun run dev` (Ctrl-C in its shell, or kill the `vite` process and its
