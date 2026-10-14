@@ -57,5 +57,10 @@ and runs alongside 3; 5 waits for all.
 - Milestone 1: merged (PR #6; follow-up #7).
 - Milestone 2: merged (PR #8, `4fa6c98`).
 - Milestone 3: merged (PR #9, `7932548`, 2026-10-12).
-- Milestone 4: PR #10 (derivation skills).
-- Milestone 5: waiting on 4.
+- Milestone 4: merged (PR #10, `511a26c`, 2026-10-12).
+- Milestone 5: done 2026-10-14, PR pending. Run Club through every skill
+  on a fresh clone, local and timed (Phase A); Golf with Me rebuilt on the
+  starter and live (vibe-with-me/golf-with-me#5, open at `c64b4db`;
+  https://golfwithme-web.golfwithme.workers.dev,
+  https://golfwithme-api.golfwithme.workers.dev); tailgate deferred
+  (ENG-756). Report: `reports/2026-10-14-proof-run.md`.

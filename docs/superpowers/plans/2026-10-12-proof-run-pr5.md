@@ -1854,7 +1854,7 @@ Deviations go through the procedure. Re-running a production step needs a new ap
 - go-live text fixed from the run (`1dc8508`).
 - **Pending:** the Auth URL configuration, the authed check, and the throwaway sign-up + delete.
 
-**Done YYYY-MM-DD.** (to write)
+**Done 2026-10-14.** Live at `https://golfwithme-web.golfwithme.workers.dev` and `https://golfwithme-api.golfwithme.workers.dev`; EAS update group `16e2daa9-474b-47e5-a0c8-8c7dafc85964` on `demo`. Alex's checks done: the Auth URLs set in the dashboard, the authed check returned Ada's profile through JWKS, the throwaway sign-up confirmed at the workers.dev origin. The delete check found ENG-759 (the web shell's profile gate loops `/profile` ↔ `/login` for a profile-less session; the server-side deletion succeeded): fixed in starter PR 15 (`776e26e`), golf web redeployed with the fix. Open: the hosted project's PostgREST is 14.5, below the 16.3 floor the local guard enforces (report §7). Not cleanly timed: the step spread over 2026-10-13/14 around Alex's logins, dashboard steps and checks. Cost so far $0: no new project, worker account or build. Log: `$GN/10-go-live.md`; the report's §4 has the step-by-step.
 
 ---
 
@@ -1871,6 +1871,8 @@ Deviations go through the procedure. Re-running a production step needs a new ap
    - Wait about 15 min for CodeRabbit. Record whether it reviewed.
    - Handle the findings with `superpowers:receiving-code-review`.
 5. **Merge.** Once CI is green and CodeRabbit is clean (or, if it does not review this repo, once Alex agrees): `gh pr merge <n> -R vibe-with-me/golf-with-me --merge`. Then `git -C "$GOLF" fetch origin` and `git -C "$GOLF" log --oneline -1 origin/main`, which shows the merge commit.
+
+**G11 progress 2026-10-14** (not Done; the merge is pending): PR vibe-with-me/golf-with-me#5 is open at `c64b4db` with 0 unresolved review threads (CodeRabbit did review the repo; its ten comments were handled, six of them as skill-text fixes in `d325151`, listed below). CI and CodeRabbit are re-running on that push; the merge commit follows once both are clean.
 
 **Done YYYY-MM-DD.** (to write)
 
@@ -2108,9 +2110,13 @@ The staging worktrees stay as they are (A4).
 
 Commit `Docs: the proof-run report (milestone 5)`.
 
+**Done 2026-10-14.** The report is `docs/superpowers/reports/2026-10-14-proof-run.md`, committed as `f257198` (`Docs: the proof-run acceptance report (Milestone 5)`). Its eight sections carry the nine above: the verdict; the two runs, each with its timing table, the comparisons and the order-dependences (3–5); what a fork gets free and what is by hand, with the not-covered list (6, 9); go-live as it went (8); the core defects table (7); the skill text changes per skill (4); open items; and the time budget against the plan. Written before the golf PR merged and before G12, and it says so.
+
 ### Task 12 (revised): Program status and the spec pointer
 
 As originally written. Status also links the golf PR and its live URLs, and notes tailgate as deferred.
+
+**Done 2026-10-14.** `program.md` Status: Milestone 4 reads merged (PR #10, `511a26c`, 2026-10-12); Milestone 5 reads done, PR pending, with Run Club (local, timed), golf rebuilt and live (the PR at `c64b4db` and the two URLs), the tailgate deferral (ENG-756) and the report path. The spec's Delivery item 5 gained a dated italic note in the style of the 2026-10-12 amendment, pointing at the report, naming what was proven (Run Club, golf) and what was deferred (tailgate, physical tags, an EAS build). `docs/skills-roadmap.md` gained a five-line "Proven 2026-10-14" section pointing at the report. The "Program complete" line waits for the merge (Task 15).
 
 ---
 

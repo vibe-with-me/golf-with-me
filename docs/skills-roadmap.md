@@ -180,3 +180,11 @@ artwork. Optional, skipped by a fork that already has a brand; its last
 step, `/design-sync`, gives the fork its own design-system project so
 later `/design` runs start from the fork's brand. Built once (a
 bouldering-gym direction) before it was written down. No app code.
+
+## Proven 2026-10-14 — the proof run (milestone 5)
+
+Hard constraint 4, run for real: a fresh clone (Run Club, local, 65 min
+clean path) and a real rebuild (Golf with Me, live) went through
+design-direction, make-it-yours, customize-gathering, extend-profile,
+add-destination-type, provision-tags and go-live. Nineteen text fixes, no
+app code. Report: `docs/superpowers/reports/2026-10-14-proof-run.md`.
