@@ -6,10 +6,10 @@ start line to join today's run. Every step is one of the skills in
 [`.agents/skills/`](../.agents/skills/), run in the order the skills were
 designed for.
 
-This is a walkthrough, not a transcript. The golf and tailgate forks are
-the real derivations the skills were distilled from; Run With Me is the
-same path with a run club's nouns, chosen because it maps one-to-one onto
-each skill's worked example. Where a skill's example says `course_name`,
+This is a walkthrough, not a transcript. Golf With Me is the real
+derivation the skills were distilled from; Run With Me is the same path
+with a run club's nouns, chosen because it maps one-to-one onto each
+skill's worked example. Where a skill's example says `course_name`,
 you will say `distance`; where it says `affiliation`, you will say
 `pace`.
 

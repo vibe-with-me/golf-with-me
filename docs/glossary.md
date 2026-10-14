@@ -101,6 +101,6 @@ migration + RLS → RLS tests → API → web → mobile → e2e.
 test`, all green, plus the e2e harness the change touched. A slice is done
 when the gate passes.
 
-**Derivation.** A fork that turned the starter into a vertical: the golf
-and tailgate apps that existed before the skills, and the Run With Me
+**Derivation.** A fork that turned the starter into a vertical: Golf With
+Me, the fork the skills were distilled from, and the Run With Me
 walkthrough in these docs.

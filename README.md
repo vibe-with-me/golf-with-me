@@ -49,19 +49,19 @@ is the tour; [the glossary](docs/glossary.md) defines the words.
 ## What you could build with it
 
 The starter is the generic version of a product that already shipped
-(Vibe With Me, for live music). The two forks built so far, a golf app and
-a tailgate app, each needed the same two moves: rename the gathering, add
-a couple of profile fields. The skills exist because those moves repeated.
+(Vibe With Me, for live music). The first fork, Golf With Me, needed the
+same two moves every vertical needs: rename the gathering, add a couple of
+profile fields. The skills exist because those moves repeat.
 
 | Idea | The gathering becomes | Fields on the card | Fields only connections see | Where the tag lives |
 | --- | --- | --- | --- | --- |
-| Run club | a run (distance, pace group) | pace, home club | Strava handle, phone | bib, shoe tag, water bottle |
-| Golf | a round (course, tee time) | handicap, home course | phone | bag tag, ball marker |
-| Tailgate | a tailgate (lot, kickoff) | team, signature dish | phone | cooler, koozie |
-| Climbing gym | a session (wall, grade range) | grade, usual night | handle | chalk bag, membership card |
-| Dog walking | a walk (park, time) | dog's name and breed | phone | collar tag |
-| Book club | a meeting (book, chapter) | currently reading | email | bookmark |
-| Trivia night | a team table | team name | handle | table tent at the bar |
+| Run With Me | a run (distance, pace group) | pace, home club | Strava handle, phone | bib, shoe tag, water bottle |
+| Golf With Me | a round (course, tee time) | handicap, home course | phone | bag tag, ball marker |
+| Tailgate With Me | a tailgate (lot, kickoff) | team, signature dish | phone | cooler, koozie |
+| Climb With Me | a session (wall, grade range) | grade, usual night | handle | chalk bag, membership card |
+| Walk With Me | a walk (park, time) | dog's name and breed | phone | collar tag |
+| Read With Me | a meeting (book, chapter) | currently reading | email | bookmark |
+| Trivia With Me | a team table | team name | handle | table tent at the bar |
 
 The pattern is the same every time: **a gathering with your nouns, a card
 with your fields, a tag where your people already are.** The
@@ -275,6 +275,9 @@ The commercial line, stated on day one: **the handshake layer is free and
 open, permanently.** Tag fulfillment (printed, encoded, locked hardware)
 and managed hosting are what Vibe With Me sells. The Merch tab in the app
 is a pointer to a store URL you configure, never a cart.
+[docs/merch.md](docs/merch.md) shows a fork running its own: accessories
+for the vertical (ball markers, bib clips, collar tags), tags encoded by
+GoToTags from the starter's encode list, a Shopify store behind the tab.
 
 ## Contributing
 

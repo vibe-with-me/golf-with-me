@@ -25,6 +25,9 @@ longer version of something it mentions.
   a fresh install.
 - [NFC tags](nfc-tags.md): the chip, the URL, random versus chip UIDs,
   encoding and locking, and why the domain you encode is forever.
+- [Merch](merch.md): the store pointer in the app, accessories per
+  vertical, sourcing and encoding tags with GoToTags, and a Shopify store
+  from zero to the first shipped batch.
 - [The slice](the-slice.md): the fixed order every change moves through
   (contract → migration + RLS → tests → API → web → mobile → e2e), with the
   real file that plays each role today. The skills assume you have read it.
