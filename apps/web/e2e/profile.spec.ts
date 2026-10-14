@@ -1,7 +1,22 @@
-// Profile: the photo, My tags, and deleting the account.
+// Profile: the photo, My tags, and deleting the account (with or without a profile).
 import { fileURLToPath } from 'node:url';
-import { expect, test } from '@playwright/test';
-import { admin, claimFreshTag, signUpWithProfile } from './helpers.ts';
+import { expect, type Page, test } from '@playwright/test';
+import { admin, claimFreshTag, signUp, signUpWithProfile } from './helpers.ts';
+
+/** The auth user's id for an email, or undefined once it is gone. */
+async function authUserId(email: string): Promise<string | undefined> {
+  const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  if (error) throw error;
+  return data.users.find((user) => user.email === email)?.id;
+}
+
+/** Signs up from /login and stops on "Create your profile", saving nothing. */
+async function signUpWithoutProfile(page: Page, email: string): Promise<void> {
+  await page.goto('/login');
+  await signUp(page, email);
+  await page.waitForURL(/\/profile\?/);
+  await expect(page.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
+}
 
 // A landscape PNG (900×600): the client must square it, shrink it to 512px, and
 // re-encode as WebP or JPEG.
@@ -98,4 +113,29 @@ test('deleting the account signs out and releases the tag', async ({ page }) => 
   expect(data?.status).toBe('unclaimed');
   await page.goto(`/t/${uid}`);
   await page.waitForURL('**/login**'); // unclaimed again: the claim flow, signed out
+});
+
+// "Create your profile" offers Sign out and Delete account before anything is
+// saved. Leaving the shell from there must land on / (ENG-759: the profile
+// gate used to hijack the navigation out, and bounce /login <-> /profile forever).
+test('a session without a profile can delete its account', async ({ page }) => {
+  const email = `smoke-noprofile-delete-${Date.now()}@rls.test`;
+  await signUpWithoutProfile(page, email);
+  expect(await authUserId(email)).toBeDefined();
+
+  await page.getByRole('button', { name: 'Delete account', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete my account', exact: true }).click();
+
+  await page.waitForURL((url) => url.pathname === '/', { timeout: 10_000 });
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  expect(await authUserId(email)).toBeUndefined();
+});
+
+test('a session without a profile can sign out', async ({ page }) => {
+  await signUpWithoutProfile(page, `smoke-noprofile-signout-${Date.now()}@rls.test`);
+
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+
+  await page.waitForURL((url) => url.pathname === '/', { timeout: 10_000 });
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
 });
