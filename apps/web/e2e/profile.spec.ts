@@ -3,11 +3,17 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { admin, claimFreshTag, signUp, signUpWithProfile } from './helpers.ts';
 
-/** The auth user's id for an email, or undefined once it is gone. */
+/** The auth user's id for an email, or undefined once it is gone. Pages through
+ * every auth user: the local stack keeps the test users other suites create. */
 async function authUserId(email: string): Promise<string | undefined> {
-  const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  if (error) throw error;
-  return data.users.find((user) => user.email === email)?.id;
+  const perPage = 1000;
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const match = data.users.find((user) => user.email === email);
+    if (match) return match.id;
+    if (data.users.length < perPage) return undefined;
+  }
 }
 
 /** Signs up from /login and stops on "Create your profile", saving nothing. */
