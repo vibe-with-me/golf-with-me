@@ -96,6 +96,12 @@ use of the tab label.
   `startsWith('/gathering/')` check behind the login screen's invitation
   line, and the `/gathering/` prefix that `gatheringHref` in
   `lib/gathering-link.ts` builds for redirects.
+- Docs: `docs/the-slice.md` cites the detail files as the idioms to copy
+  (web `_app.gatherings_.$id.tsx`, "the real one"; mobile
+  `gathering/[id].tsx`, among the stack screens). Point both at the
+  renamed files (`_app.rounds_.$id.tsx`, `round/[id].tsx`) so the fork's
+  slice names files that exist:
+  `grep -n 'gatherings_\|gathering/\[id\]' docs/the-slice.md` lists them.
 
 **Copy the sweep cannot catch.** Some starter copy is vertical-specific
 without containing "gathering"; rewrite it for your vertical too:

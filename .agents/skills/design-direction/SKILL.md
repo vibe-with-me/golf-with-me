@@ -187,9 +187,10 @@ make-it-yours.
 
 Iterate on the canvas, at most three rounds: tighten a hue, swap a
 face, kill anything the rules exclude (a tinted card, an accent tab).
-The owner picks one direction and names it. Record the canvas link
-and the direction's name in the sheet; the canvas is private unless
-the owner shares it. If the owner changes the pick (removes an element,
+The owner picks one direction and names it. Record the canvas and the
+direction's name in the sheet; the canvas is private unless the owner
+shares it, so the sheet describes it or marks its link "private link,
+owner only" (§3). If the owner changes the pick (removes an element,
 drops a flagged treatment), update the boards and republish the
 Artifact, or record the difference as one line under "Not this", so
 the canvas and the sheet do not silently disagree.
@@ -205,10 +206,16 @@ table under `## Colors` is what `contrast.ts` parses (it reads that
 section only): keep the heading, the three columns and the eight token
 names exactly, one row each.
 
+The sheet is committed to the fork, so it holds no local absolute paths
+and no private links: write file paths repo-relative (`docs/brand/…`, or
+"kept outside the repo" with no path), and describe the canvas in words
+instead of linking a private Artifact (or mark the link "private link,
+owner only").
+
 ````markdown
 # Brand direction — <wordmark> (<Display name>)
 
-Direction: <name>, chosen <date> from <canvas link, or "no canvas">.
+Direction: <name>, chosen <date> from <the canvas, described (a private link is marked "private link, owner only"), or "no canvas">.
 Vertical: <one sentence>. Mood: <three words>.
 
 ## Names
@@ -255,7 +262,7 @@ Contrast, as `contrast.ts` reported it on <date>: <paste its output>.
 - `apps/mobile/assets/icon.png` 1024×1024, no alpha: <the mark, described>.
 - `apps/mobile/assets/android-icon-foreground.png`: <the same mark on transparent, inside the central 66%, in a color that reads on the light bg>.
 - Optional `apps/web/public/favicon.ico`.
-- Source files live at <path outside the repo, or "none yet">.
+- Source files live at <a repo-relative path such as `docs/brand/`, "kept outside the repo" (no local path), or "none yet">.
 
 ## Not this
 

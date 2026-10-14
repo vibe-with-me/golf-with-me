@@ -290,24 +290,27 @@ resolves from the repo root, so from the output directory call the script
 file directly, as §1 does. Then sign in as a seeded user with the db
 package's local client and claim the first tag as a link, the second as a
 profile (the SDK's `authed.claim(uid, { type: 'link', url })`, as in the
-e2e above, works too):
+e2e above, works too). Set `DEMO_EMAIL` and `DEMO_PASSWORD` to your seed
+identity: a seeded user's email and the seed's `DEMO_PASSWORD`, both in
+`supabase/seed/index.ts` (`db:seed` prints them; a rebranded fork's are
+under its own name), in the shell before this block. The script reads
+them from the environment, so no password is written into a file:
 
 ```sh
 cat > "$OUT/claim.ts" <<'EOF'
 const { anonClient } = await import(`${process.env.REPO}/packages/db/src/test-utils/index.ts`);
 const csv = await Bun.file(`${import.meta.dir}/provisioned-tags.csv`).text();
 const [link, profile] = csv.trim().split('\n').slice(1).map((l) => l.split(',')[0]);
+const { DEMO_EMAIL: email, DEMO_PASSWORD: password } = process.env;
+if (!email || !password) throw new Error('set DEMO_EMAIL and DEMO_PASSWORD to your seed identity');
 const db = anonClient();
-const { error: e } = await db.auth.signInWithPassword({
-  email: 'ada@demo.withme.local', // the seed's demo user, or your rebranded one
-  password: 'withme-demo-1',
-});
+const { error: e } = await db.auth.signInWithPassword({ email, password });
 if (e) throw e;
 const a = await db.rpc('claim_tag', { p_uid: link, p_destination: { type: 'link', url: 'https://example.com/menu' } });
 const b = await db.rpc('claim_tag', { p_uid: profile });
 console.log('link claim:', a.error?.message ?? 'ok', '| profile claim:', b.error?.message ?? 'ok');
 EOF
-REPO="$REPO" bun run "$OUT/claim.ts"
+REPO="$REPO" DEMO_EMAIL="$DEMO_EMAIL" DEMO_PASSWORD="$DEMO_PASSWORD" bun run "$OUT/claim.ts"
 LINK_UID=$(sed -n 2p "$OUT/provisioned-tags.csv" | cut -d, -f1)
 PROFILE_UID=$(sed -n 3p "$OUT/provisioned-tags.csv" | cut -d, -f1)
 for u in "$LINK_UID" "$PROFILE_UID"; do

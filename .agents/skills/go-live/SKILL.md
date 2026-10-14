@@ -220,8 +220,11 @@ console.log(`profile.get via ${new URL(apiUrl).host}: ok; fields: ${Object.keys(
 ```
 
 ```sh
-cd apps/web && bun --env-file=.env.production authed-check.ts; rm -f authed-check.ts
+cd apps/web && ( trap 'rm -f authed-check.ts' EXIT; bun --env-file=.env.production authed-check.ts )
 ```
+
+The trap deletes the file however the check ends, and the subshell exits
+with the check's status, so a failed check still fails the command.
 
 A sign-in that works followed by a 401 from `profile.get` is the JWKS leg
 (see the JWKS check in section 1). Then confirm
@@ -243,7 +246,8 @@ stop and tell the owner — never work around it with the service role.
    then `eas-cli init --id <projectId> --non-interactive` and
    `eas-cli update:configure --non-interactive` (init also sets the
    project icon on expo.dev). If `bunx eas-cli` fails with `Cannot find
-   module 'yallist'`, the bunx cache is broken: use `npx -y eas-cli@latest …`.
+   module 'yallist'`, the bunx cache is broken: use `npx -y eas-cli@24.13.0 …`
+   (the version this runbook was last verified with; pin, never `@latest`).
 2. Write `apps/mobile/.env.production` with the `EXPO_PUBLIC_*` mirrors
    of step 3's values.
 3. Publish — `--environment` is REQUIRED in non-interactive mode:
@@ -284,7 +288,7 @@ OK. Web: `bun run build && bunx wrangler deploy`. Mobile: a fresh
 | Python body check gets 403 | Cloudflare blocks urllib's default User-Agent — send a browser one |
 | `db push` refuses: migration history differs | Reused project with an older schema — owner runs `supabase db reset --linked` |
 | Authed calls 401 after a good sign-in | Project JWKS has no asymmetric key — enable JWT signing keys |
-| `bunx eas-cli`: `Cannot find module 'yallist'` | Broken bunx cache — `npx -y eas-cli@latest …` |
+| `bunx eas-cli`: `Cannot find module 'yallist'` | Broken bunx cache — `npx -y eas-cli@24.13.0 …` (the version last verified) |
 | Web resolver errors only in production SSR | Service binding name ≠ api worker name |
 | Signups never confirm | Default SMTP delivers to org members only |
 | `eas update` fails non-interactively | Missing `--environment` |

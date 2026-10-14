@@ -118,12 +118,13 @@ DB="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' "$REPO/supabase/config.
 ```
 
 Even locally, the script prints every UID to the terminal, and so do the
-checkpoint's `psql`, the app's pages, and the dev servers' logs. An agent
-running this rehearsal keeps them out of its transcript as §2 does: append
-`> provision.log` to the `bun run` line, read the log through a redacted
-view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
-`psql` below through the same `sed`, and write the dev servers' logs into
-`$OUT` so §4's retirement deletes them.
+app's pages and the dev servers' logs. An agent running this rehearsal
+keeps them out of its transcript as §2 does: append `> provision.log` to
+the `bun run` line, read the log through a redacted view
+(`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), keep the
+checkpoint's `psql` to counts by status as written below (pipe any query
+that selects `uid` through the same `sed`), and write the dev servers'
+logs into `$OUT` so §4's retirement deletes them.
 
 **Checkpoint:**
 
@@ -145,10 +146,11 @@ view (`sed 's/04[0-9A-F]\{12\}/04<UID>/g' "$OUT/provision.log"`), pipe the
 
   ```sh
   UIDS=$(tail -n +2 "$OUT/provisioned-tags.csv" | cut -d, -f1 | sed "s/.*/'&'/" | paste -sd, -)
-  docker exec "$DB" psql -U postgres -tAc "select uid, status from public.tags where uid in ($UIDS) order by uid"
+  docker exec "$DB" psql -U postgres -tAc "select status, count(*) from public.tags where uid in ($UIDS) group by status"
   ```
 
-  prints three `04…|unclaimed` lines.
+  prints one line, `unclaimed|3`: counts only, so no UID reaches the
+  terminal.
 - End to end, with both dev servers up (`cd apps/api && bun run dev` and
   `cd apps/web && bun run dev`; an agent adds `> "$OUT/api-dev.log" 2>&1`
   and `> "$OUT/web-dev.log" 2>&1`, and starts each under `umask 077` so
