@@ -135,6 +135,8 @@ test('a session without a profile can delete its account', async ({ page }) => {
   await page.waitForURL((url) => url.pathname === '/', { timeout: 10_000 });
   await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
   expect(await authUserId(email)).toBeUndefined();
+  await page.goto('/profile');
+  await page.waitForURL(/\/login\?/); // the session is gone, not just the landing page's guess
 });
 
 test('a session without a profile can sign out', async ({ page }) => {
@@ -144,4 +146,6 @@ test('a session without a profile can sign out', async ({ page }) => {
 
   await page.waitForURL((url) => url.pathname === '/', { timeout: 10_000 });
   await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await page.goto('/profile');
+  await page.waitForURL(/\/login\?/); // the session is gone, not just the landing page's guess
 });
