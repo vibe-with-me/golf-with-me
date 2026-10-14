@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, useLocation } from '@tanstack/react-router';
+import { createFileRoute, Navigate, useLocation, useRouterState } from '@tanstack/react-router';
 import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
@@ -40,11 +40,23 @@ export const Route = createFileRoute('/_app')({
  * screen (a profile fetch slower than defaultPendingMs) the stale
  * "redirected" match re-renders after the re-load has dropped its load
  * promise and throws `undefined` past every error boundary: a blank page.
+ *
+ * The gate holds off while a navigation is in flight. `useLocation()` is
+ * where the router is going, not what is on screen: leaving the shell
+ * (Sign out or Delete account from "Create your profile", both heading for
+ * /), this layout stays mounted with its old profile-less data until the
+ * new matches commit. Redirecting then would hijack the navigation out,
+ * and with the session gone, `requireSession` and this gate would bounce
+ * /login and /profile forever. `isLoading` turns false in the same commit
+ * as the new matches, so on the way in the gate still fires on the first
+ * committed render, with the real destination as `returnTo`.
  */
 function ShellRoute() {
   const { profile } = Route.useLoaderData();
   const { pathname, href } = useLocation();
+  const navigating = useRouterState({ select: (s) => s.isLoading });
   if (!profile && pathname !== '/profile') {
+    if (navigating) return <ShellPending />;
     return (
       <>
         <Navigate to="/profile" search={{ returnTo: href }} replace />
