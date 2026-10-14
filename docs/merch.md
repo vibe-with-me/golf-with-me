@@ -21,7 +21,7 @@ on.
 | Web, local | `VITE_STORE_URL` in `apps/web/.env` | The Merch tab and the landing page's "Get tags" link appear |
 | Web, production | the same line in `apps/web/.env.production` | Baked in at build time; changing it is a rebuild and redeploy |
 | Mobile, local | `EXPO_PUBLIC_STORE_URL` in `apps/mobile/.env` | The Merch tab appears (`href: null` hides it otherwise) |
-| Mobile, production | the same line in `apps/mobile/.env.production` | An `eas update` ships it |
+| Mobile, production | `EXPO_PUBLIC_STORE_URL` in the EAS `production` environment (`eas env:create`), and the same line in `apps/mobile/.env.production` for go-live's local verification export | `eas update --environment production` ships it. With `--environment`, EAS reads its own environment and ignores local `.env` files, so a value only in `.env.production` never reaches the published update. |
 
 Use the plain storefront URL, https only, with no tokens or tracking
 parameters you would not print on a flyer: the value is public in both
@@ -64,8 +64,10 @@ for encoding your own. The pieces you need:
 **Form factors.** Their store carries NTAG213 stickers in several sizes,
 [PVC cards](https://store.gototags.com/nfc-pvc-card-ntag213/), [custom
 magnets](https://store.gototags.com/custom-nfc-magnet/), wristbands,
-keychains, and more. NTAG213 is the chip the starter targets; any
-NTAG21x works. For a form factor they do not stock as a catalog item (a
+keychains, and more. NTAG213 is the chip the starter targets; NTAG215
+and NTAG216 work too (more memory, same behavior). Avoid NTAG210: its
+48 bytes of user memory cannot hold the tag URL once a real domain is
+in it. For a form factor they do not stock as a catalog item (a
 ball marker, a collar tag), the custom-quote form is the path, or buy a
 plain round sticker and apply it to an accessory you source elsewhere.
 Custom items carry minimums and lead times (one magnet listing shows 500
@@ -122,20 +124,16 @@ and simpler, and nothing leaves the room.
 ## The store: Shopify
 
 Shopify is the fastest way to a storefront you do not have to build.
-Two plans matter here:
+For a new store, **Basic** is the plan: a real storefront with
+collections and your domain, enough for a hero item and a venue item and
+room to grow. Confirm the current price on
+[shopify.com/pricing](https://www.shopify.com/pricing). Shopify's
+cheaper **Starter** plan (product links and a Buy Button, no full
+storefront) is [not available to new stores](https://help.shopify.com/en/manual/intro-to-shopify/pricing-plans/plans-features/shopify-starter-plan);
+if you already have one, it also works, since the app only needs a URL.
 
-- **Starter** (about $5 a month as of 2026; confirm on
-  [shopify.com/pricing](https://www.shopify.com/pricing)) gives you
-  product pages with a checkout link and a Buy Button you can embed on
-  an existing site. No full storefront, no collections, a higher
-  per-transaction fee. Enough for one hero item and one venue item.
-- **Basic** gives you a real storefront with collections and a domain.
-  Move up when you have more than a few products or want the store to be
-  the brand's front door.
-
-Either way, the app's Merch tab points at one URL. On Starter, that is
-your product page or your Shopify link page; on Basic, the store's home
-or a "Tags" collection.
+Either way, the app's Merch tab points at one URL: the store's home, a
+"Tags" collection, or a single product page.
 
 ### Setting it up
 
