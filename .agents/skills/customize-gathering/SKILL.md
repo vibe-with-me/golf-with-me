@@ -106,7 +106,7 @@ In slice order:
    Insert the column, add it to the `jsonb_build_object` the function
    returns (the API validates that object against `GatheringSchema`), and
    re-issue the grants for the new signature:
-   `revoke execute on function public.create_gathering(text, timestamptz, text, text) from public;`
+   `revoke execute on function public.create_gathering(text, timestamptz, text, text) from public, anon;`
    `grant execute on function public.create_gathering(text, timestamptz, text, text) to authenticated;`.
    If the summary carries the field, also
    `create or replace function public.resolve_tag(p_uid text) returns jsonb`
