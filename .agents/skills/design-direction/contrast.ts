@@ -3,8 +3,7 @@
 //   bun run .agents/skills/design-direction/contrast.ts '#c2410c' '#ffffff'
 //     -> prints the ratio of one pair
 //   bun run .agents/skills/design-direction/contrast.ts --sheet docs/brand-direction.md
-//     -> reads the table under the sheet's "## Colors" heading
-//        (| token | light | dark |), requires all
+//     -> reads the sheet's "## Colors" table (| token | light | dark |), requires all
 //        eight tokens exactly once with both modes, derives the twelve pairs from
 //        those values, and exits 1 if any token is missing or any pair fails.
 //        The pairs are computed from the values make-it-yours will copy, so the
@@ -25,20 +24,26 @@ const PAIRS: ReadonlyArray<readonly [Token, Token, number]> = [
   ['border-input', 'surface', 3],
 ];
 
-// A color is #rgb, #rrggbb, or rgba(r, g, b, a). An rgba() foreground is
-// composited over the background first (the token files use rgba borders).
+// A color is #rgb, #rrggbb, or rgba(r, g, b, a) with channels 0-255 and
+// alpha 0-1; anything else (a hex without its #, a channel of 300) is an
+// error, not a guess. An rgba() foreground is composited over the background
+// first (the token files use rgba borders).
 function parse(color: string, over?: Rgb): Rgb {
   const s = color.trim();
-  const m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([0-9.]+)\s*)?\)$/.exec(s);
+  const bad = new Error(
+    `not a color: ${color} (want #rgb, #rrggbb, or rgba(r, g, b, a) with channels 0-255 and alpha 0-1)`,
+  );
+  const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/.exec(s);
   if (m) {
     const [r, g, b] = [m[1], m[2], m[3]].map(Number) as Rgb;
     const a = m[4] === undefined ? 1 : Number(m[4]);
+    if ([r, g, b].some((c) => c > 255) || a > 1) throw bad;
     if (a === 1 || !over) return [r, g, b];
     return [r, g, b].map((c, i) => Math.round(c * a + over[i] * (1 - a))) as Rgb;
   }
-  const h = s.replace(/^#/, '');
+  const h = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(s)?.[1];
+  if (!h) throw bad;
   const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-  if (!/^[0-9a-fA-F]{6}$/.test(full)) throw new Error(`not a hex or rgba() color: ${color}`);
   return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as Rgb;
 }
 function linear(c: number): number {
@@ -55,17 +60,24 @@ export function ratio(fg: string, bg: string): number {
 }
 
 // The sheet's Colors table: one row per token, `| <token> | <light> | <dark> |`.
-// Only the section under the `## Colors` heading is read, up to the next `## `,
-// so a row in another table (a Copy row named `surface`) cannot collide.
-// Every token exactly once; a duplicate or a missing token is an error.
+// Only the "## Colors" section is read, so a header or cell elsewhere that
+// happens to be a token name (the Copy table once had a `surface` column) is
+// never mistaken for a color row. The heading is required: the skill's
+// template puts the table under it, and without it the whole sheet would be
+// searched. Every token exactly once; a duplicate or a missing token is an error.
+export function colorsSection(text: string): string {
+  const heading = /^##\s+Colors\b[^\n]*\n/m.exec(text);
+  if (!heading) throw new Error('no "## Colors" heading: the | token | light | dark | table goes under it');
+  const start = heading.index + heading[0].length;
+  const next = /^##\s/m.exec(text.slice(start));
+  return next ? text.slice(start, start + next.index) : text.slice(start);
+}
 export function readColors(text: string): Record<Mode, Record<Token, string>> {
   const colors = { light: {} as Record<Token, string>, dark: {} as Record<Token, string> };
   const seen = new Set<string>();
   const errors: string[] = [];
-  const section = /^## Colors\b[^\n]*\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text);
-  if (!section) throw new Error('no "## Colors" heading');
   const rowPattern = /^\|\s*([a-z-]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/gm;
-  for (const [, name, light, dark] of section[1].matchAll(rowPattern)) {
+  for (const [, name, light, dark] of colorsSection(text).matchAll(rowPattern)) {
     if (!(TOKENS as readonly string[]).includes(name)) continue;
     if (seen.has(name)) {
       errors.push(`token ${name} appears more than once`);
