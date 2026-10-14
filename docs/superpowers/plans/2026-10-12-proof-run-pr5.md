@@ -1874,6 +1874,14 @@ Deviations go through the procedure. Re-running a production step needs a new ap
 
 **Done YYYY-MM-DD.** (to write)
 
+**Golf PR review fixes 2026-10-14.** CodeRabbit on golf PR 5 flagged six skill-text issues; fixed in the starter's skills in `d325151` (Skills: fixes from the golf PR review), for the next skill sync into golf:
+1. add-destination-type §9: the claim script reads `DEMO_EMAIL` / `DEMO_PASSWORD` from the environment; no committed password.
+2. go-live §3: the authed check runs as `( trap 'rm -f authed-check.ts' EXIT; bun … )`, so a failed check fails the command.
+3. go-live §4 and troubleshooting: the npx fallback pins `eas-cli@24.13.0` (the version the golf go-live ran on 2026-10-13, from the npx cache; also the npm latest on 2026-10-14) instead of `@latest`.
+4. provision-tags §1: the checkpoint's `psql` prints counts by status (`unclaimed|3`), so no UID reaches the terminal.
+5. design-direction §2–3: the committed sheet uses repo-relative paths and describes the canvas, or marks a private link "private link, owner only".
+6. customize-gathering §1: an optional URL rename also updates `docs/the-slice.md`'s detail-file citations.
+
 ---
 
 ### G12: Teardown and local cleanup (Alex for the deletes; about 15 min)
