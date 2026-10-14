@@ -7,9 +7,9 @@ description: Use when a withme-starter fork wants its gathering to speak the ver
 
 The gathering ships in the starter: a host creates one, points a tag at it,
 and a tap on that tag is the invitation. It was the one feature every
-derivation built by hand (golf-with-me "rounds", tailgate-with-me
-"tailgates" — the same entity each time), so it is core code now and this
-skill customizes it instead of building it.
+derivation built by hand (golf-with-me "rounds" first; every vertical
+since wants the same entity), so it is core code now and this skill
+customizes it instead of building it.
 
 Two kinds of change are yours: **nouns** (what users read, and the URLs they
 see) and **fields** (what a gathering records). Internal identifiers — table
