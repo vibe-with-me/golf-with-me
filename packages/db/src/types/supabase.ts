@@ -350,6 +350,10 @@ export type Database = {
         Returns: undefined
       }
       delete_my_account: { Args: never; Returns: undefined }
+      gathering_member_counts: {
+        Args: { p_ids: string[] }
+        Returns: { gathering_id: string; member_count: number }[]
+      }
       join_gathering: { Args: { p_gathering_id: string }; Returns: undefined }
       log_scan: {
         Args: { p_uid: string; p_user_agent?: string }
