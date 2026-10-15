@@ -259,16 +259,20 @@ steps in `apps/web/e2e/helpers.ts` included, or e2e will fail.
 ```sh
 grep -rni withme apps/web/src apps/mobile/app apps/mobile/components \
   supabase/seed apps/web/.env.example apps/web/.env \
-  README.md apps/mobile/README.md | grep -v '@withme/'
+  README.md apps/mobile/README.md | grep -v '@withme/' \
+  | sed -E 's/^([^:]*\.env[^:]*:[0-9]+):.*/\1/'
 ```
 
 returns nothing (if you deliberately kept the seed identity or an
-upstream attribution link, those are the only acceptable matches), and
+upstream attribution link, those are the only acceptable matches; the
+last line prints a `.env*` match as `file:line` only, so a secret value
+never reaches the output), and
 `grep -n nfcPermission apps/mobile/app.json` shows your new copy.
 If your new brand itself contains the string `withme` (e.g.
 `golfwithme`), this and every later brand sweep needs an extra filter
 for your own strings — `| grep -viE '<wordmark>|<display name>'`, e.g.
-`| grep -viE 'golfwithme|golf with me'` — the checkpoints are about
+`| grep -viE 'golfwithme|golf with me'`, inserted before the `sed` line
+(after it, a `.env` match no longer carries the text to filter) — the checkpoints are about
 OLD-brand residue, not the substring.
 `app.json` is deliberately NOT in the bulk grep here — its remaining
 `withme` values (name/slug/scheme/bundle ids) are step 4's job; the
@@ -323,7 +327,10 @@ ends with that new projectId.
   this binding; a mismatch deploys a web app that cannot resolve tags
   server-side.
 - `supabase/config.toml` → `project_id` (optional; names the local
-  Docker stack). If you rename it, stop the running stack first, while
+  Docker stack). Pick an id no other checkout uses:
+  `docker ps -a --format '{{.Names}}' | grep -c "^supabase_db_<new id>$"`
+  must print 0 (otherwise the reset below lands on that checkout's stack).
+  If you rename it, stop the running stack first, while
   `config.toml` still names it: `bun run db:stop`. Then rename. Then
   `bun run db:start`, then `bun run db:reset && bun run db:seed`: the
   renamed project starts on new, empty volumes. A fresh fork's
@@ -393,7 +400,8 @@ bun run lint && bun run typecheck && bun run test
 all green, plus the final brand sweep — with the identity steps done,
 this now covers everything step 3's checkpoint deferred. It also looks
 for the upstream org, `vibe-with-me` (hyphenated, so `withme` alone
-misses it), and reads your `.env` files under `apps/`:
+misses it), and reads your `.env` files under `apps/` (printed as
+`file:line` only, as in step 3):
 
 ```sh
 grep -rniE --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
@@ -401,10 +409,11 @@ grep -rniE --exclude-dir={node_modules,dist,.expo,.wrangler,.turbo} \
   | grep -v '@withme/' \
   | grep -v '^supabase/migrations/' \
   | grep -v '^packages/nfc-sdk/' \
-  | grep -viE '<wordmark>|<display name>'
+  | grep -viE '<wordmark>|<display name>' \
+  | sed -E 's/^([^:]*\.env[^:]*:[0-9]+):.*/\1/'
 ```
 
-returns nothing. Fill in the last line when your wordmark or display
+returns nothing. Fill in the `<wordmark>` line when your wordmark or display
 name contains `withme` (e.g. `'golfwithme|golf with me'`): without it
 every line of your own brand prints, because `withme` matches inside it.
 If neither contains `withme`, delete that line. What the other filters

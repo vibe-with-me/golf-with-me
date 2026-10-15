@@ -172,7 +172,9 @@ In slice order:
    `alter table public.gatherings add column course_name text not null default '' check (char_length(course_name) <= 120);`
    Keep the default: it lets existing rows pass, `create_gathering`
    always supplies the value, and the contract requires it on every
-   create and edit (step 1). Then rebuild `public.create_gathering`. The signature
+   create (step 1). An update may omit it (the update schema is
+   optional); the edit form sends it anyway, because the field is on
+   the form. Then rebuild `public.create_gathering`. The signature
    changes, and `create or replace function` cannot change one: run
    `drop function public.create_gathering(text, timestamptz, text);`
    then

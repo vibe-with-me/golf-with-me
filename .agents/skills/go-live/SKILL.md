@@ -48,12 +48,16 @@ line, where `-p` would show it to `ps`.
 supabase db push`.
 
 Reusing an existing project with an older schema: `db push` refuses when
-the remote migration history differs from the local one. The owner resets
-it (destructive, wipes the project's data; owner-run, never Claude):
-`supabase link --project-ref <ref> && supabase db reset --linked`. The
-reset applies every local migration itself, so skip `db push`; verify with
+the remote migration history differs from the local one. Only for a
+project with no data worth keeping (a demo or throwaway being reset on
+purpose), the owner resets it (owner-run, never Claude):
+`supabase link --project-ref <ref> && supabase db reset --linked`. That
+drops everything in the project's database, data included, then applies
+every local migration itself, so skip `db push`; verify with
 `supabase migration list --linked` (every local migration shows a remote
-match).
+match). A project whose data matters is never reset: reconcile its history
+with `supabase migration repair` and move its schema with a reviewed
+migration instead.
 
 The migrations also create the public `avatars` bucket and its policies
 (Storage is on by default in hosted projects). Confirm it under Storage →
@@ -77,11 +81,17 @@ with open('.env.demo-seed', 'w') as f:
 
 Older projects expose legacy keys only (`anon`, `service_role`, and one
 named `default`), no `sb_publishable_…`; the fallback to `anon` is correct
-there. The API verifies JWTs against the project's JWKS, so it must list an
-asymmetric key: `curl -s https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`
-shows a key with `"alg":"ES256"`. An empty `keys` list means the project
-still signs with the legacy shared secret: enable asymmetric JWT signing
-keys in the dashboard (Project Settings → JWT Keys) before deploying.
+there. The API verifies JWTs against the project's JWKS and accepts only
+`ES256` and `RS256` (`apps/api/src/middleware/jwt.ts`), so the project must
+*sign* with an asymmetric key. Pre-check:
+`curl -s https://<ref>.supabase.co/auth/v1/.well-known/jwks.json` shows a
+key with `"alg":"ES256"`; an empty `keys` list means the project still signs
+with the legacy shared secret. A listed key is not proof, since a standby
+key shows there too: the real check is the authed check in section 3, a
+freshly issued token verifying through the API. If the project still issues
+HS256 tokens (empty list, or that check 401s), rotate to an asymmetric
+signing key in the dashboard (look under Project Settings → JWT Keys)
+before go-live.
 
 Seed (a production write — owner's OK first):
 
@@ -178,7 +188,8 @@ cd apps/web && bun run build && bunx wrangler deploy   # same retry rule
 
 **Checkpoint** (verify bodies with python, not grep chained after curl;
 send a browser `User-Agent`, since Cloudflare 403s urllib's default:
-`urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 …'})`):
+`urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'})`,
+ASCII only: Python encodes header values as Latin-1):
 the landing page 200s with the wordmark; `/t/<seeded-uid>` 200s with the
 seeded card — this one proves the worker-to-worker service binding,
 which only exists if `services[0].service` in `apps/web/wrangler.jsonc`
@@ -215,7 +226,7 @@ const token = data.session.access_token;
 const api: any = createORPCClient(
   new RPCLink({ url: `${apiUrl}/rpc`, headers: () => ({ authorization: `Bearer ${token}` }) }),
 );
-const profile = await api.app.profile.get();
+const { profile } = await api.app.profile.get();
 console.log(`profile.get via ${new URL(apiUrl).host}: ok; fields: ${Object.keys(profile ?? {}).join(', ')}`);
 ```
 
