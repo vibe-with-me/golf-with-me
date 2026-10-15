@@ -1,5 +1,5 @@
 // Demo seed: two users, three tags (unclaimed / claimed / disabled), one
-// pending connect request, one gathering — enough to walk the full handshake
+// pending connect request, two gatherings — enough to walk the full handshake
 // locally.
 // Idempotent: re-running resets the demo users and tags. Local stack only.
 import './local-env.ts';
@@ -121,10 +121,22 @@ const { error: pointError } = await ada.client
   .eq('uid', TAGS.claimed);
 if (pointError) throw pointError;
 
+// Lin hosts one too, which Ada has not joined: her Events tab shows the
+// domain's feed working, not just her own calendar.
+const linStartsAt = new Date();
+linStartsAt.setDate(linStartsAt.getDate() + 5);
+linStartsAt.setHours(14, 0, 0, 0);
+const { error: linGatheringError } = await lin.client.rpc('create_gathering', {
+  p_title: 'Vinyl swap in the park',
+  p_starts_at: linStartsAt.toISOString(),
+  p_location: 'The bandstand, Loom Park',
+});
+if (linGatheringError) throw linGatheringError;
+
 console.log(`
 Seeded.
   Users     ada@demo.withme.local / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a gathering Lin joined; two links)
-            lin@demo.withme.local / ${DEMO_PASSWORD}
+            lin@demo.withme.local / ${DEMO_PASSWORD}   (hosts a second gathering, listed to the domain)
   Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her gathering
             /t/${TAGS.unclaimed}  -> claim flow
             /t/${TAGS.disabled}  -> inactive

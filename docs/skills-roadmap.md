@@ -110,7 +110,7 @@ and landed across the shell PRs. Two findings from the first two derivations
   becomes **customize-gathering**: rename user-facing nouns, add fields.
   Internal identifiers stay `gathering` in a fork, as `@withme/*` packages
   stay. The V1 invariant is unchanged: no browse surface, nothing ranks or
-  aggregates.
+  aggregates. (The "no browse surface" clause is revised below, 2026-10-14.)
 - **Merch is a tab, still a pointer.** The rejected merch/Shopify tab above
   stands as written for commerce; the approved fulfillment pointer is
   promoted from a landing-page link to a tab rendering one card and one
@@ -189,3 +189,30 @@ locally with no go-live (65 min clean path); and Golf with Me, a fork
 rebuilt on a fresh starter tree through design-direction, those skills,
 add-destination-type and a real go-live. No single run was a fresh clone
 through go-live. Nineteen text fixes, no app code. Report: `docs/superpowers/reports/2026-10-14-proof-run.md`.
+
+## Revised 2026-10-14 — gatherings are listed to the domain
+
+Decided with `docs/superpowers/specs/2026-10-14-gatherings-domain-wide.md`.
+What makes Vibe With Me useful is the app-wide list of shows: people see
+where their scene is congregating, and the tap is still how they meet. The
+starter carried the safety culture over wholesale ("no browse surface,
+ever") and lost that. The balance Vibe With Me struck for its meetups now
+ships in core:
+
+- **The gathering is listed.** `gatherings_select` admits every signed-in
+  user of the tenant, minus a block either way with the host. The Events
+  tab opens with "Happening": every upcoming gathering, time, place, a
+  headcount. `app.gatherings.list` is a bare RLS-scoped select in
+  start-time order — nothing ranks, filters, or recommends.
+- **Who's going is connections-only.** `gathering_members_select` admits
+  the viewer's own row and their accepted connections' rows; the host sees
+  the same list as everyone. The `shares_gathering` card bridge is gone.
+  `public.gathering_member_counts` is the headcount, a definer read that
+  re-states the gathering's visibility.
+- **The invariant, reworded:** nothing ranks, recommends, aggregates
+  external events, or monetizes; there is no browse surface **for people**.
+
+Not taken: a per-gathering `invite_only` flag (a fork adds one column and
+one clause), Vibe With Me's opt-in "Show me in the crowd" tab, and Connect
+from a gathering tag (the resolver's gathering branch offers Join or Open,
+not Connect — a follow-up).

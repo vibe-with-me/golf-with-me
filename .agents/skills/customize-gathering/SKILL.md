@@ -5,11 +5,14 @@ description: Use when a withme-starter fork wants its gathering to speak the ver
 
 # customize-gathering — make the core gathering yours
 
-The gathering ships in the starter: a host creates one, points a tag at it,
-and a tap on that tag is the invitation. It was the one feature every
-derivation built by hand (golf-with-me "rounds" first; every vertical
-since wants the same entity), so it is core code now and this skill
-customizes it instead of building it.
+The gathering ships in the starter: a host creates one, everyone signed in
+to the domain sees it in the Events tab ("Happening": title, time, place, a
+headcount), and a tap on a member's tag is still the invitation. Who's
+going is connections-only: a member list carries the viewer's own row and
+their accepted connections' rows, never a stranger's card. It was the one
+feature every derivation built by hand (golf-with-me "rounds" first; every
+vertical since wants the same entity), so it is core code now and this
+skill customizes it instead of building it.
 
 Two kinds of change are yours: **nouns** (what users read, and the URLs they
 see) and **fields** (what a gathering records). Internal identifiers — table
@@ -26,14 +29,14 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | Layer | Files |
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
-| Migration | `supabase/migrations/20261008120000_add_gatherings.sql` |
-| RLS tests | `packages/db/test/gatherings.test.ts` (17); `account.test.ts` also creates gatherings |
+| Migration | `supabase/migrations/20261008120000_add_gatherings.sql`, then `20261014220000_gatherings_domain_wide.sql` (the listing, the connections-only member policy, the headcount, the symmetric join check) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (21); `account.test.ts` and `links.test.ts` also create gatherings |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
-| Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `components/AppShell.tsx` (`navItems[0]`) |
-| Mobile | `apps/mobile/app/(tabs)/gatherings.tsx`, `app/gathering/[id].tsx`, the branch in `app/t/[uid].tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `lib/gathering-link.ts`, `(tabs)/_layout.tsx` |
+| Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `lib/going.ts` ("N going", "With …"), `components/AppShell.tsx` (`navItems[0]`) |
+| Mobile | `apps/mobile/app/(tabs)/gatherings.tsx`, `app/gathering/[id].tsx`, the branch in `app/t/[uid].tsx`, `lib/format-time.ts`, `lib/my-tags.ts`, `lib/going.ts`, `lib/gathering-link.ts`, `(tabs)/_layout.tsx` |
 | E2E | `apps/api/e2e/handshake.e2e.ts` §12–17; `apps/web/e2e/gatherings.spec.ts`; `profile.spec.ts` and `helpers.ts` also visit or create one |
-| Seed | `supabase/seed/index.ts` (Ada hosts one; her live tag points at it) |
+| Seed | `supabase/seed/index.ts` (Ada hosts one, her live tag points at it; Lin hosts one Ada has not joined, so the feed shows) |
 
 Every caller of the create RPC, whichever layer it sits in (a new
 argument must reach all of them):
@@ -237,7 +240,7 @@ In slice order:
    rejected-at-the-boundary case (create and host edit, with a positive
    control). Adding an assertion for the new field to an existing test
    (e.g. the anonymous resolve summary) is fine. Beyond the new argument
-   and that one expectation, the seventeen existing tests pass untouched —
+   and that one expectation, the twenty-one existing tests pass untouched —
    if one does not, you moved a safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
@@ -291,42 +294,55 @@ Then the verification gate from `docs/the-slice.md`.
 
 ## 3. What must not move
 
-The migration's four mechanisms, each re-stated by `gatherings.test.ts`:
+The mechanisms of `20261014220000_gatherings_domain_wide.sql`, each
+re-stated by `gatherings.test.ts`:
 
-a. `private.is_gathering_member` (definer) is how policies read membership.
-   Never inline a `gathering_members` subquery into a `gathering_members`
-   policy — Postgres recurses forever.
-b. The `shares_gathering` disjunct in `profiles_select` is the only bridge;
-   every other clause of that policy is byte-identical to the initial schema.
-c. `private.on_block_created` evicts the pair-hosted membership in both
+a. `gatherings_select` admits every signed-in user of the tenant, minus a
+   block **either way** with the host. A viewer the host blocked, and a
+   viewer who blocked the host, read the gathering as nonexistent. Never
+   add a clause that reads `gathering_members` here: `gathering_members`'s
+   own policy reads `gatherings`, and Postgres would recurse forever.
+b. `gathering_members_select` admits the viewer's own row and their
+   accepted connections' rows, on a gathering the viewer can see — the
+   host included. Co-membership never reveals a card: `profiles_select` is
+   byte-identical to the initial schema, and there is no `shares_gathering`.
+   Hosting must not become a way to collect strangers' cards.
+c. `public.gathering_member_counts` is the headcount: a definer read whose
+   `where` re-states (a), so a hidden gathering has no count. Any new
+   definer read over `gathering_members` restates (a) the same way.
+d. `join_gathering` raises `'gathering not found'` (P0003) for a missing
+   id, a viewer the host blocked, AND a viewer who blocked the host (a
+   gathering you cannot see is one you cannot join); the messages stay
+   byte-identical. No insert policies: creation and joining are RPCs.
+   `private.on_block_created` evicts the pair-hosted membership in both
    directions.
-d. `join_gathering` raises `'gathering not found'` (P0003) for a missing id
-   AND a blocked viewer; the two messages stay byte-identical. No insert
-   policies: creation and joining are RPCs.
 
 Also: `resolve_tag` degrades a dangling destination, or one whose tag owner
 is no longer a member, to the profile card, and so does a tap by a viewer
-the host has blocked, whoever owns the tag; the `tags_destination_shape`
-CHECK keeps its `coalesce(…, false)`; `listMine` stays a bare RLS-scoped
-select — no browse, search, or "nearby" surface, ever; a host cannot leave
-their own gathering (`gathering_members_delete_own` excludes the host's row;
-deleting the gathering is how a host leaves). A new field that changes who
-may see what needs its own RLS test before it ships.
+the host has blocked, whoever owns the tag (`private.is_gathering_member`
+serves the resolver; keep it); the `tags_destination_shape` CHECK keeps
+its `coalesce(…, false)`; `list` and `listMine` stay bare RLS-scoped
+selects in start-time order — no search, ranking, "nearby", or any list
+of people, ever; a host cannot leave their own gathering
+(`gathering_members_delete_own` excludes the host's row; deleting the
+gathering is how a host leaves). A new field that changes who may see what
+needs its own RLS test before it ships.
 
-One known edge, kept on purpose:
-
-`join_gathering` refuses a joiner the host has blocked, not a joiner who
-has blocked the host: a block protects the blocker, who may still attend.
-The host never sees that member's card (the profiles block guard hides it,
-and the member list drops hidden cards). To refuse both directions, test
-`private.is_blocked(v_gathering.host_id, v_user)` as well, with the same
-`'gathering not found'` message, and add an RLS test for it.
+A listed gathering exposes its `host_id` to the tenant. That is not a
+card; what it allows is one consent-gated `send_connect_request`. If your
+vertical wants private gatherings, add a `visibility` column
+(`'listed' | 'invite_only'`, default `'listed'`), one `or visibility =
+'listed'` clause beside the host test in (a) and (c), and an RLS test that
+a stranger does not read an invite-only one.
 
 ## Scope notes
 
 - Membership is flat: no roles beyond host, no invites, no capacity caps.
   Add those in your fork with the same discipline (every new read path asks:
   what does the blocked party see?).
+- "Happening" is the domain in start-time order. Nearby sorting would need
+  a location model the starter does not have (location is free text); a
+  fork that adds one keeps the list a bare select — nothing ranks.
 - Date entry on mobile is two plain fields (`Date`, `Time`) by design — no
   picker dependency. Swap in `@react-native-community/datetimepicker` if the
   vertical wants one; `parseLocalDateTime` in `lib/format-time.ts` is the
