@@ -138,6 +138,13 @@ up custom SMTP (Authentication → Emails → SMTP Settings) before launch.
 Keep email confirmation on: without it anyone can sign up as someone
 else's address. A public demo can lean on the seeded login instead.
 
+Phone sign-in is off on a new hosted project until you turn it on. Ask
+the owner for their Twilio Account SID, Verify Service SID (`VA…`) and
+Auth Token, then have them enter these under Authentication → Sign In /
+Providers → Phone → Twilio Verify. Secrets go into the dashboard, never
+the repo. Do not add the local test number there. A Twilio trial account
+texts verified numbers only.
+
 ## 2. API worker (first — the web worker's service binding needs it)
 
 If `wrangler whoami` lists more than one account, pin the intended one
@@ -346,6 +353,8 @@ OK, and never on an app with real users (section 1). Web: `bun run build && bunx
 | Web resolver errors only in production SSR | Service binding name ≠ api worker name |
 | Signups never confirm | Default SMTP delivers to org members only — set up custom SMTP; never turn confirmation off for real users |
 | Seed: "Refusing to seed a hosted project without SEED_DEMO_PASSWORD" | Keys file predates this runbook — append `SEED_DEMO_PASSWORD=` plus a random 24+ character value |
+| Phone sign-in: "Unsupported phone provider" | The Phone provider is off in the dashboard |
+| Phone sign-in texts some numbers only | Twilio trial account: verify the number or upgrade |
 | `eas update` fails non-interactively | Missing `--environment` |
 | Published app seems to point at localhost | You byte-grepped Hermes bytecode — use `--no-bytecode` to verify |
 | Demo DB unreachable weeks later | Free-tier project paused — wake it in the dashboard |
