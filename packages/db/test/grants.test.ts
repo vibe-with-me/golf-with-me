@@ -46,6 +46,7 @@ const SIGNED_IN_RPCS = [
   'public.gathering_member_counts',
   'public.join_gathering',
   'public.send_connect_request',
+  'public.set_my_links',
 ];
 
 // Called by the policies that apply to authenticated.
@@ -55,6 +56,7 @@ const POLICY_HELPERS = [
   'private.is_avatar_path',
   'private.is_blocked',
   'private.is_gathering_member',
+  'private.is_link_value',
 ];
 
 describe('function grants', () => {

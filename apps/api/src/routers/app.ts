@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server';
-import type { Connection, Gathering, Profile, Tag } from '@withme/contract';
+import type { Connection, Gathering, Profile, ProfileLink, Tag } from '@withme/contract';
 import {
   blockUser,
   deleteGathering,
@@ -13,10 +13,12 @@ import {
   listMyGatherings,
   listUpcomingGatherings,
   listOwnAvatarObjects,
+  listOwnLinks,
   listOwnTags,
   listPendingRequests,
   removeAvatarObjects,
   removeConnection,
+  replaceOwnLinks,
   setOwnAvatarPath,
   unblockUser,
   updateGathering,
@@ -166,6 +168,20 @@ const profileDeleteAccount = appProcedure.profile.deleteAccount.handler(async ({
   return { ok: true as const };
 });
 
+// Profile → Links. The database stores only canonical values (the CHECK),
+// and the contract admits only those, so a value here is already in shape.
+const linksListMine = appProcedure.links.listMine.handler(async ({ context }) => {
+  const userId = requireUser(context);
+  const links = await run(context, () => listOwnLinks(context.db, userId));
+  return { links: links as ProfileLink[] };
+});
+
+const linksReplace = appProcedure.links.replace.handler(async ({ input, context }) => {
+  requireUser(context);
+  const links = await run(context, () => replaceOwnLinks(context.db, input.links));
+  return { links: links as ProfileLink[] };
+});
+
 const sendRequest = appProcedure.requests.send.handler(async ({ input, context }) => {
   requireUser(context);
   const { error } = await context.db.rpc('send_connect_request', {
@@ -208,7 +224,7 @@ const declineRequest = appProcedure.requests.decline.handler(async ({ input, con
 const connectionsList = appProcedure.connections.list.handler(async ({ context }) => {
   const userId = requireUser(context);
   const connections = await run(context, () => listConnections(context.db, userId));
-  return { connections };
+  return { connections: connections as Connection[] };
 });
 
 const connectionsRemove = appProcedure.connections.remove.handler(async ({ input, context }) => {
@@ -330,6 +346,7 @@ export const appRouter = {
     removeAvatar: profileRemoveAvatar,
     deleteAccount: profileDeleteAccount,
   },
+  links: { listMine: linksListMine, replace: linksReplace },
   requests: {
     send: sendRequest,
     listPending: listPending,

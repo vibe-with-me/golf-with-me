@@ -10,9 +10,9 @@ to the domain sees it in the Events tab ("Happening": title, time, place, a
 headcount), and a tap on a member's tag is still the invitation. Who's
 going is connections-only: a member list carries the viewer's own row and
 their accepted connections' rows, never a stranger's card. It was the one
-feature every derivation built by hand (golf-with-me "rounds",
-tailgate-with-me "tailgates" — the same entity each time), so it is core
-code now and this skill customizes it instead of building it.
+feature every derivation built by hand (golf-with-me "rounds" first; every
+vertical since wants the same entity), so it is core code now and this
+skill customizes it instead of building it.
 
 Two kinds of change are yours: **nouns** (what users read, and the URLs they
 see) and **fields** (what a gathering records). Internal identifiers — table
