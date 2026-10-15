@@ -45,6 +45,7 @@ minutes ([Try it](#try-it-locally)).
 | **Gatherings** | A host creates one ("Rooftop listening session"), points a tag at it, and a tap on that tag is the invitation. Members see each other's cards through it. No browse surface, ever. |
 | **Blocks** | Absolute and invisible. A blocked person sees exactly what a stranger sees, and gets no signal that anything happened. |
 | **Profile & account** | Photo upload, "My tags" (re-point or turn off), account deletion that cascades through everything and releases your tags. |
+| **Links** | Where you can be reached: Instagram, WhatsApp, a website, a phone number, one per platform from a picker. Seen only by the people you have connected with, never on the card. |
 | **Web app** | The resolver page (`/t/{UID}`), sign in, claim a tag, and a four-tab shell: Events, Connections, Merch (optional), Profile. |
 | **Mobile app** | The same tabs and the same resolver over the same contract, in Expo. Reads NFC in a development build. |
 | **One API** | Every client talks to one Hono + oRPC API on Cloudflare Workers. It runs every query as the signed-in user, never as an admin. |
