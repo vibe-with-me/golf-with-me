@@ -105,7 +105,9 @@ async function withWhoIsGoing(
 
 /** What is happening in the domain: every upcoming gathering the viewer may
  * see, in start-time order. A bare RLS-scoped select — nothing ranks,
- * recommends, or filters beyond "has not started yet". */
+ * recommends, or filters beyond "has not started yet". No pagination yet:
+ * the page is every upcoming gathering, and the enrichment runs one
+ * members select and one counts RPC over all of them. */
 export async function listUpcomingGatherings(db: Db, userId: string): Promise<GatheringListRow[]> {
   const { data, error } = await db
     .from('gatherings')

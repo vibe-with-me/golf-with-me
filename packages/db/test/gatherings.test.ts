@@ -272,21 +272,50 @@ describe('gatherings respect blocks', () => {
 
     expectEmpty(await mallory.client.from('gatherings').select('*').eq('id', id));
     expect(await headcount(mallory.client, id)).toBeNull();
+    expect(await visibleMembers(mallory.client, id)).toEqual([]);
   });
 
-  it('a blocked join is indistinguishable from a missing gathering', async () => {
+  it("a hidden gathering hides a connection's membership in it too", async () => {
     const alice = await createTestUser('Alice');
     const bob = await createTestUser('Bob');
+    const carol = await createTestUser('Carol');
     const id = await createGathering(alice.client);
+    await carol.client.rpc('join_gathering', { p_gathering_id: id });
+    await connectUsers(bob, carol);
+    // positive control: a visible gathering shows the connection's row
+    expect(await visibleMembers(bob.client, id)).toEqual([carol.id]);
+
     await admin.from('blocks').insert({ blocker_id: alice.id, blocked_id: bob.id });
 
+    // the member policy is not an oracle for gatherings the viewer cannot see
+    expect(await visibleMembers(bob.client, id)).toEqual([]);
+    expectEmpty(await bob.client.from('gatherings').select('*').eq('id', id));
+  });
+
+  it('a blocked join is indistinguishable from a missing gathering, in both directions', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const carol = await createTestUser('Carol');
+    const id = await createGathering(alice.client);
+    await admin.from('blocks').insert({ blocker_id: alice.id, blocked_id: bob.id });
+    // carol blocked the host: she reads the gathering as nonexistent, so she cannot join it
+    await carol.client.from('blocks').insert({ blocker_id: carol.id, blocked_id: alice.id });
+
     const { error: blocked } = await bob.client.rpc('join_gathering', { p_gathering_id: id });
+    const { error: blocker } = await carol.client.rpc('join_gathering', { p_gathering_id: id });
     const { error: missing } = await bob.client.rpc('join_gathering', {
       p_gathering_id: crypto.randomUUID(),
     });
     expect(blocked?.message).toContain('gathering not found');
+    expect(blocker?.message).toContain('gathering not found');
     expect(missing?.message).toContain('gathering not found');
     expect(blocked?.message).toBe(missing!.message);
+    expect(blocker?.message).toBe(missing!.message);
+    const { data: raw } = await admin
+      .from('gathering_members')
+      .select('profile_id')
+      .eq('gathering_id', id);
+    expect(raw?.map((m) => m.profile_id)).toEqual([alice.id]);
   });
 
   it('blocking evicts the blocked member from the pair-hosted gathering', async () => {

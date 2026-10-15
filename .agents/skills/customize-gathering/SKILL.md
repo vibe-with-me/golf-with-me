@@ -30,7 +30,7 @@ order (contract → migration → tests → API → web → mobile → e2e).
 | --- | --- |
 | Contract | `packages/contract/src/schemas/gathering.ts`; `schemas/destination.ts` (`GatheringDestinationSchema`); `contract/app.ts` (`gatherings.*`, `tags.*`); `contract/public.ts` (`gathering` summary on resolve) |
 | Migration | `supabase/migrations/20261008120000_add_gatherings.sql`, then `20261014220000_gatherings_domain_wide.sql` (the listing, the connections-only member policy, the headcount) |
-| RLS tests | `packages/db/test/gatherings.test.ts` (20) |
+| RLS tests | `packages/db/test/gatherings.test.ts` (21) |
 | Queries / API | `packages/db/src/queries/gatherings.ts`, `queries/tags.ts`; `apps/api/src/routers/app.ts` |
 | SDK mirror | `packages/nfc-sdk/src/client.ts` (`Destination`, `GatheringSummary`) |
 | Web | `apps/web/src/routes/_app.gatherings.tsx`, `_app.gatherings_.$id.tsx`, the branch in `t.$uid.tsx`, `lib/format-time.ts`, `lib/going.ts` ("N going", "With …"), `components/AppShell.tsx` (`navItems[0]`) |
@@ -126,7 +126,7 @@ In slice order:
    `packages/db/src/types/supabase.ts`.
 3. **Tests.** `gatherings.test.ts`: `createGathering()` passes the new
    argument; a field with a CHECK gets a rejected-at-the-boundary case. The
-   twenty existing tests pass untouched — if one does not, you moved a
+   twenty-one existing tests pass untouched — if one does not, you moved a
    safety mechanism.
 4. **Queries / API.** `queries/gatherings.ts` (`GatheringPatch`);
    `routers/app.ts` (`gatheringsCreate` passes the new `p_` argument).
@@ -146,7 +146,7 @@ Then the verification gate from `docs/the-slice.md`.
 
 ## 3. What must not move
 
-The four mechanisms of `20261014220000_gatherings_domain_wide.sql`, each
+The mechanisms of `20261014220000_gatherings_domain_wide.sql`, each
 re-stated by `gatherings.test.ts`:
 
 a. `gatherings_select` admits every signed-in user of the tenant, minus a
@@ -162,10 +162,12 @@ b. `gathering_members_select` admits the viewer's own row and their
 c. `public.gathering_member_counts` is the headcount: a definer read whose
    `where` re-states (a), so a hidden gathering has no count. Any new
    definer read over `gathering_members` restates (a) the same way.
-d. `join_gathering` raises `'gathering not found'` (P0003) for a missing id
-   AND a blocked viewer; the two messages stay byte-identical. No insert
-   policies: creation and joining are RPCs. `private.on_block_created`
-   evicts the pair-hosted membership in both directions.
+d. `join_gathering` raises `'gathering not found'` (P0003) for a missing
+   id, a viewer the host blocked, AND a viewer who blocked the host (a
+   gathering you cannot see is one you cannot join); the messages stay
+   byte-identical. No insert policies: creation and joining are RPCs.
+   `private.on_block_created` evicts the pair-hosted membership in both
+   directions.
 
 Also: `resolve_tag` degrades a dangling destination, or one whose tag owner
 is no longer a member, to the profile card, and so does a tap by a viewer
@@ -184,15 +186,6 @@ vertical wants private gatherings, add a `visibility` column
 (`'listed' | 'invite_only'`, default `'listed'`), one `or visibility =
 'listed'` clause beside the host test in (a) and (c), and an RLS test that
 a stranger does not read an invite-only one.
-
-One known edge, kept on purpose:
-
-`join_gathering` refuses a joiner the host has blocked, not a joiner who
-has blocked the host: a block protects the blocker, who may still attend.
-The host never sees that member's card (the profiles block guard hides it,
-and the member list drops hidden cards). To refuse both directions, test
-`private.is_blocked(v_gathering.host_id, v_user)` as well, with the same
-`'gathering not found'` message, and add an RLS test for it.
 
 ## Scope notes
 

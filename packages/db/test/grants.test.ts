@@ -49,8 +49,9 @@ const SIGNED_IN_RPCS = [
   'public.set_my_links',
 ];
 
-// Called by the policies that apply to authenticated.
-// (is_gathering_member serves resolve_tag now, not a policy; it keeps its grant.)
+// Called by the policies that apply to authenticated, plus the resolver's
+// membership helper (resolve_tag is a definer, but the grant is kept so a
+// fork's policy may call it).
 const POLICY_HELPERS = [
   'private.current_tenant_id',
   'private.is_avatar_path',

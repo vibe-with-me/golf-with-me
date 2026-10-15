@@ -22,11 +22,10 @@
 --   * (d) The headcount is a definer read that re-states (a), so a hidden
 --     gathering has no count either.
 --
--- Nothing else moves: join_gathering stays the only way in and still answers
--- 'gathering not found' for a blocked viewer; blocking still evicts;
--- resolve_tag is untouched; private.is_gathering_member stays for the
--- resolver. The four mechanisms of 20261008120000 are now (a)–(d) above,
--- re-stated by packages/db/test/gatherings.test.ts.
+-- join_gathering stays the only way in; (e) below makes its block check
+-- symmetric to match (a). Blocking still evicts; resolve_tag is untouched;
+-- private.is_gathering_member stays for the resolver. The mechanisms are
+-- (a)–(e), re-stated by packages/db/test/gatherings.test.ts.
 --
 -- What a stranger learns, stated plainly: a listed gathering exposes its
 -- host_id to the tenant. The id is not a card (profiles_select still hides
@@ -144,3 +143,50 @@ $$;
 
 revoke execute on function public.gathering_member_counts(uuid[]) from public, anon;
 grant execute on function public.gathering_member_counts(uuid[]) to authenticated, service_role;
+
+-- ============================================================ (e) join ==
+
+-- A joiner who blocked the host now reads the gathering as nonexistent
+-- ((a) is symmetric), and a gathering that does not exist cannot be
+-- joined: without this, their membership would be invisible to them,
+-- unleavable, and counted by the host. Same 'gathering not found' for both
+-- directions and for a missing id — byte-identical, no oracle. Every
+-- attribute of the original restated; grants survive the replace.
+create or replace function public.join_gathering(p_gathering_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := (select auth.uid());
+  v_gathering public.gatherings%rowtype;
+begin
+  if v_user is null then
+    raise exception 'authentication required' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.profiles where id = v_user) then
+    raise exception 'profile required before joining a gathering' using errcode = 'P0001';
+  end if;
+
+  select * into v_gathering
+    from public.gatherings
+   where id = p_gathering_id and tenant_id = private.current_tenant_id();
+  if not found then
+    raise exception 'gathering not found' using errcode = 'P0003';
+  end if;
+
+  -- serialize against a concurrent block by/of the host
+  perform private.lock_pair(v_user, v_gathering.host_id);
+
+  if private.is_blocked(v_user, v_gathering.host_id)
+     or private.is_blocked(v_gathering.host_id, v_user) then
+    raise exception 'gathering not found' using errcode = 'P0003';
+  end if;
+
+  insert into public.gathering_members (gathering_id, profile_id, tenant_id)
+  values (v_gathering.id, v_user, v_gathering.tenant_id)
+  on conflict do nothing;
+end
+$$;

@@ -43,11 +43,13 @@ Vibe With Me's balance, carried over whole:
    schema's text; `private.shares_gathering` is dropped. Co-membership
    never reveals a card. Connections already see each other's cards, and
    strangers must not.
-5. **Joining does not change.** `join_gathering` stays the only way in, a
-   host's block still answers `'gathering not found'`, blocking still
-   evicts, and the tag is still the invitation: a tap deep-links to the
-   detail, which now also offers Join to anyone who found the gathering in
-   the feed.
+5. **Joining barely changes.** `join_gathering` stays the only way in and
+   its block check becomes symmetric to match rule 1: a viewer who blocked
+   the host reads the gathering as nonexistent, so they cannot join it
+   either, with the same `'gathering not found'`. Blocking still evicts,
+   and the tag is still the invitation: a tap deep-links to the detail,
+   which now also offers Join to anyone who found the gathering in the
+   feed.
 
 The V1 invariant is reworded, not loosened: nothing ranks, recommends,
 aggregates external events, or monetizes; **there is no browse surface for

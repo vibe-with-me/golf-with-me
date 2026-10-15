@@ -7,7 +7,7 @@ in the database (row-level security and security-definer functions), not
 in the apps, so a fork cannot break one by changing a screen.
 
 If you only remember one thing: **the tests are the spec.** When a skill
-says "the seventeen existing tests pass untouched; if one does not, you
+says "the twenty-one existing tests pass untouched; if one does not, you
 moved a safety mechanism", this is what it means.
 
 ## Nobody can list your users
@@ -91,13 +91,12 @@ host's id; that id is not a card, and what it allows is one consent-gated
 connect request. A host cannot leave their own gathering; deleting it is
 how they leave.
 
-**The test.** `packages/db/test/gatherings.test.ts` (twenty cases).
+**The test.** `packages/db/test/gatherings.test.ts` (twenty-one cases).
 
-**One edge, kept on purpose.** `join_gathering` refuses a joiner the host
-has blocked, not a joiner who has blocked the host: a block protects the
-blocker, who may still attend. The host never sees that member's card.
-`customize-gathering` §3 shows how to refuse both directions if your
-vertical wants that.
+**Both directions.** `join_gathering` refuses a joiner the host has
+blocked and a joiner who has blocked the host, with the same "gathering
+not found" as for a missing id: a gathering you cannot see is one you
+cannot join, in either direction.
 
 ## Two tiers of profile data
 

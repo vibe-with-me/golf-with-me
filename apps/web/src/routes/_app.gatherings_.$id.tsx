@@ -11,9 +11,9 @@ import { goingLine } from '../lib/going.ts';
 type LoaderResult =
   | { kind: 'detail'; gathering: Gathering; members: GatheringMember[]; memberCount: number }
   // Blocked either way with the host, or missing — the same NOT_FOUND, so
-  // the page offers a calm join (which will answer "not available") instead
-  // of an error. A stranger who found the gathering in the feed gets the
-  // detail, with Join on it.
+  // the page offers a calm join (which answers "not available": a hidden
+  // gathering cannot be joined) instead of an error. A stranger who found
+  // the gathering in the feed gets the detail, with Join on it.
   | { kind: 'not_found' };
 
 /** Display-only hints carried from the tag resolver, shown before joining. Never data. */
@@ -181,7 +181,8 @@ function GatheringDetail({
     setActionError(null);
     try {
       await api.app.gatherings.leave({ id: gathering.id });
-      // Replace, so Back does not land on a gathering the viewer can no longer see.
+      // Back to the list (replace, so Back does not return here): the
+      // gathering is still visible, but the tab is where it is listed.
       navigate({ to: '/gatherings', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');

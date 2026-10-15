@@ -171,7 +171,7 @@ working.
    column update list. Then `bun run db:reset && bun run db:seed && bun
    run db:types` and commit the regenerated types.
 3. Tests: `packages/db/test/gatherings.test.ts` passes the new argument
-   and gets a rejected-at-the-boundary case for the CHECK. The seventeen
+   and gets a rejected-at-the-boundary case for the CHECK. The twenty-one
    existing tests pass untouched.
 4. Queries and API: `packages/db/src/queries/gatherings.ts`,
    `apps/api/src/routers/app.ts`.
