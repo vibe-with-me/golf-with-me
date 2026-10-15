@@ -22,7 +22,7 @@ there binds every step here.
 
 | | Card tier | Connections tier |
 | --- | --- | --- |
-| Who reads it | anyone holding your tag (anonymous resolve), the recipient of your pending request, your gathering co-members, someone who blocked you, your connections | you, and your accepted connections while neither has blocked the other |
+| Who reads it | anyone holding your tag (anonymous resolve), the recipient of your pending request, someone who blocked you, your connections | you, and your accepted connections while neither has blocked the other |
 | Where it lives | a column on `public.profiles` | `public.profile_details`, one row per profile |
 | Examples | team, home club, handicap, role | phone, email, social handle |
 
@@ -33,9 +33,10 @@ tier. A field nobody else should read is neither: do not collect it.
 rows, not columns: every viewer `profiles_select` admits reads every column
 of the row. In the build this skill was distilled from, a `contact_handle`
 column on `profiles` was readable — through PostgREST, with the publishable
-key — by a gathering co-member, by the recipient of a pending request, and
-by someone who had blocked the owner. No edit to `profiles_select` closes
-that without taking away the card those viewers are meant to see.
+key — by the recipient of a pending request, by someone who had blocked the
+owner, and (in that build, which still bridged co-members' cards through
+the gathering) by a gathering co-member. No edit to `profiles_select`
+closes that without taking away the card those viewers are meant to see.
 `profiles_select` stays byte-identical (customize-gathering §3b); the
 connections tier gets its own table and its own, narrower policy.
 
@@ -327,8 +328,9 @@ New file `packages/db/test/profile-fields.test.ts`:
 // extend-profile: two visibility tiers. The card tier rides every card; the
 // connections tier reaches the owner and accepted connections only. The
 // negative space is the spec: every viewer profiles_select admits beyond a
-// connection (pending-request recipient, gathering co-member, blocker) and
-// anon read nothing from profile_details, and get no oracle trying.
+// connection (pending-request recipient, blocker), a gathering co-member
+// (not even admitted to the card) and anon read nothing from
+// profile_details, and get no oracle trying.
 import { beforeAll, describe, expect, it } from 'bun:test';
 import {
   admin,
@@ -466,7 +468,7 @@ describe('connections tier', () => {
     await expectNoDetails(bob, alice);
   });
 
-  it('a gathering co-member sees the card, not the details, even through an embed', async () => {
+  it('a gathering co-member sees neither the card nor the details; a card viewer gets no details through an embed', async () => {
     const alice = await createTestUser('Alice');
     const bob = await createTestUser('Bob');
     await setDetails(alice, '@alice');
@@ -481,8 +483,14 @@ describe('connections tier', () => {
     });
     expect(joinError).toBeNull();
 
-    expect(await seesCard(bob, alice)).toBe(true);
+    // co-membership is not a card bridge (customize-gathering §3b)
+    expect(await seesCard(bob, alice)).toBe(false);
     await expectNoDetails(bob, alice);
+
+    // a viewer who does see the card (here: a pending-request recipient)
+    // still cannot pull the details through an embed
+    await alice.client.rpc('send_connect_request', { p_recipient: bob.id });
+    expect(await seesCard(bob, alice)).toBe(true);
     const { data: embedded } = await bob.client
       .from('profiles')
       .select('id, details:profile_details(contact_handle)')
