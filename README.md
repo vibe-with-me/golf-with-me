@@ -65,12 +65,16 @@ points at remains yours to change forever.
 - **Mutual consent.** Connections exist only when a request is accepted.
   Requests expire after 7 days; either party can remove a connection
   unilaterally, without notification.
-- **Gatherings are membership-scoped.** The one feature beyond the
-  handshake: a host creates a gathering, points a tag at it, and a tap
-  hands out the invitation. Only members see a gathering or each other's
-  cards through it; a join refused by a block is indistinguishable from a
-  gathering that does not exist; blocking evicts. There is no browse
-  surface.
+- **Gatherings are listed; who's going is not.** The one feature beyond
+  the handshake: a host creates a gathering, and everyone signed in to the
+  domain sees it — title, time, place, a headcount — in the Events tab, so
+  people know where their scene is congregating. A tap on a member's tag
+  still hands out the invitation. The member list is readable only where
+  the row is yours or an accepted connection's: joining reveals your
+  membership to the people you already know, and a gathering never reveals
+  a stranger's card. A gathering hidden by a block is indistinguishable
+  from one that does not exist; blocking evicts. There is no browse
+  surface for people.
 - **Privacy-default scans.** `tag_scans` stores a user-agent string and a
   timestamp. No GPS, no IP, no fingerprinting — the columns don't exist.
 - **Avatars are paths, not URLs.** A photo is uploaded through the API into
@@ -184,9 +188,11 @@ bound by the slice and safety discipline in
 
 ## Principled non-goals
 
-Matching, discovery, recommendation, feeds, and event aggregation are
-excluded **as off-thesis, not as withheld features**. Software that decides
-who you should meet is a different product with different incentives. This
+Matching, recommendation, people feeds, and aggregating events from
+elsewhere are excluded **as off-thesis, not as withheld features**. Software
+that decides who you should meet is a different product with different
+incentives. (A time-ordered list of the domain's own gatherings is a
+bulletin board, not a recommendation; it stays.) This
 repo's entire job is to make the moment after a physical tap work — the
 handshake — and to stay out of the way after that.
 

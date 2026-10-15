@@ -21,6 +21,9 @@ ENG-749 holding the decisions only Alex can make).
    make-it-yours update.
 5. **Proof run.** A fresh clone through every skill and go-live, timed.
    That report is the acceptance test for the program.
+6. **Gatherings listed to the domain (2026-10-14).** The Events tab shows
+   what is happening; who's going is connections-only
+   (`specs/2026-10-14-gatherings-domain-wide.md`).
 
 Milestones 2 and 3 share files and run in sequence; 4 touches no app code
 and runs alongside 3; 5 waits for all.

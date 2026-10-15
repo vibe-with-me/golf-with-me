@@ -25,6 +25,8 @@ one universal feature can't be added by prose after the fact.
 - **The gathering moves into core.** This revises the 2026-06-11 roadmap
   ("growth ships as skills"). The V1 invariant still holds: nothing ranks,
   recommends, aggregates, or monetizes, and there is no browse surface.
+  (Revised 2026-10-14: gatherings are listed to the domain; who's going is
+  connections-only. See `2026-10-14-gatherings-domain-wide.md`.)
   `build-gathering` becomes `customize-gathering` (rename user-facing nouns,
   add fields). Internal identifiers stay `gathering` in a fork, the same
   rule make-it-yours applies to `@withme/*` packages.
