@@ -82,7 +82,8 @@ test('My tags: a claimed tag turns off and on, and re-points at a gathering', as
   await owner.goto('/gatherings');
   await owner.getByLabel('Title').fill('Smoke Tag Night');
   await owner.getByRole('button', { name: 'Create gathering' }).click();
-  await expect(owner.getByText('Smoke Tag Night')).toBeVisible();
+  // Listed under Happening and under Yours: the first is enough.
+  await expect(owner.getByText('Smoke Tag Night').first()).toBeVisible();
   await owner.goto('/profile');
   // exact: the Save button's name ("Save where … points") contains the label.
   const destination = owner.getByLabel(`Where ${uid} points`, { exact: true });
