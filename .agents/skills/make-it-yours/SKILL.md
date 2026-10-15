@@ -236,6 +236,10 @@ names no brand, so there only the title and badge change):
   line which must match the seed (previous bullet).
   `apps/mobile/README.md`'s occurrences are all `@withme/*` names — no
   change there.
+- `LICENSE` — line 3 names the starter's copyright holder,
+  `Vibe With Me LLC`. MIT requires you to keep that notice for the code you
+  inherited; add your own line under it for your changes
+  (`Copyright (c) <year> <your name or org>`) rather than replacing it.
 
 **Wordmark treatment.** Set the weight and tracking from the sheet's
 Wordmark row, the same on web and mobile. Case is the wordmark string
