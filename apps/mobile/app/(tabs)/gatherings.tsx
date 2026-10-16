@@ -1,6 +1,6 @@
 import type { GatheringListItem } from '@withme/contract';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -28,6 +28,13 @@ import { fonts, space, useTokens } from '../../lib/tokens';
 export default function GatheringsScreen() {
   const t = useTokens();
   const [happening, setHappening] = useState<GatheringListItem[]>([]);
+  // The feed comes a page at a time; null once the last page is in.
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState(false);
+  // Bumped by every full load: a Load more answer from before it is dropped,
+  // or it would append an old page (and an old cursor) to the new feed.
+  const feedGeneration = useRef(0);
   const [gatherings, setGatherings] = useState<GatheringListItem[]>([]);
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -42,13 +49,17 @@ export default function GatheringsScreen() {
   const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
+    feedGeneration.current += 1;
     try {
-      const [{ gatherings: feed }, { gatherings: mine }, { data }] = await Promise.all([
+      const [feed, { gatherings: mine }, { data }] = await Promise.all([
         api.app.gatherings.list(),
         api.app.gatherings.listMine(),
         supabase.auth.getSession(),
       ]);
-      setHappening(feed);
+      // A re-load starts the feed over from its first page.
+      setHappening(feed.gatherings);
+      setCursor(feed.next_cursor);
+      setMoreError(false);
       setGatherings(mine);
       setViewerId(data.session?.user.id ?? null);
       setLoadError(false);
@@ -66,6 +77,23 @@ export default function GatheringsScreen() {
       load();
     }, [load]),
   );
+
+  async function loadMore() {
+    if (cursor === null || loadingMore) return;
+    const generation = feedGeneration.current;
+    setLoadingMore(true);
+    setMoreError(false);
+    try {
+      const page = await api.app.gatherings.list({ cursor });
+      if (generation !== feedGeneration.current) return;
+      setHappening((rows) => [...rows, ...page.gatherings]);
+      setCursor(page.next_cursor);
+    } catch {
+      if (generation === feedGeneration.current) setMoreError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function create() {
     if (busy) return;
@@ -202,6 +230,17 @@ export default function GatheringsScreen() {
         ) : (
           happening.map(row)
         )}
+        {loaded && !loadError && moreError ? (
+          <ErrorText>Could not load more. Try again.</ErrorText>
+        ) : null}
+        {loaded && !loadError && cursor !== null ? (
+          <Button
+            kind="quiet"
+            label={loadingMore ? 'Loading…' : 'Load more'}
+            onPress={loadMore}
+            disabled={loadingMore}
+          />
+        ) : null}
 
         <Text style={[styles.sectionTitle, { color: t.ink }]}>Yours</Text>
         {!loaded || loadError ? null : gatherings.length === 0 ? (

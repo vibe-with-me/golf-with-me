@@ -1,6 +1,6 @@
 import type { GatheringListItem } from '@withme/contract';
 import { createFileRoute, Link, useLoaderData, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
@@ -18,16 +18,37 @@ export const Route = createFileRoute('/_app/gatherings')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Events — withme' }] }),
   loader: async () => {
-    const [{ gatherings: happening }, { gatherings: mine }] = await asSignedInAccount(() =>
+    const [feed, { gatherings: mine }] = await asSignedInAccount(() =>
       Promise.all([api.app.gatherings.list(), api.app.gatherings.listMine()]),
     );
-    return { happening, mine };
+    return { happening: feed.gatherings, nextCursor: feed.next_cursor, mine };
   },
   component: GatheringsPage,
 });
 
 function GatheringsPage() {
-  const { happening, mine } = Route.useLoaderData();
+  const { happening: firstPage, nextCursor: firstCursor, mine } = Route.useLoaderData();
+  // Later feed pages, appended under the loader's first one. A re-load (a
+  // create, an account switch) starts the feed over from its first page.
+  const [laterPages, setLaterPages] = useState<GatheringListItem[]>([]);
+  const [cursor, setCursor] = useState(firstCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState(false);
+  const [pagedFrom, setPagedFrom] = useState(firstPage);
+  // The first page a Load more was asked for: an answer that arrives after
+  // the loader replaced it is dropped, or it would append an old page (and an
+  // old cursor) to the new feed.
+  const firstPageRef = useRef(firstPage);
+  firstPageRef.current = firstPage;
+  if (pagedFrom !== firstPage) {
+    // A new first page: drop what was appended to the old one (during render,
+    // so the stale pages never paint under the new first page).
+    setPagedFrom(firstPage);
+    setLaterPages([]);
+    setCursor(firstCursor);
+    setMoreError(false);
+  }
+  const happening = [...firstPage, ...laterPages];
   // The layout fetched the viewer's profile once; every _app child may read it.
   const { profile } = useLoaderData({ from: '/_app' });
   const viewerId = profile?.id ?? null;
@@ -42,6 +63,23 @@ function GatheringsPage() {
   const upcoming = mine.filter((g) => Date.parse(g.starts_at) >= now);
   // most recent first
   const past = mine.filter((g) => Date.parse(g.starts_at) < now).toReversed();
+
+  async function loadMore() {
+    if (cursor === null) return;
+    const askedFor = firstPage;
+    setLoadingMore(true);
+    setMoreError(false);
+    try {
+      const page = await api.app.gatherings.list({ cursor });
+      if (firstPageRef.current !== askedFor) return;
+      setLaterPages((pages) => [...pages, ...page.gatherings]);
+      setCursor(page.next_cursor);
+    } catch {
+      if (firstPageRef.current === askedFor) setMoreError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
@@ -119,6 +157,21 @@ function GatheringsPage() {
         ) : (
           happening.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
         )}
+        {moreError ? (
+          <p className="form-error" role="alert">
+            Could not load more. Try again.
+          </p>
+        ) : null}
+        {cursor !== null ? (
+          <button
+            className="btn btn--quiet"
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        ) : null}
       </section>
 
       <section aria-labelledby="yours">
