@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "withme-web",
+  "name": "golfwithme-web",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
@@ -9,5 +9,5 @@
   },
   // Server-side loader calls reach the API worker directly: Cloudflare
   // blocks same-account worker-to-worker fetches over workers.dev URLs.
-  "services": [{ "binding": "API", "service": "withme-api" }]
+  "services": [{ "binding": "API", "service": "golfwithme-api" }]
 }

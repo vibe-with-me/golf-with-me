@@ -3,7 +3,7 @@ import { useColorScheme } from 'react-native';
 /**
  * Design tokens — the mobile mirror of apps/web/src/styles/tokens.css.
  * Same dormant-seam logic: V2 theming is a token swap, not a redesign.
- * Near-monochrome warm neutrals with EXACTLY ONE vivid accent, reserved
+ * Near-monochrome scorecard neutrals (graphite on card stock) with EXACTLY ONE vivid accent, reserved
  * for the handshake pair (Connect and Accept).
  */
 export interface Tokens {
@@ -18,25 +18,25 @@ export interface Tokens {
 }
 
 const light: Tokens = {
-  bg: '#f3efe8',
-  surface: '#fffefb',
-  border: 'rgba(28, 25, 22, 0.09)',
-  borderInput: 'rgba(28, 25, 22, 0.5)',
-  ink: '#1c1916',
-  inkMuted: '#6f6a62',
-  accent: '#c2410c',
+  bg: '#eeebe1',
+  surface: '#fdfcf7',
+  border: 'rgba(38, 38, 42, 0.1)',
+  borderInput: 'rgba(38, 38, 42, 0.5)',
+  ink: '#26262a',
+  inkMuted: '#63625d',
+  accent: '#c42a1f',
   accentInk: '#ffffff',
 };
 
 const dark: Tokens = {
-  bg: '#141210',
-  surface: '#26221e',
-  border: 'rgba(240, 236, 229, 0.1)',
-  borderInput: 'rgba(240, 236, 229, 0.5)',
-  ink: '#f0ece5',
-  inkMuted: '#a39c91',
-  accent: '#ff6a3d',
-  accentInk: '#211008',
+  bg: '#131314',
+  surface: '#222224',
+  border: 'rgba(236, 234, 226, 0.1)',
+  borderInput: 'rgba(236, 234, 226, 0.5)',
+  ink: '#eceae2',
+  inkMuted: '#a3a199',
+  accent: '#ff6b5b',
+  accentInk: '#2b0703',
 };
 
 export function useTokens(): Tokens {
@@ -60,7 +60,7 @@ export interface Shadow {
 export const shadow = {
   card: {
     light: {
-      shadowColor: '#1c1916',
+      shadowColor: '#26262a',
       shadowOpacity: 0.16,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 10 },
@@ -76,7 +76,7 @@ export const shadow = {
   },
   bar: {
     light: {
-      shadowColor: '#1c1916',
+      shadowColor: '#26262a',
       shadowOpacity: 0.12,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: -6 },
@@ -94,12 +94,13 @@ export function useShadow(): { card: Shadow; bar: Shadow | null } {
 }
 
 export const fonts = {
-  display: 'SpaceGrotesk_600SemiBold',
-  displayMedium: 'SpaceGrotesk_500Medium',
-  displayBold: 'SpaceGrotesk_700Bold',
-  body: 'Inter_400Regular',
-  bodyMedium: 'Inter_500Medium',
-  bodySemiBold: 'Inter_600SemiBold',
+  display: 'Caveat_600SemiBold',
+  displayMedium: 'Caveat_500Medium',
+  displayBold: 'Caveat_700Bold',
+  wordmark: 'Caveat_700Bold',
+  body: 'IBMPlexSans_400Regular',
+  bodyMedium: 'IBMPlexSans_500Medium',
+  bodySemiBold: 'IBMPlexSans_600SemiBold',
 } as const;
 
 export const radius = {
@@ -123,3 +124,11 @@ export const TAP_TARGET = 44;
 
 /** Mirror of --shell-nav-height in tokens.css. The tab bar keeps React Navigation's default height. */
 export const SHELL = { headerHeight: 56 } as const;
+
+/**
+ * Display sizes: the mobile mirror of --text-title and --text-lg in tokens.css,
+ * which only display text uses (names, titles, section headers, the header
+ * wordmark). The display face (Caveat) sets small, so both run larger than a
+ * grotesk would need.
+ */
+export const displaySize = { title: 38, section: 24, wordmark: 24 } as const;

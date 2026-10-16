@@ -5,14 +5,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Read [CONTRIBUTING](https://github.com/vibe-with-me/withme-starter/blob/main/CONTRIBUTING.md) first. Two things get a
+        Read [CONTRIBUTING](https://github.com/vibe-with-me/golf-with-me/blob/main/CONTRIBUTING.md) first. Two things get a
         proposal closed quickly: it needs ranking, recommending, aggregating,
         or monetizing (the V1 invariant), or it swaps part of the stack. A
         feature that belongs to one vertical is usually a **skill**, not a
         change to the app; say so below and it gets the `skill` label.
 
         Every change ships as one slice, in the order in
-        [docs/the-slice.md](https://github.com/vibe-with-me/withme-starter/blob/main/docs/the-slice.md). The questions below are
+        [docs/the-slice.md](https://github.com/vibe-with-me/golf-with-me/blob/main/docs/the-slice.md). The questions below are
         that order. "Not touched" is a fine answer for a layer; "not sure" is
         too, if you say why.
   - type: textarea

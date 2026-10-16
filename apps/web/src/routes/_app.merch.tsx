@@ -11,7 +11,7 @@ const STORE_URL = import.meta.env.VITE_STORE_URL;
  */
 export const Route = createFileRoute('/_app/merch')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Merch — withme' }] }),
+  head: () => ({ meta: [{ title: 'Merch — golfwithme' }] }),
   beforeLoad: () => {
     if (!STORE_URL) throw redirect({ to: navItems[0].to, replace: true });
   },
@@ -22,7 +22,7 @@ function MerchPage() {
   return (
     <div className="card">
       <h1>Merch</h1>
-      <p className="bio">Tags and gear from the store.</p>
+      <p className="bio">Ball markers, bag tags and divot tools.</p>
       <a className="btn" href={STORE_URL} target="_blank" rel="noopener noreferrer">
         Open store
       </a>

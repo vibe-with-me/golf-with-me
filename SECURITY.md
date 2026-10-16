@@ -1,7 +1,7 @@
 # Security policy
 
-The safety model is the product. withme-starter promises the people who
-use a fork that nobody can list them, that a block is absolute and
+The safety model is the product. Golf With Me promises the golfers who use
+it that nobody can list them, that a block is absolute and
 invisible, and that a connections-tier field reaches only accepted
 connections. [docs/safety-model.md](docs/safety-model.md) states each
 promise and the test that proves it. A way to break one of those promises
@@ -10,8 +10,7 @@ the usual sense.
 
 ## What counts
 
-Report it privately if you find any of these, in the starter as shipped
-or in what a skill in `.agents/skills/` tells a fork to build:
+Report it privately if you find any of these in Golf With Me:
 
 - **An RLS bypass.** A query, RPC, or Storage call that reads or writes a
   row the caller's policies should refuse: another user's profile,
@@ -38,8 +37,7 @@ than the first presenter of its UID, scans storing more than a user-agent
 string and a timestamp, and a profile photo that can point off-site.
 
 Out of scope: the local stack's shared development keys (they are the
-same on every machine and only reach `127.0.0.1`), a fork's own
-deployment and configuration, denial of service by volume, and findings
+same on every machine and only reach `127.0.0.1`), denial of service by volume, and findings
 in Supabase, Cloudflare, or other upstream projects, which belong with
 those projects.
 
@@ -57,11 +55,13 @@ what the caller sees versus what a stranger would see.
 
 ## What to expect
 
-withme-starter is maintained on a best-effort basis, with no support SLA.
+Golf With Me is maintained by Vibe With Me LLC on a best-effort basis,
+with no support SLA.
 We aim to acknowledge a report within a week and to keep you posted while
 we work on it, but we cannot promise a fix date. When a fix lands we will
 publish an advisory and credit you unless you would rather stay anonymous.
 
 Only the latest commit on `main` is supported. The project is v0.x and
-has no maintained release branches; forks pick up fixes by merging from
-upstream.
+has no maintained release branches. Fixes that belong in the shared
+starter go to [withme-starter](https://github.com/vibe-with-me/withme-starter)
+and reach this app by merging from it.

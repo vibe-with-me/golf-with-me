@@ -24,7 +24,7 @@ if (
 // its own: anyone holding a demo login can accept requests sent to that
 // account and read the senders' links, so a published password must never
 // be one that every fork shares.
-const LOCAL_DEMO_PASSWORD = 'withme-demo-1';
+const LOCAL_DEMO_PASSWORD = 'golfwithme-demo-1';
 const remote = !['127.0.0.1', 'localhost'].includes(seedTarget.hostname);
 const DEMO_PASSWORD = remote ? (process.env.SEED_DEMO_PASSWORD ?? '') : LOCAL_DEMO_PASSWORD;
 if (remote && (DEMO_PASSWORD === LOCAL_DEMO_PASSWORD || DEMO_PASSWORD.length < 16)) {

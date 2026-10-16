@@ -1,6 +1,6 @@
 # Ports are deliberately non-default (55xxx) so this stack can run alongside
 # another local Supabase project (e.g. a production app on the 54xxx defaults).
-project_id = "withme-starter"
+project_id = "golfwithme"
 
 [api]
 enabled = true

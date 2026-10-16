@@ -20,7 +20,7 @@ type Tab = 'requests' | 'blocked';
  */
 export const Route = createFileRoute('/_app/connections')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Connections — withme' }] }),
+  head: () => ({ meta: [{ title: 'Connections — golfwithme' }] }),
   // Always returns the key: a route's search is the parent's spread under
   // this result, so leaving `tab` out would let a raw ?tab=foo through.
   validateSearch: (search): { tab?: Tab } => ({

@@ -6,7 +6,7 @@ import { getSupabase } from '../lib/supabase.ts';
 
 export const Route = createFileRoute('/login')({
   ssr: false,
-  head: () => ({ meta: [{ title: 'Sign in — withme' }] }),
+  head: () => ({ meta: [{ title: 'Sign in — golfwithme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
@@ -101,7 +101,7 @@ function LoginPage() {
   return (
     <main className="page">
       <form className="card" onSubmit={submit}>
-        <p className="hint">withme</p>
+        <p className="hint">golfwithme</p>
         <h1>{mode === 'signin' ? 'Sign in' : 'Create account'}</h1>
         {context ? <p className="bio">{context}</p> : null}
         <div className="field">
@@ -227,7 +227,7 @@ function PhoneSignIn({
     return (
       <main className="page">
         <form className="card" onSubmit={verify}>
-          <p className="hint">withme</p>
+          <p className="hint">golfwithme</p>
           <h1>Enter your code</h1>
           <p className="bio" role="status">
             We texted a {OTP_CODE_LENGTH}-digit code to {sentTo}.
@@ -275,7 +275,7 @@ function PhoneSignIn({
   return (
     <main className="page">
       <form className="card" onSubmit={sendCode}>
-        <p className="hint">withme</p>
+        <p className="hint">golfwithme</p>
         <h1>Sign in with phone</h1>
         {context ? <p className="bio">{context}</p> : null}
         <div className="field">

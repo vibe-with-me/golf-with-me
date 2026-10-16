@@ -13,7 +13,7 @@ Closes #
 
 - [ ] **One slice, in order.** Contract → migration + RLS → RLS tests → API
       → web → mobile → e2e, each layer present if the change touches it
-      ([docs/the-slice.md](https://github.com/vibe-with-me/withme-starter/blob/main/docs/the-slice.md)). Layers not
+      ([docs/the-slice.md](https://github.com/vibe-with-me/golf-with-me/blob/main/docs/the-slice.md)). Layers not
       touched are listed below as "not touched", not skipped silently.
 - [ ] **RLS tests cover the negative space.** For any policy or
       security-definer change, a test in `packages/db/test` asserts what a

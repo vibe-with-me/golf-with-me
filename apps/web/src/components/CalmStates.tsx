@@ -47,7 +47,7 @@ export function NotFoundCard() {
     <main className="page">
       <NotFoundBody>
         <Link className="btn btn--quiet" to="/">
-          withme home
+          golfwithme home
         </Link>
       </NotFoundBody>
     </main>
@@ -59,7 +59,7 @@ export function ErrorCard() {
     <main className="page">
       <ErrorBody>
         <Link className="btn btn--quiet" to="/">
-          withme home
+          golfwithme home
         </Link>
       </ErrorBody>
     </main>

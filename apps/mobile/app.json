@@ -1,21 +1,21 @@
 {
   "expo": {
-    "name": "withme",
-    "slug": "withme-starter",
+    "name": "Golf With Me",
+    "slug": "golfwithme",
     "version": "0.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "withme",
+    "scheme": "golfwithme",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "co.withme.starter"
+      "bundleIdentifier": "co.golfwithme.app"
     },
     "android": {
-      "package": "co.withme.starter",
+      "package": "co.golfwithme.app",
       "adaptiveIcon": {
-        "backgroundColor": "#f3efe8",
+        "backgroundColor": "#eeebe1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
@@ -32,17 +32,17 @@
         {
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
-          "backgroundColor": "#f3efe8",
+          "backgroundColor": "#eeebe1",
           "dark": {
             "image": "./assets/splash-icon-dark.png",
-            "backgroundColor": "#141210"
+            "backgroundColor": "#131314"
           }
         }
       ],
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Read withme tags to connect with people.",
+          "nfcPermission": "Read Golf With Me tags to connect with golfers.",
           "includeNdefEntitlement": false
         }
       ],

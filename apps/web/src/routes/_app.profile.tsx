@@ -14,7 +14,7 @@ import { settled } from '../lib/loaded.ts';
 /** Profile: identity (photo, name, bio), Links, My tags, Account. */
 export const Route = createFileRoute('/_app/profile')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Your profile — withme' }] }),
+  head: () => ({ meta: [{ title: 'Your profile — golfwithme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
