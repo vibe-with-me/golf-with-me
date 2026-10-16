@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- withme starter app icon, light. Colors are the light tokens in
-     apps/web/src/styles/tokens.css: bg #f6f3ee, ink #1c1916, accent #c2410c.
+     apps/web/src/styles/tokens.css: bg #f3efe8, ink #1c1916, accent #c2410c.
      Edit the colors here and in icon-dark.svg, then run docs/brand/render.sh. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#f6f3ee"/>
+  <rect width="1024" height="1024" fill="#f3efe8"/>
   <!-- One person reaching out (dot + arcs) to the person they meet (accent dot). -->
   <g fill="none" stroke="#1c1916" stroke-width="32" stroke-linecap="round">
     <path d="M410.6 617.8A180 180 0 0 0 410.6 406.2"/>

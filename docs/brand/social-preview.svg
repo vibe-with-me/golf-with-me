@@ -1,7 +1,7 @@
 <!-- GitHub social preview card (Settings > General > Social preview), 1280x640.
      Change the name and tagline to your fork's, then run docs/brand/render.sh. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
-  <rect width="1280" height="640" fill="#f6f3ee"/>
+  <rect width="1280" height="640" fill="#f3efe8"/>
   <g transform="translate(409.6 -3.9) scale(0.45)">
     <g fill="none" stroke="#1c1916" stroke-width="32" stroke-linecap="round">
       <path d="M410.6 617.8A180 180 0 0 0 410.6 406.2"/>

@@ -2,9 +2,9 @@
   <!-- The app icon from docs/brand/icon.svg, cropped for tab-size legibility.
        Follows the browser's color scheme; colors are the tokens.css values. -->
   <style>
-    .bg { fill: #f6f3ee; } .ink { fill: #1c1916; stroke: #1c1916; } .accent { fill: #c2410c; }
+    .bg { fill: #f3efe8; } .ink { fill: #1c1916; stroke: #1c1916; } .accent { fill: #c2410c; }
     @media (prefers-color-scheme: dark) {
-      .bg { fill: #161412; } .ink { fill: #f0ece5; stroke: #f0ece5; } .accent { fill: #ff6a3d; }
+      .bg { fill: #141210; } .ink { fill: #f0ece5; stroke: #f0ece5; } .accent { fill: #ff6a3d; }
     }
   </style>
   <rect class="bg" x="128" y="128" width="768" height="768" rx="168"/>

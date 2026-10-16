@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Dark variant: the dark-mode tokens (#161412 / #f0ece5 / #ff6a3d). -->
+<!-- Dark variant: the dark-mode tokens (#141210 / #f0ece5 / #ff6a3d). -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#161412"/>
+  <rect width="1024" height="1024" fill="#141210"/>
   <!-- One person reaching out (dot + arcs) to the person they meet (accent dot). -->
   <g fill="none" stroke="#f0ece5" stroke-width="32" stroke-linecap="round">
     <path d="M410.6 617.8A180 180 0 0 0 410.6 406.2"/>

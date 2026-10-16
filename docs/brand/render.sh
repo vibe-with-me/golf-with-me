@@ -48,7 +48,7 @@ else
   cp "$tmp/tight.svg" "$tmp/tiny.svg"
 fi
 bg="$(sed -n 's/.*<rect [^>]*fill="\(#[0-9A-Fa-f]\{3,8\}\)".*/\1/p' "$brand/icon.svg")"
-[ -n "$bg" ] || die "icon.svg: the background <rect> needs a hex fill, e.g. fill=\"#f6f3ee\""
+[ -n "$bg" ] || die "icon.svg: the background <rect> needs a hex fill, e.g. fill=\"#f3efe8\""
 
 # iOS + store icon: full bleed, no alpha.
 rsvg-convert -w 1024 -h 1024 "$brand/icon.svg" | magick - -alpha off "${strip[@]}" "$assets/icon.png"
