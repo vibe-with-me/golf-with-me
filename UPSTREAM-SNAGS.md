@@ -451,3 +451,19 @@ all predictable. Two notes:
     leaves a near-empty first line and truncates the tail. *Did instead:*
     kept the fork's single two-line `Text` with the starter's new tail items
     (capacity count, Full, Connections only).
+
+44. **A new starter snapshot doesn't know the fork's fields.** #84's
+    `report_gathering` snapshots the title and location so a moderator reads
+    what the reporter saw; this fork's course is host-typed text every
+    tapper sees, and it wasn't in the snapshot. Found by CodeRabbit on PR #12.
+    *Did instead:* `20261017220100_golf_report_gathering_course.sql` adds it
+    (from the newest body), with the snapshot test asserting it survives an
+    edit. Suggest: customize-gathering §2 lists `report_gathering`'s snapshot
+    beside `resolve_tag` as a place a new user-facing field goes.
+
+45. **Five CodeRabbit findings on starter files in sync PR #12**, not fixed
+    in the fork: go-live SKILL.md ~L572 (make the checkpoint conditional on
+    the mobile option); `deploy.yml` ~L42 (queue pending runs instead of
+    cancelling) and ~L129 (Major: require the API URL before deploying);
+    `docs/moderation.md` ~L58 (a visibility claim); `docs/staying-current.md`
+    ~L141 (include the known labels in the copy sweep, the same as 42).

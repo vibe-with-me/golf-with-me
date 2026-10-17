@@ -204,7 +204,7 @@ describe('report_gathering', () => {
     expect((await reportGathering(alice, gathering, { p_details: 'Asks for money' })).error).toBeNull();
 
     // A later edit cannot change what was reported.
-    await host.client.from('gatherings').update({ title: 'Picnic' }).eq('id', gathering);
+    await host.client.from('gatherings').update({ title: 'Picnic', course_name: 'Cedar Hills' }).eq('id', gathering);
 
     const rows = await reportsAbout(host.id);
     expect(rows).toHaveLength(1);
@@ -216,7 +216,13 @@ describe('report_gathering', () => {
       details: 'Asks for money',
       snapshot: {
         display_name: 'Host',
-        gathering: { id: gathering, title: 'Free afterparty, $20 to hold a spot', location: 'Back lot' },
+        // Golf With Me: the course is in the snapshot too (20261017220100).
+        gathering: {
+          id: gathering,
+          title: 'Free afterparty, $20 to hold a spot',
+          location: 'Back lot',
+          course_name: 'Riverside Muni',
+        },
       },
     });
   });
