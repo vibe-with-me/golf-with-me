@@ -1,4 +1,4 @@
-import type { ProfileLink } from '@withme/contract';
+import { golfLine, type ProfileLink } from '@withme/contract';
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
@@ -253,11 +253,14 @@ function PersonRow({
   links?: ProfileLink[];
   children: ReactNode;
 }) {
+  // The card tier rides every card, so every row of people shows it.
+  const golf = golfLine(profile);
   return (
     <div className="row">
       <Avatar profile={profile} size="row" />
       <div className="row-body">
         <span className="name">{profile.display_name}</span>
+        {golf ? <span className="sub">{golf}</span> : null}
         {sub ? <span className="sub">{sub}</span> : null}
       </div>
       <div className="row-actions">{children}</div>
