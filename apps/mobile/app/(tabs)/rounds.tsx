@@ -153,7 +153,9 @@ export default function GatheringsScreen() {
       >
         <View style={styles.rowBody}>
           <Text style={[styles.rowName, { color: t.ink }]}>{gathering.title}</Text>
-          <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
+          {/* Two lines, like web's .row-body .sub: the course makes the line long enough
+              that one line would cut off the headcount. */}
+          <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
             {line}
           </Text>
           {names ? (
