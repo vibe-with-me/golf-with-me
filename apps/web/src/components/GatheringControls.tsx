@@ -50,7 +50,7 @@ export function GatheringControls({
         ) : null}
       </fieldset>
       <div className="field">
-        <label htmlFor={`${id}-spots`}>Spots (optional)</label>
+        <label htmlFor={`${id}-spots`}>Spots</label>
         <input
           id={`${id}-spots`}
           type="number"
@@ -58,7 +58,7 @@ export function GatheringControls({
           min={GATHERING_CAPACITY_MIN}
           max={GATHERING_CAPACITY_MAX}
           step={1}
-          placeholder="No limit"
+          placeholder={String(GATHERING_CAPACITY_MAX)}
           value={spots}
           aria-invalid={invalid}
           aria-describedby={`${id}-spots-help`}

@@ -51,7 +51,7 @@ test('a connections-only gathering with three spots: hidden from a stranger, ful
   await host.getByLabel('Title').fill(title);
   await host.getByLabel('Course', { exact: true }).fill('Riverside Muni');
   await host.getByRole('radio', { name: /My connections/ }).check();
-  await host.getByLabel('Spots (optional)').fill('3');
+  await host.getByLabel('Spots').fill('3');
   await host.getByRole('button', { name: 'Create round' }).click();
   const yours = host.getByRole('region', { name: 'Yours' });
   await expect(yours.getByText(title)).toBeVisible();

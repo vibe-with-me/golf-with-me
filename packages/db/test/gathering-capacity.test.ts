@@ -60,14 +60,20 @@ describe('capacity', () => {
     expect(Number(data?.[0]?.member_count)).toBe(4);
   });
 
-  it('no capacity means no limit', async () => {
+  // Golf With Me: no capacity means a foursome (20261017230000_round_foursome).
+  it('no capacity means a foursome, even straight through PostgREST', async () => {
     const host = await createTestUser('Host');
     const id = await createGathering(host.client, null);
-    const joiners = await Promise.all(['A', 'B', 'C'].map((n) => createTestUser(n)));
-    for (const joiner of joiners) expect((await join(joiner.client, id)).error).toBeNull();
-    expect(await going(id)).toBe(4);
     const { data } = await host.client.from('gatherings').select('capacity').eq('id', id).single();
-    expect(data?.capacity).toBeNull();
+    expect(data?.capacity).toBe(4);
+    const [a, b, c, d] = (await Promise.all(['A', 'B', 'C', 'D'].map((n) => createTestUser(n)))) as [TestUser, TestUser, TestUser, TestUser];
+    for (const joiner of [a, b, c]) expect((await join(joiner.client, id)).error).toBeNull();
+    expect(await going(id)).toBe(4);
+    expect((await join(d.client, id)).error?.code).toBe('P0007');
+    // An edit that clears it puts the foursome back, never "no limit".
+    const cleared = await host.client.from('gatherings').update({ capacity: null }).eq('id', id).select('capacity');
+    expect(cleared.error).toBeNull();
+    expect(cleared.data).toEqual([{ capacity: 4 }]);
   });
 
   it('two joins for the last spot never both succeed', async () => {
@@ -103,27 +109,27 @@ describe('capacity', () => {
     expect(await going(id)).toBe(2);
   });
 
-  it('lowering capacity below the headcount keeps everyone and stops new joins; raising or clearing reopens it', async () => {
+  it('lowering capacity below the headcount keeps everyone and stops new joins; raising reopens it', async () => {
     const host = await createTestUser('Host');
-    const id = await createGathering(host.client, 5);
-    const [a, b, c, d] = (await Promise.all(['A', 'B', 'C', 'D'].map((n) => createTestUser(n)))) as [TestUser, TestUser, TestUser, TestUser];
-    for (const joiner of [a, b, c]) expect((await join(joiner.client, id)).error).toBeNull();
+    const id = await createGathering(host.client, 4);
+    const [a, b, c] = (await Promise.all(['A', 'B', 'C'].map((n) => createTestUser(n)))) as [TestUser, TestUser, TestUser];
+    for (const joiner of [a, b]) expect((await join(joiner.client, id)).error).toBeNull();
 
     const lowered = await host.client.from('gatherings').update({ capacity: 2 }).eq('id', id).select('capacity');
     expect(lowered.error).toBeNull();
     expect(lowered.data).toEqual([{ capacity: 2 }]);
-    expect(await going(id)).toBe(4);
-    expect((await join(d.client, id)).error?.code).toBe('P0007');
+    expect(await going(id)).toBe(3);
+    expect((await join(c.client, id)).error?.code).toBe('P0007');
 
-    await host.client.from('gatherings').update({ capacity: null }).eq('id', id);
-    expect((await join(d.client, id)).error).toBeNull();
-    expect(await going(id)).toBe(5);
+    await host.client.from('gatherings').update({ capacity: 4 }).eq('id', id);
+    expect((await join(c.client, id)).error).toBeNull();
+    expect(await going(id)).toBe(4);
   });
 
-  it('capacity is 2 to 500, set by the host only', async () => {
+  it('capacity is 2 to 4, a foursome at most, set by the host only', async () => {
     const host = await createTestUser('Host');
     const member = await createTestUser('Member');
-    for (const bad of [1, 0, -4, 501]) {
+    for (const bad of [1, 0, -4, 5, 500]) {
       const { error } = await host.client.rpc('create_gathering', {
         p_title: 'x',
         p_course_name: 'Riverside Muni',
@@ -132,12 +138,13 @@ describe('capacity', () => {
       });
       expect(error?.code).toBe('23514');
     }
-    const id = await createGathering(host.client, 500);
+    const id = await createGathering(host.client, 4);
     expect((await host.client.from('gatherings').update({ capacity: 1 }).eq('id', id)).error?.code).toBe('23514');
+    expect((await host.client.from('gatherings').update({ capacity: 5 }).eq('id', id)).error?.code).toBe('23514');
     expect((await host.client.from('gatherings').update({ capacity: 2 }).eq('id', id)).error).toBeNull();
 
     await join(member.client, id);
-    const byMember = await member.client.from('gatherings').update({ capacity: 400 }).eq('id', id).select('id');
+    const byMember = await member.client.from('gatherings').update({ capacity: 3 }).eq('id', id).select('id');
     expect(byMember.error).toBeNull();
     expect(byMember.data).toEqual([]);
   });

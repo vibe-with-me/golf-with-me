@@ -44,7 +44,8 @@ export const GatheringVisibilitySchema = z.enum(GATHERING_VISIBILITIES);
 
 /** Spots, counting the host: at least 2, at most 500. The database enforces both. */
 export const GATHERING_CAPACITY_MIN = 2;
-export const GATHERING_CAPACITY_MAX = 500;
+/** Golf With Me: a round is a foursome at most (the starter allows 500). The database enforces it too. */
+export const GATHERING_CAPACITY_MAX = 4;
 const CapacitySchema = z.number().int().min(GATHERING_CAPACITY_MIN).max(GATHERING_CAPACITY_MAX);
 
 /** A gathering as its members see it. host_id tells the UI who runs it. */

@@ -347,12 +347,13 @@ describe('gathering schemas', () => {
     ).toBe(true);
   });
 
-  it('capacity is null or a whole number from 2 to 500; null on edit clears it', () => {
+  it('capacity is null or a whole number from 2 to 4 (a foursome); null on edit clears it', () => {
     const { starts_at } = gathering;
     for (const [capacity, ok] of [
       [2, true],
       [4, true],
-      [500, true],
+      [5, false],
+      [500, false],
       [1, false],
       [0, false],
       [501, false],

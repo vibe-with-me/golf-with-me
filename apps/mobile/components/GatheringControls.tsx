@@ -46,13 +46,13 @@ export function GatheringControls({
         {editing ? <Muted>Anyone already going stays, whichever you pick.</Muted> : null}
       </View>
       <Field
-        label="Spots (optional)"
+        label="Spots"
         value={spots}
         onChangeText={onSpots}
         // Not number-pad: it has no return key, so the keyboard could not close.
         keyboardType="numbers-and-punctuation"
         maxLength={3}
-        placeholder="No limit"
+        placeholder="4"
         accessibilityHint={SPOTS_HELP}
       />
       <Muted>

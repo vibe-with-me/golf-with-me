@@ -409,8 +409,8 @@ const rejoin = await erinApp.gatherings.join({ id: round.gathering.id }).then(()
 assert(rejoin === 'ok', 'a member re-joining a full gathering is a no-op');
 const raised = await aliceApp.gatherings.update({ id: round.gathering.id, capacity: null, visibility: 'everyone' });
 assert(
-  raised.gathering.capacity === null && raised.gathering.visibility === 'everyone',
-  'the host clears the capacity and lists it to everyone',
+  raised.gathering.capacity === 4 && raised.gathering.visibility === 'everyone',
+  'the host clears the capacity (a round goes back to a foursome) and lists it to everyone',
 );
 await fayApp.gatherings.join({ id: round.gathering.id });
 assert(

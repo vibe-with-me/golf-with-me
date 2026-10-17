@@ -46,7 +46,7 @@ export default function GatheringsScreen() {
   const [location, setLocation] = useState('');
   const [course, setCourse] = useState('');
   const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
-  const [spots, setSpots] = useState('');
+  const [spots, setSpots] = useState('4'); // a foursome unless the host says fewer
   const [busy, setBusy] = useState(false);
   // The form's error (create/validation) and the list's are separate: a
   // failed load must not read as an empty list, nor show up inside the form.
@@ -122,7 +122,7 @@ export default function GatheringsScreen() {
       setCourse('');
       setLocation('');
       setVisibility('everyone');
-      setSpots('');
+      setSpots('4');
       setWhen(tomorrowEvening());
       await load();
     } catch {
