@@ -153,6 +153,7 @@ describe('block invisibility', () => {
     const host = await createTestUser('Host');
     const { error: createError } = await host.client.rpc('create_gathering', {
       p_title: 'Open house',
+      p_course_name: 'Riverside Muni',
       p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
       p_location: 'Downtown',
     });

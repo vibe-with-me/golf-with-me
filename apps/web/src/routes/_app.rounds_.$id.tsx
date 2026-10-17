@@ -5,7 +5,7 @@ import { shellStates } from '../components/CalmStates.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { formatStartsAt, toDateTimeLocal, whenAndWhere } from '../lib/format-time.ts';
+import { courseWhenAndWhere, formatStartsAt, toDateTimeLocal } from '../lib/format-time.ts';
 import { goingLine } from '../lib/going.ts';
 
 type LoaderResult =
@@ -19,6 +19,7 @@ type LoaderResult =
 /** Display-only hints carried from the tag resolver, shown before joining. Never data. */
 interface Hints {
   title?: string;
+  course_name?: string;
   starts_at?: string;
 }
 
@@ -29,6 +30,9 @@ export const Route = createFileRoute('/_app/rounds_/$id')({
     const hints: Hints = {};
     if (typeof search.title === 'string' && search.title !== '') {
       hints.title = search.title.slice(0, 120);
+    }
+    if (typeof search.course_name === 'string' && search.course_name !== '') {
+      hints.course_name = search.course_name.slice(0, 80);
     }
     if (typeof search.starts_at === 'string' && search.starts_at !== '') {
       hints.starts_at = search.starts_at.slice(0, 40);
@@ -67,10 +71,10 @@ function GatheringPage() {
 /** The gathering is hidden (blocked, or gone): offer the join the tag promised; it answers "not available". */
 function JoinCard() {
   const { id } = Route.useParams();
-  const { title, starts_at } = Route.useSearch();
+  const { title, course_name, starts_at } = Route.useSearch();
   const router = useRouter();
   const [join, setJoin] = useState<'idle' | 'joining' | 'failed' | 'unavailable'>('idle');
-  const hint = [title ?? null, starts_at ? formatStartsAt(starts_at) : null]
+  const hint = [title ?? null, course_name ?? null, starts_at ? formatStartsAt(starts_at) : null]
     .filter(Boolean)
     .join(' · ');
 
@@ -108,6 +112,7 @@ interface GatheringPatch {
   title: string;
   starts_at: string;
   location: string | null;
+  course_name: string;
 }
 
 function GatheringDetail({
@@ -203,7 +208,7 @@ function GatheringDetail({
         ) : (
           <>
             <h1>{gathering.title}</h1>
-            <p className="hint">{whenAndWhere(gathering)}</p>
+            <p className="hint">{courseWhenAndWhere(gathering)}</p>
             <p className="hint">{goingLine(memberCount)}</p>
           </>
         )}
@@ -312,6 +317,7 @@ function EditForm({
   const [title, setTitle] = useState(gathering.title);
   const [startsAt, setStartsAt] = useState(() => toDateTimeLocal(new Date(gathering.starts_at)));
   const [location, setLocation] = useState(gathering.location ?? '');
+  const [course, setCourse] = useState(gathering.course_name);
   return (
     <form
       className="stack"
@@ -321,6 +327,7 @@ function EditForm({
           title: title.trim(),
           starts_at: new Date(startsAt).toISOString(),
           location: location.trim() === '' ? null : location.trim(),
+          course_name: course.trim(),
         });
       }}
     >
@@ -332,6 +339,16 @@ function EditForm({
           maxLength={120}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="edit_course_name">Course</label>
+        <input
+          id="edit_course_name"
+          required
+          maxLength={80}
+          value={course}
+          onChange={(e) => setCourse(e.target.value)}
         />
       </div>
       <div className="field">
@@ -354,7 +371,11 @@ function EditForm({
         />
       </div>
       <div className="row-actions">
-        <button className="btn" type="submit" disabled={busy || !title.trim() || !startsAt}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy || !title.trim() || !course.trim() || !startsAt}
+        >
           {busy ? 'Saving…' : 'Save'}
         </button>
         <button className="btn btn--quiet" type="button" disabled={busy} onClick={onCancel}>

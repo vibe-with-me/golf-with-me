@@ -81,6 +81,7 @@ test('My tags: a claimed tag turns off and on, and re-points at a round', async 
 
   await owner.goto('/rounds');
   await owner.getByLabel('Title').fill('Smoke Tag Night');
+  await owner.getByLabel('Course', { exact: true }).fill('Smoke Links');
   await owner.getByRole('button', { name: 'Create round' }).click();
   // Listed under Happening and under Yours: the first is enough.
   await expect(owner.getByText('Smoke Tag Night').first()).toBeVisible();

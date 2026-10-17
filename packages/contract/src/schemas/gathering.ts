@@ -14,6 +14,15 @@ const LocationInputSchema = z
   .nullable()
   .optional();
 
+/** The course a round is played on: required on create, plain text, one line. */
+export const COURSE_NAME_MAX = 80;
+const CourseNameInputSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(COURSE_NAME_MAX)
+  .refine(plain, PLAIN_TEXT_MESSAGE);
+
 /** How far ahead a gathering may start. The database enforces a year too. */
 export const GATHERING_MAX_LEAD_DAYS = 365;
 
@@ -31,6 +40,8 @@ export const GatheringSchema = z.object({
   title: z.string().min(1).max(120).refine(plain, PLAIN_TEXT_MESSAGE),
   starts_at: z.iso.datetime({ offset: true }),
   location: z.string().min(1).max(160).refine(plain, PLAIN_TEXT_MESSAGE).nullable(),
+  /** The course the round is played on. '' only on a row that predates the column. */
+  course_name: z.string().max(COURSE_NAME_MAX).refine(plain, PLAIN_TEXT_MESSAGE),
   host_id: z.uuid(),
   created_at: z.iso.datetime({ offset: true }),
 });
@@ -45,6 +56,7 @@ export const GatheringSummarySchema = GatheringSchema.pick({
   title: true,
   starts_at: true,
   location: true,
+  course_name: true,
 });
 
 /**
@@ -72,6 +84,7 @@ export const CreateGatheringInputSchema = z.object({
   title: z.string().trim().min(1).max(120).refine(plain, PLAIN_TEXT_MESSAGE),
   starts_at: StartsAtInputSchema,
   location: LocationInputSchema,
+  course_name: CourseNameInputSchema,
 });
 
 /** Host-only patch; the id travels in the path. At least one field. */
@@ -81,10 +94,14 @@ export const UpdateGatheringInputSchema = z
     title: z.string().trim().min(1).max(120).refine(plain, PLAIN_TEXT_MESSAGE).optional(),
     starts_at: StartsAtInputSchema.optional(),
     location: LocationInputSchema,
+    course_name: CourseNameInputSchema.optional(),
   })
   .refine(
     (patch) =>
-      patch.title !== undefined || patch.starts_at !== undefined || patch.location !== undefined,
+      patch.title !== undefined ||
+      patch.starts_at !== undefined ||
+      patch.location !== undefined ||
+      patch.course_name !== undefined,
     { message: 'Nothing to update' },
   );
 

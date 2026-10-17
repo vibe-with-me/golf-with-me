@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Button, Card, ErrorText, Field, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
-import { parseLocalDateTime, tomorrowEvening, whenAndWhere } from '../../lib/format-time';
+import { courseWhenAndWhere, parseLocalDateTime, tomorrowEvening } from '../../lib/format-time';
 import { goingLine, withLine } from '../../lib/going';
 import { supabase } from '../../lib/supabase';
 import { displaySize, fonts, space, useTokens } from '../../lib/tokens';
@@ -42,6 +42,7 @@ export default function GatheringsScreen() {
   const [title, setTitle] = useState('');
   const [when, setWhen] = useState(tomorrowEvening);
   const [location, setLocation] = useState('');
+  const [course, setCourse] = useState('');
   const [busy, setBusy] = useState(false);
   // The form's error (create/validation) and the list's are separate: a
   // failed load must not read as an empty list, nor show up inside the form.
@@ -108,9 +109,11 @@ export default function GatheringsScreen() {
       await api.app.gatherings.create({
         title: title.trim(),
         starts_at: startsAt,
+        course_name: course.trim(),
         location: location.trim() === '' ? null : location.trim(),
       });
       setTitle('');
+      setCourse('');
       setLocation('');
       setWhen(tomorrowEvening());
       await load();
@@ -133,7 +136,7 @@ export default function GatheringsScreen() {
         : gathering.is_member
           ? 'Playing'
           : null;
-    const line = [mark, whenAndWhere(gathering), goingLine(gathering.member_count)]
+    const line = [mark, courseWhenAndWhere(gathering), goingLine(gathering.member_count)]
       .filter(Boolean)
       .join(' · ');
     const names = withLine(gathering.members, viewerId);
@@ -192,6 +195,13 @@ export default function GatheringsScreen() {
             placeholder="e.g. Saturday dawn nine"
           />
           <Field
+            label="Course"
+            value={course}
+            onChangeText={setCourse}
+            maxLength={80}
+            placeholder="e.g. Riverside Muni"
+          />
+          <Field
             label="Date"
             value={when.date}
             onChangeText={(date) => setWhen((w) => ({ ...w, date }))}
@@ -218,7 +228,9 @@ export default function GatheringsScreen() {
           <Button
             label={busy ? 'Creating…' : 'Create round'}
             onPress={create}
-            disabled={busy || !title.trim() || !when.date.trim() || !when.time.trim()}
+            disabled={
+              busy || !title.trim() || !course.trim() || !when.date.trim() || !when.time.trim()
+            }
           />
         </Card>
 

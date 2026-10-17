@@ -14,10 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, ErrorText, Field, Muted, PersonRow, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import {
+  courseWhenAndWhere,
   formatStartsAt,
   parseLocalDateTime,
   toDateAndTime,
-  whenAndWhere,
 } from '../../lib/format-time';
 import { gatheringHref } from '../../lib/gathering-link';
 import { goingLine } from '../../lib/going';
@@ -53,7 +53,12 @@ function goBack() {
 export default function GatheringScreen() {
   const t = useTokens();
   // title/starts_at are display-only hints from the resolver — never data.
-  const params = useLocalSearchParams<{ id: string; title?: string; starts_at?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    title?: string;
+    course_name?: string;
+    starts_at?: string;
+  }>();
   const id = (params.id ?? '').trim();
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
   const [join, setJoin] = useState<'idle' | 'joining' | 'failed' | 'unavailable'>('idle');
@@ -103,7 +108,11 @@ export default function GatheringScreen() {
   }
 
   if (state.kind === 'join') {
-    const hint = [params.title ?? null, params.starts_at ? formatStartsAt(params.starts_at) : null]
+    const hint = [
+      params.title ?? null,
+      params.course_name ?? null,
+      params.starts_at ? formatStartsAt(params.starts_at) : null,
+    ]
       .filter(Boolean)
       .join(' · ');
     return (
@@ -132,7 +141,11 @@ export default function GatheringScreen() {
                     router.push({
                       pathname: '/profile',
                       params: {
-                        redirect: gatheringHref(id, { title: params.title, starts_at: params.starts_at }),
+                        redirect: gatheringHref(id, {
+                          title: params.title,
+                          course_name: params.course_name,
+                          starts_at: params.starts_at,
+                        }),
                       },
                     });
                     return;
@@ -161,6 +174,7 @@ interface GatheringPatch {
   title: string;
   starts_at: string;
   location: string | null;
+  course_name: string;
 }
 
 function GatheringDetail({
@@ -275,7 +289,7 @@ function GatheringDetail({
           ) : (
             <>
               <Title>{gathering.title}</Title>
-              <Muted>{whenAndWhere(gathering)}</Muted>
+              <Muted>{courseWhenAndWhere(gathering)}</Muted>
               <Muted>{goingLine(memberCount)}</Muted>
             </>
           )}
@@ -339,10 +353,12 @@ function EditFields({
   const [title, setTitle] = useState(gathering.title);
   const [when, setWhen] = useState(() => toDateAndTime(new Date(gathering.starts_at)));
   const [location, setLocation] = useState(gathering.location ?? '');
+  const [course, setCourse] = useState(gathering.course_name);
   const [error, setError] = useState<string | null>(null);
   return (
     <>
       <Field label="Title" value={title} onChangeText={setTitle} maxLength={120} />
+      <Field label="Course" value={course} onChangeText={setCourse} maxLength={80} />
       <Field
         label="Date"
         value={when.date}
@@ -361,7 +377,7 @@ function EditFields({
       {error ? <ErrorText>{error}</ErrorText> : null}
       <Button
         label={busy ? 'Saving…' : 'Save'}
-        disabled={busy || !title.trim()}
+        disabled={busy || !title.trim() || !course.trim()}
         onPress={() => {
           const startsAt = parseLocalDateTime(when.date, when.time);
           if (!startsAt) {
@@ -373,6 +389,7 @@ function EditFields({
             title: title.trim(),
             starts_at: startsAt,
             location: location.trim() === '' ? null : location.trim(),
+            course_name: course.trim(),
           });
         }}
       />

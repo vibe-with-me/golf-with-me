@@ -1,5 +1,6 @@
 export interface GatheringHints {
   title?: string;
+  course_name?: string;
   starts_at?: string;
 }
 
@@ -13,16 +14,27 @@ export interface GatheringHints {
  * the start time travels as a UTC instant, which has no '+'. Lossy is fine:
  * a hint is never data.
  */
-export function gatheringHref(id: string, hints: GatheringHints = {}): string {
-  const query: string[] = [];
-  if (hints.title) {
-    const title = hints.title
+/** A hint as it may travel twice-decoded: see gatheringHref. */
+function safeHint(value: string): string {
+  return (
+    value
       // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
       .replace(/[\\\u0000-\u001f#&+%?]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, 60);
+      .slice(0, 60)
+  );
+}
+
+export function gatheringHref(id: string, hints: GatheringHints = {}): string {
+  const query: string[] = [];
+  if (hints.title) {
+    const title = safeHint(hints.title);
     if (title) query.push(`title=${encodeURIComponent(title)}`);
+  }
+  if (hints.course_name) {
+    const course = safeHint(hints.course_name);
+    if (course) query.push(`course_name=${encodeURIComponent(course)}`);
   }
   if (hints.starts_at) {
     const ms = Date.parse(hints.starts_at);

@@ -181,7 +181,12 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
         }
         router.push({
           pathname: '/round/[id]',
-          params: { id: gathering.id, title: gathering.title, starts_at: gathering.starts_at },
+          params: {
+            id: gathering.id,
+            title: gathering.title,
+            course_name: gathering.course_name,
+            starts_at: gathering.starts_at,
+          },
         });
       }}
     />

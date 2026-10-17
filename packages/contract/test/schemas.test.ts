@@ -116,6 +116,7 @@ describe('ResolveOutputSchema', () => {
         title: 'Rooftop listening session',
         starts_at: '2026-10-09T18:00:00+00:00',
         location: null,
+        course_name: 'Riverside Muni',
       },
       profile: {
         id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
@@ -211,6 +212,7 @@ describe('gathering schemas', () => {
     title: 'Rooftop listening session',
     starts_at: '2026-10-09T18:00:00+00:00',
     location: 'The roof',
+    course_name: 'Riverside Muni',
     host_id: '9b2c8f43-1b1a-4f7e-9d3c-2a6c1e5b8d90',
     created_at: '2026-10-01T00:00:00Z',
   };
@@ -221,6 +223,7 @@ describe('gathering schemas', () => {
 
   it('the summary exposes only what a tap may learn', () => {
     expect(Object.keys(GatheringSummarySchema.shape).toSorted()).toEqual([
+      'course_name',
       'id',
       'location',
       'starts_at',
@@ -269,9 +272,35 @@ describe('gathering schemas', () => {
       title: '  Tee time  ',
       starts_at: gathering.starts_at,
       location: null,
+      course_name: '  Riverside Muni  ',
     });
-    expect(parsed).toEqual({ title: 'Tee time', starts_at: gathering.starts_at, location: null });
+    expect(parsed).toEqual({
+      title: 'Tee time',
+      starts_at: gathering.starts_at,
+      location: null,
+      course_name: 'Riverside Muni',
+    });
     expect(CreateGatheringInputSchema.parse({ ...parsed, location: '   ' }).location).toBeNull();
+  });
+
+  it('a create needs a course: not missing, not blank, at most 80 characters', () => {
+    const base = { title: 'Dawn nine', starts_at: gathering.starts_at };
+    expect(CreateGatheringInputSchema.safeParse(base).success).toBe(false);
+    for (const course_name of ['', '   ', 'x'.repeat(81)]) {
+      expect(CreateGatheringInputSchema.safeParse({ ...base, course_name }).success).toBe(false);
+    }
+    expect(CreateGatheringInputSchema.safeParse({ ...base, course_name: 'x'.repeat(80) }).success).toBe(
+      true,
+    );
+    // An edit may leave the course alone, but never blank it.
+    expect(UpdateGatheringInputSchema.safeParse({ id: gathering.id, title: 'Back nine' }).success).toBe(
+      true,
+    );
+    expect(UpdateGatheringInputSchema.safeParse({ id: gathering.id, course_name: ' ' }).success).toBe(
+      false,
+    );
+    // A row from before the column reads ''.
+    expect(GatheringSchema.safeParse({ ...gathering, course_name: '' }).success).toBe(true);
   });
 
   it('an emptied location clears it', () => {
@@ -285,6 +314,13 @@ describe('gathering schemas', () => {
     for (const bad of ['Tee\u202Etime', 'Tee\u200Btime', 'Tee\ttime', 'Tee\ntime', '\u2066Tee']) {
       expect(GatheringSchema.safeParse({ ...gathering, title: bad }).success).toBe(false);
       expect(GatheringSchema.safeParse({ ...gathering, location: bad }).success).toBe(false);
+      expect(GatheringSchema.safeParse({ ...gathering, course_name: bad }).success).toBe(false);
+      expect(
+        CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, course_name: bad }).success,
+      ).toBe(false);
+      expect(
+        UpdateGatheringInputSchema.safeParse({ id: gathering.id, course_name: bad }).success,
+      ).toBe(false);
       expect(CreateGatheringInputSchema.safeParse({ title: bad, starts_at }).success).toBe(false);
       expect(
         CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, location: bad }).success,
@@ -301,7 +337,10 @@ describe('gathering schemas', () => {
       [far, false],
       [near, true],
     ] as const) {
-      expect(CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at }).success).toBe(ok);
+      expect(
+        CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, course_name: 'Cedar Hills' })
+          .success,
+      ).toBe(ok);
     }
     expect(UpdateGatheringInputSchema.safeParse({ id: gathering.id, starts_at: far }).success).toBe(
       false,

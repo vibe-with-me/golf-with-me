@@ -15,6 +15,7 @@ export interface GatheringSummary {
   title: string;
   starts_at: string;
   location: string | null;
+  course_name: string;
 }
 
 /** The public card a resolved tag exposes. */

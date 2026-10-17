@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { tomorrowEvening, whenAndWhere } from '../lib/format-time.ts';
+import { courseWhenAndWhere, tomorrowEvening } from '../lib/format-time.ts';
 import { goingLine, withLine } from '../lib/going.ts';
 
 /**
@@ -56,6 +56,7 @@ function GatheringsPage() {
   const [title, setTitle] = useState('');
   const [startsAt, setStartsAt] = useState(tomorrowEvening);
   const [location, setLocation] = useState('');
+  const [course, setCourse] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,9 +90,11 @@ function GatheringsPage() {
       await api.app.gatherings.create({
         title: title.trim(),
         starts_at: new Date(startsAt).toISOString(),
+        course_name: course.trim(),
         location: location.trim() === '' ? null : location.trim(),
       });
       setTitle('');
+      setCourse('');
       setLocation('');
       setStartsAt(tomorrowEvening());
       // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
@@ -119,6 +122,17 @@ function GatheringsPage() {
           />
         </div>
         <div className="field">
+          <label htmlFor="course_name">Course</label>
+          <input
+            id="course_name"
+            required
+            maxLength={80}
+            placeholder="e.g. Riverside Muni"
+            value={course}
+            onChange={(e) => setCourse(e.target.value)}
+          />
+        </div>
+        <div className="field">
           <label htmlFor="starts_at">Tee time</label>
           <input
             id="starts_at"
@@ -143,7 +157,11 @@ function GatheringsPage() {
             {error}
           </p>
         ) : null}
-        <button className="btn" type="submit" disabled={busy || !title.trim() || !startsAt}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy || !title.trim() || !course.trim() || !startsAt}
+        >
           {busy ? 'Creating…' : 'Create round'}
         </button>
       </form>
@@ -211,7 +229,7 @@ function GatheringRow({
       : gathering.is_member
         ? 'Playing'
         : null;
-  const line = [mark, whenAndWhere(gathering), goingLine(gathering.member_count)]
+  const line = [mark, courseWhenAndWhere(gathering), goingLine(gathering.member_count)]
     .filter(Boolean)
     .join(' · ');
   const names = withLine(gathering.members, viewerId);

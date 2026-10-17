@@ -157,3 +157,47 @@ nothing here was fixed in the starter from inside this fork.
 15. **The Playwright smoke needs the service-role key too**, the same as
     snag 2: `bunx playwright test` finds no tests until
     `SUPABASE_SERVICE_ROLE_KEY` is exported. §1's checkpoint doesn't say so.
+
+16. **§2 never says which `create_gathering` body to copy, and the old one
+    drops the abuse limits.** For `resolve_tag` the skill says to copy the
+    *newest* definition and gives the grep. For `create_gathering` it only
+    says "restating every attribute of the original". The newest body is
+    in `20261016120000_abuse_limits_and_erasure.sql` (per-host ledger, 5 an
+    hour, 20 upcoming), so copying the one in the gatherings migration
+    silently removes both limits. The `gathering limits` tests would catch
+    it, but only because they now pass `p_course_name`. *Did instead:*
+    copied the newest body. Suggest: the same `grep -lE … | sort | tail -1`
+    line for `create_gathering`.
+
+17. **The worked example skips the plain-text rule.** Since
+    `20261015140100_link_and_text_validation.sql`, every gathering text
+    column has a `private.is_plain_text` CHECK and the contract has a
+    matching `.refine(plain, PLAIN_TEXT_MESSAGE)`. §2's example column and
+    schema have neither, so a forker's new field takes bidi and invisible
+    characters that `title` refuses. *Did instead:* added
+    `gatherings_course_name_plain` and the refine, plus the spoof cases in
+    `plain-text.test.ts` and `schemas.test.ts`.
+
+18. **§2's caller map and anon-test note are stale.** It says core's
+    callers are "the two db test files". There are five
+    (`plain-text`, `blocks`, `links`, `gatherings` ×5, `account` ×2), and
+    every one fails with PGRST202 until it passes the new argument. It also
+    says the anon assertion `toContain('authentication required')` must
+    become `code 42501`; core already asserts
+    `'permission denied for function create_gathering'`. *Did instead:* ran
+    the skill's own caller grep and followed it, not the prose.
+
+19. **Required on create still allows a blank course over PostgREST.** The
+    example keeps `default ''` and relies on the contract's `min(1)`, but
+    the RPC is callable directly with the publishable key, the way the
+    abuse-limit tests call it. *Did instead:* `create_gathering` raises
+    22023 on a blank course, with a test (blank → 22023, 81 chars → 23514,
+    80 → ok). Suggest: the worked example does the same.
+
+20. **`db:types` rewrites the whole generated file.** CLI 2.120.0 emits
+    `packages/db/src/types/supabase.ts` unformatted (one line per object),
+    so a one-column change is an 826-line diff, and every later starter
+    change to that file will conflict in a fork. The skill calls it
+    harmless, which is true for the build but not for staying current.
+    Suggest: commit the file in the generator's own format upstream, or
+    add a formatter step to `db:types`.

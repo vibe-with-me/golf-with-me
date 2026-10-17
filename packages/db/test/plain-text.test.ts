@@ -53,12 +53,13 @@ describe('plain text at the database boundary', () => {
     expect(nameError?.code).toBe('23514');
   });
 
-  it('a gathering title or location with a spoofing character is refused, on create and edit', async () => {
+  it('a gathering title, location or course with a spoofing character is refused, on create and edit', async () => {
     const alice = await createTestUser('Alice');
     for (const value of SPOOFS) {
       for (const args of [
-        { p_title: value, p_starts_at: tomorrow() },
-        { p_title: 'Tee time', p_starts_at: tomorrow(), p_location: value },
+        { p_title: value, p_starts_at: tomorrow(), p_course_name: 'Riverside Muni' },
+        { p_title: 'Tee time', p_starts_at: tomorrow(), p_course_name: 'Riverside Muni', p_location: value },
+        { p_title: 'Tee time', p_starts_at: tomorrow(), p_course_name: value },
       ]) {
         const { error } = await alice.client.rpc('create_gathering', args);
         expect(error?.code).toBe('23514');
@@ -67,12 +68,13 @@ describe('plain text at the database boundary', () => {
 
     const { data, error } = await alice.client.rpc('create_gathering', {
       p_title: 'Tee time',
+      p_course_name: 'Riverside Muni',
       p_starts_at: tomorrow(),
     });
     expect(error).toBeNull();
     const id = (data as { id: string }).id;
     for (const value of SPOOFS) {
-      for (const patch of [{ title: value }, { location: value }]) {
+      for (const patch of [{ title: value }, { location: value }, { course_name: value }]) {
         const { error: editError } = await alice.client
           .from('gatherings')
           .update(patch)

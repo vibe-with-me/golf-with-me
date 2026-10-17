@@ -48,6 +48,7 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await ada.goto('/rounds');
   const title = `Smoke Rooftop ${stamp}`;
   await ada.getByLabel('Title').fill(title);
+  await ada.getByLabel('Course', { exact: true }).fill('Riverside Muni');
   await ada.getByLabel('Meet at (optional)').fill('The first tee');
   await ada.getByRole('button', { name: 'Create round' }).click();
   const adaHappening = ada.getByRole('region', { name: 'Tee sheet' });

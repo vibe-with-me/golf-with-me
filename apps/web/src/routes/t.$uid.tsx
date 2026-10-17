@@ -151,7 +151,7 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
       // Display-only hints; the returnTo guard refuses control characters and
       // backslashes, so they must not enter the URL in the first place.
       // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
-      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
+      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), course_name: gathering.course_name.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
     >
       {isMember ? 'Open round' : 'Join this round'}
     </Link>
