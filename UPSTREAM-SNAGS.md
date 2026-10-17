@@ -345,3 +345,29 @@ upstream only by the fork's columns. What still fell short:
     `apps/mobile/.env` doesn't have it after the merge. Suggest: staying-current
     step 4 adds `diff <(grep -oE '^[A-Z_]+=' apps/mobile/.env.example | sort) <(grep -oE '^[A-Z_]+=' apps/mobile/.env | sort)`
     (and the same for web).
+
+36. **extend-profile's completion gate and #76's terms gate can loop.** The
+    starter's web shell checks only `!profile`, but extend-profile §6 widens
+    it to `isProfileComplete(profile)` with a `/profile` exemption, and the
+    terms gate redirects everywhere except `/terms`. A profile that is
+    incomplete *and* on stale terms bounces `/profile` ↔ `/terms` forever.
+    Can't happen in this fork today (only the name is required, and the
+    database enforces it), but it can in any fork with a required field.
+    Found by CodeRabbit on PR #9. *Did instead:* the completion gate also
+    exempts `/terms`. Suggest: the same line in extend-profile §6's gate
+    snippet, and a note in the terms work.
+
+37. **Five starter findings from CodeRabbit on the sync PR**, all in files
+    that arrived unchanged from upstream, so not fixed in the fork:
+    - `extend-profile` SKILL.md ~L1209: the card-line example
+      `[handicap, home_course].filter(Boolean)` drops a handicap of 0.
+    - `apps/web/src/routes/t.$uid.tsx` (`CardReport`): a signed-in viewer
+      without a profile can submit a report, `report_user` raises P0001,
+      and the UI only says "That didn't go through". Route them to
+      `/profile` first, as `ConnectAction` does.
+    - `docs/nfc-tags.md` ~L97: the heading implies the scanner accepts only
+      your own codes; it accepts any code from the app's origin.
+    - `docs/staying-current.md` ~L137: the local `--no-ff` fallback needs
+      `git switch main` first, or the merge is a no-op on `starter-sync`.
+    - `packages/db/test/reports.test.ts` ~L38: the post-report bio edit's
+      result is never asserted, so the snapshot test can pass vacuously.

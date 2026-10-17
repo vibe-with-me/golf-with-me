@@ -58,7 +58,9 @@ function ShellRoute() {
   const { profile } = Route.useLoaderData();
   const { pathname, href } = useLocation();
   const navigating = useRouterState({ select: (s) => s.isLoading });
-  if (!isProfileComplete(profile) && pathname !== '/profile') {
+  // /terms is exempt too: the terms gate below sends a stale profile there,
+  // and without the exemption an incomplete one would bounce between the two.
+  if (!isProfileComplete(profile) && pathname !== '/profile' && pathname !== '/terms') {
     if (navigating) return <ShellPending />;
     return (
       <>
