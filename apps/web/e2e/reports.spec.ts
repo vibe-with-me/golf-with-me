@@ -73,7 +73,7 @@ test('sign-up needs the terms agreement; a new version asks again before the app
   );
   await page.getByRole('checkbox', { name: /I agree to/ }).check();
   await save.click();
-  await page.waitForURL('**/gatherings');
+  await page.waitForURL('**/rounds');
 
   // The fork bumps TERMS_VERSION: this profile now holds an older one.
   const { data: profile } = await admin
@@ -91,11 +91,11 @@ test('sign-up needs the terms agreement; a new version asks again before the app
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
 
   // Every other tab sends them back here.
-  await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Events' }).click();
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Rounds' }).click();
   await expect(page.getByRole('heading', { name: 'Updated terms' })).toBeVisible();
 
   await page.getByRole('button', { name: 'I agree' }).click();
-  await page.waitForURL(/\/(connections|gatherings)$/);
+  await page.waitForURL(/\/(connections|rounds)$/);
   const { data: after } = await admin.from('profiles').select('terms_version').eq('id', profile!.id).single();
   expect(after?.terms_version).toBe(TERMS_VERSION);
 });

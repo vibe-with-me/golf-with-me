@@ -16,7 +16,7 @@ import { api } from '../lib/api.ts';
  */
 export const Route = createFileRoute('/_app/share')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Your code — withme' }] }),
+  head: () => ({ meta: [{ title: 'Your code — golfwithme' }] }),
   // A code opens a card, so it needs the card: the _app layout already sends
   // a session without a profile to create one, carrying this URL back.
   loader: () => asSignedInAccount(() => api.app.shareCode.get()),

@@ -4,7 +4,7 @@ import { declinePushOffer, turnPushOff, turnPushOn, usePushSetting } from '../li
 import { fonts, space, useTokens } from '../lib/tokens';
 import { Button, Card, ErrorText, Muted, SectionHeader, Title } from './ui';
 
-const WHEN = 'when someone wants to connect, accepts your request, or joins your gathering. Nothing else.';
+const WHEN = 'when someone wants to connect, accepts your request, or joins your round. Nothing else.';
 const FAILED = "That didn't go through. Try again.";
 
 /**

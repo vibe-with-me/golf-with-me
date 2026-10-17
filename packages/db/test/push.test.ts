@@ -111,6 +111,7 @@ async function createGathering(host: TestUser, title: string): Promise<string> {
   const { data, error } = await host.client.rpc('create_gathering', {
     p_title: title,
     p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+    p_course_name: 'Riverside Muni',
     p_location: 'The roof',
   });
   expect(error).toBeNull();

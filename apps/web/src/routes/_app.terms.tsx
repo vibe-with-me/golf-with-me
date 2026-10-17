@@ -15,7 +15,7 @@ import { safeReturnTo } from '../lib/auth-guard.ts';
  */
 export const Route = createFileRoute('/_app/terms')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Updated terms — withme' }] }),
+  head: () => ({ meta: [{ title: 'Updated terms — golfwithme' }] }),
   validateSearch: (search): { returnTo?: string } => {
     const returnTo = safeReturnTo(search.returnTo);
     return returnTo ? { returnTo } : {};
@@ -39,7 +39,7 @@ function TermsPage() {
           <p className="hint">
             You agreed to <TermsSummary />
           </p>
-          <Link className="btn" to="/gatherings">
+          <Link className="btn" to="/rounds">
             Continue
           </Link>
         </div>
@@ -54,7 +54,7 @@ function TermsPage() {
       await api.app.profile.acceptTerms({ version: TERMS_VERSION });
       // Wait for the shell's profile to re-fetch, so its gate sees the new version.
       await router.invalidate({ sync: true });
-      navigate({ href: returnTo ?? '/gatherings', replace: true });
+      navigate({ href: returnTo ?? '/rounds', replace: true });
     } catch {
       setFailed(true);
       setBusy(false);

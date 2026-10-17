@@ -69,7 +69,7 @@ async function registerThisDevice(): Promise<void> {
 export async function turnPushOn(): Promise<PushSetting> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Requests and gatherings',
+      name: 'Requests and rounds',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
