@@ -56,18 +56,18 @@
         }
       ]
     ],
-    "owner": "vibe-with-me",
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "cf56d2f1-eaec-406b-be9c-972519a6be84"
+        "projectId": "6a004be3-f3b4-4ec5-be7d-ff58a61fc77a"
       }
     },
+    "owner": "vibe-with-me",
     "updates": {
-      "url": "https://u.expo.dev/cf56d2f1-eaec-406b-be9c-972519a6be84"
+      "url": "https://u.expo.dev/6a004be3-f3b4-4ec5-be7d-ff58a61fc77a"
     }
   }
 }

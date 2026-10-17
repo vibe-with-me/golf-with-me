@@ -120,3 +120,18 @@ nothing here was fixed in the starter from inside this fork.
     and `social-preview.svg` ships as `<text>`. *Did instead:* outlined
     the Caveat "g" and the social-preview wordmark to paths (opentype.js on
     the `@fontsource/caveat` woff). Suggest: one line in step 8.
+
+12. **Step 5's `eas init` lands on the wrong account when the login has
+    more than one.** Step 5 says to delete `expo.owner` and run `eas init`
+    "logged in as the fork owner". An Expo login that owns a personal
+    account and an org gets the personal one: `eas init` (non-interactive)
+    created `@expovibes/golfwithme` instead of `@vibe-with-me/golfwithme`.
+    It also wrote a duplicated `android.permissions: [NFC, NFC]` block into
+    `app.json`, and `update:configure` added `channel`s to `eas.json`,
+    neither of which the skill mentions. *Did instead:* set `expo.owner` to
+    the org, deleted only `extra.eas.projectId` and `updates.url`, re-ran
+    `eas init` (it created `@vibe-with-me/golfwithme`), removed the
+    duplicated permissions, and kept the channels. The stray
+    `@expovibes/golfwithme` project is left for the owner to delete.
+    Suggest: step 5 sets `owner` to the fork's Expo account instead of
+    deleting it.
