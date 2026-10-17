@@ -329,7 +329,9 @@ type-level).
   own `if` around it: `shellGate` (contract, `schemas/terms.ts`) orders
   the profile gate before the terms gate so an incomplete profile on old
   terms reaches `/terms`, then `/profile`, instead of bouncing between
-  them. Keep the redirect in the component: the comment above
+  them (its tests in `packages/contract/test/reports-terms.test.ts`
+  already cover a stricter completion rule). Keep the redirect in the
+  component: the comment above
   `ShellRoute` explains why a `throw redirect` from the loader blanks the
   page. Make that comment's opening line say "without a complete profile
   (`isProfileComplete`)" and "create or finish one".
@@ -369,8 +371,12 @@ type-level).
   line, `return profile.affiliation;` (drop the `void profile;`). Every
   list of people already prints `cardLine(profile)` under the name (the
   Requests, Connections and Blocked rows, a gathering's member list). A
-  fork with several card fields joins them here, once
-  (`[a, b].filter(Boolean).join(' · ')`).
+  fork with several card fields joins them here, once, formatting each
+  and dropping only the empty ones:
+  `[p.handicap === null ? null : formatHandicap(p.handicap), p.home_course].filter((v) => v !== null && v !== '').join(' · ')`
+  (`formatHandicap` from variants.md, "A typed field"). Not
+  `.filter(Boolean)`: it drops a handicap of `0`. Return `null` when the
+  join is empty, so the row prints no blank line.
 - `apps/web/src/routes/_app.connections.tsx`, connections tier only: the
   local `PersonRow` gains an optional `detail` line (reference.md → §6 Web
   `PersonRow`), and only the Connections segment passes
