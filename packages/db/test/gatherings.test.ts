@@ -562,6 +562,7 @@ describe('gathering limits', () => {
       Array.from({ length: n }, (_, i) => ({
         host_id: alice.id,
         title: `Seeded ${i}`,
+        course_name: 'Riverside Muni',
         starts_at: startsAt(i),
       }));
     // Seeded with the service role, around the hourly limit. 19 upcoming, 5 past.
@@ -655,7 +656,7 @@ describe('the course a round is played on', () => {
     expect((data as { course_name: string }).course_name).toBe('x'.repeat(80));
   });
 
-  it('only the host edits the course, and never past 80 characters', async () => {
+  it('only the host edits the course, never blank and never past 80 characters', async () => {
     const alice = await createTestUser('Alice');
     const bob = await createTestUser('Bob');
     const id = await createGathering(alice.client);
@@ -667,7 +668,21 @@ describe('the course a round is played on', () => {
     expect(tooLong.error?.code).toBe('23514');
 
     // Bob is not the host: RLS admits no row, so nothing changes.
-    await bob.client.from('gatherings').update({ course_name: 'Not his' }).eq('id', id);
+    const notHis = await bob.client
+      .from('gatherings')
+      .update({ course_name: 'Not his' })
+      .eq('id', id)
+      .select('course_name');
+    expect(notHis.error).toBeNull();
+    expect(notHis.data).toEqual([]);
+    const kept = await admin.from('gatherings').select('course_name').eq('id', id).single();
+    expect(kept.data?.course_name).toBe('Riverside Muni');
+
+    // Nor can the host blank it straight through PostgREST.
+    for (const course_name of ['', '   ']) {
+      const blanked = await alice.client.from('gatherings').update({ course_name }).eq('id', id);
+      expect(blanked.error?.message).toContain('gatherings_course_name_present');
+    }
     const moved = await alice.client
       .from('gatherings')
       .update({ course_name: 'Cedar Hills' })
@@ -693,6 +708,7 @@ describe('the feed, a page at a time', () => {
         [tie, tie, tie, tie, tie, after, after].map((starts_at, i) => ({
           host_id: alice.id,
           title: `Paged ${i}`,
+          course_name: 'Riverside Muni',
           starts_at,
         })),
       )

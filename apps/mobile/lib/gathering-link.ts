@@ -4,6 +4,18 @@ export interface GatheringHints {
   starts_at?: string;
 }
 
+/** A hint as it may travel twice-decoded: see gatheringHref. */
+function safeHint(value: string): string {
+  const cleaned = value
+    // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
+    .replace(/[\\\u0000-\u001f#&+%?]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // By code point: a UTF-16 slice can split an emoji, and the lone surrogate
+  // left behind makes encodeURIComponent throw.
+  return Array.from(cleaned).slice(0, 60).join('');
+}
+
 /**
  * The detail screen's href as a string, carrying the resolver's display-only
  * hints. It is used where the href travels as a redirect (through login, or
@@ -14,18 +26,6 @@ export interface GatheringHints {
  * the start time travels as a UTC instant, which has no '+'. Lossy is fine:
  * a hint is never data.
  */
-/** A hint as it may travel twice-decoded: see gatheringHref. */
-function safeHint(value: string): string {
-  return (
-    value
-      // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
-      .replace(/[\\\u0000-\u001f#&+%?]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 60)
-  );
-}
-
 export function gatheringHref(id: string, hints: GatheringHints = {}): string {
   const query: string[] = [];
   if (hints.title) {

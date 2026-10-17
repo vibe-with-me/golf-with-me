@@ -16,6 +16,12 @@ alter table public.gatherings
     constraint gatherings_course_name_length check (char_length(course_name) <= 80)
     constraint gatherings_course_name_plain check (private.is_plain_text(course_name));
 
+-- A round always names its course, on create and on every host edit, even
+-- straight through PostgREST. NOT VALID: rows that predate the column keep
+-- '' until their host edits them (the edit form asks for a course).
+alter table public.gatherings
+  add constraint gatherings_course_name_present check (trim(course_name) <> '') not valid;
+
 -- ======================================================= create_gathering ==
 drop function public.create_gathering(text, timestamptz, text);
 
