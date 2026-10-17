@@ -277,3 +277,14 @@ left `supabase.ts` differing from upstream only by the fork's columns.
     `tokens.ts`; the starter's lands elsewhere in the file without a
     conflict, so the file briefly has two (`tsc` catches it). Minor, and
     only for forks that predate the fix.
+
+30. **A sync PR must not be squash-merged, and the doc doesn't say so.**
+    staying-current says "merge it through a PR so CI runs" but not *how*.
+    A fork that squash-merges every PR (as this one does, and as the
+    starter itself does) loses the merge commit's upstream parent: the
+    starter's commits never become ancestors of `main`, so the next sync
+    finds the old merge base and re-raises every conflict already resolved.
+    *Did instead:* asked the owner to merge the sync PR with a merge commit
+    (enable "Allow merge commits" for it, or merge locally and push).
+    Suggest: a line in step 6 ("merge, don't squash, the sync PR; check
+    with `git merge-base --is-ancestor upstream/main main` afterwards").
