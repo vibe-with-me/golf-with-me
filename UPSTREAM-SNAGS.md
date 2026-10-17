@@ -388,6 +388,11 @@ all predictable. Two notes:
     link should use. *Did instead:* left the starter's behavior and raised
     it with the owner. Suggest: a line in customize-gathering §2 ("if your
     new field is the place, point `mapsSearchUrl` at it, or at both").
+    Related (CodeRabbit on PR #10): the mobile row's comment assumes "the
+    status and date never fill both lines", but a fork that adds a field to
+    the line's head (golf's 80-character course) can push the Maps link
+    past `numberOfLines={2}`. The row still opens the detail, which has the
+    link, and the accessibility action remains.
 
 39. **Step 4b's sweep is mostly identifiers.** On this merge it printed
     ~40 lines, every one an internal name (`GatheringsPage`,
@@ -396,3 +401,12 @@ all predictable. Two notes:
     split it in two, a copy sweep over string literals and JSX text
     (`grep -nE "['\">][^'\"<>]*(withme|[Gg]athering|Events)"`) and a path
     sweep (`'/gatherings`, `/gathering/`).
+
+40. **Eight CodeRabbit findings on starter files in the sync PR** (#10),
+    none fixed in the fork: extend-profile SKILL.md ~L352 (invalidate the
+    web router after the profile mutation), extend-profile `variants.md`
+    ~L16 (contradictory card-only contract instructions), go-live
+    `reference.md` ~L18 (a security note), go-live SKILL.md ~L15 (a
+    checkpoint for Redeploys) and ~L358 (the Expo Go restriction is
+    Android-only), CONTRIBUTING.md ~L138, local-development.md ~L99, and
+    staying-current.md ~L136 (split the step 4b sweep, the same as 39).
