@@ -300,3 +300,48 @@ left `supabase.ts` differing from upstream only by the fork's columns.
     from Requests, Connections, Blocked and Who's playing; a Playwright
     check on the Connections row. Suggest: make it the default ("the card
     tier rides every card, so every row of people shows it"), not optional.
+
+## Second starter sync: #72–#77, #79 (and the fixes for 1–31)
+
+Followed docs/staying-current.md from the new upstream. 19 conflicts, all in
+places the conflict table predicts; the cardLine seam replaced this fork's
+own golfLine / PersonRow wiring cleanly, and `db:types` now differs from
+upstream only by the fork's columns. What still fell short:
+
+32. **A ninth color token arrived with no brand path.** #76 adds
+    `--color-scrim` (web, behind the report dialog) in the starter's brown
+    ink. `design-direction` still says "eight color tokens, no more",
+    `contrast.ts` requires exactly eight, and make-it-yours step 1 never
+    names it, so a rebranded fork keeps a starter-colored scrim unless it
+    reads the merge. *Did instead:* derived it from golf's ink
+    (`rgba(38, 38, 42, 0.4)` light, `rgba(0, 0, 0, 0.6)` dark). Suggest:
+    add it to make-it-yours step 1 (derived from `--color-ink`) and update
+    the eight-token wording.
+
+33. **Push notifications open a route a renamed fork doesn't have.** #75
+    builds the deep link in SQL as `'/gathering/' || id`, and
+    `PushPathSchema` admits only `/gathering/<uuid>`. After
+    customize-gathering's URL step the mobile screen is `/round/[id]`, so a
+    "someone joined your round" push opens nothing. It merges without a
+    conflict and no test covers it. *Did instead:* the mobile handler in
+    `lib/push.ts` maps `/gathering/` to `/round/`, keeping the database's
+    path as an internal identifier. Suggest: name `lib/push.ts` in
+    customize-gathering's URL step (or route through one constant).
+
+34. **New starter code keeps arriving in the starter's nouns, and only tests
+    find it.** This merge: `push.test.ts` calls `create_gathering` without
+    the fork's `p_course_name` (typecheck catches it); `_app.terms.tsx`
+    navigates to `/gatherings` (web typecheck catches it; the same in mobile
+    would not); `reports.spec.ts` waits for `/gatherings` and clicks
+    "Events" (only Playwright catches it, after a 90s timeout); the new page
+    titles say "— withme" and the push copy says "gathering" (nothing
+    catches them). Suggest: staying-current step 5 says "after the merge,
+    re-run make-it-yours' brand sweep and customize-gathering's path, noun
+    and create-caller greps over the incoming files" with the exact
+    commands.
+
+35. **New `.env.example` keys don't reach a fork's `.env`.** #72 adds
+    `EXPO_PUBLIC_WEB_URL` (what a share code encodes); a fork's existing
+    `apps/mobile/.env` doesn't have it after the merge. Suggest: staying-current
+    step 4 adds `diff <(grep -oE '^[A-Z_]+=' apps/mobile/.env.example | sort) <(grep -oE '^[A-Z_]+=' apps/mobile/.env | sort)`
+    (and the same for web).
