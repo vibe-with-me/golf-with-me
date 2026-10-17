@@ -245,3 +245,12 @@ nothing here was fixed in the starter from inside this fork.
     characters at both layers, the skill's card line doesn't. *Did
     instead:* `.refine(isPlainText)` in the contract and
     `profiles_home_course_plain` in SQL, with a test.
+
+27. **Two mobile behaviours CodeRabbit flags as Major in every fork.** The
+    mobile completion gate checks once per tabs mount (by the skill's
+    design, so an incomplete user can tab away from Profile), and the
+    starter's mobile Profile screen loads once on mount, so a value changed
+    on another client is overwritten by the next save from a screen left
+    open. Neither is new in this fork; both were declined on PR #5 with
+    that reason. Suggest: decide upstream (re-check the gate on focus;
+    reload Profile with `useFocusEffect`) so forks stop re-litigating them.
