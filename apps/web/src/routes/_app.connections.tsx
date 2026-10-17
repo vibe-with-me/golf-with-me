@@ -1,12 +1,14 @@
-import { golfLine, type ProfileLink } from '@withme/contract';
+import type { ProfileLink, PublicProfile } from '@withme/contract';
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { LinkList } from '../components/Links.tsx';
 import { ListLadder } from '../components/ListStates.tsx';
-import { Avatar, type CardProfile } from '../components/ProfileCard.tsx';
+import { Avatar } from '../components/ProfileCard.tsx';
+import { ReportButton, reportThanks } from '../components/ReportDialog.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
+import { cardLine } from '../lib/card-line.ts';
 import { settled } from '../lib/loaded.ts';
 
 type Tab = 'requests' | 'blocked';
@@ -46,6 +48,7 @@ function ConnectionsPage() {
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const busy = (id: string) => busyIds.has(id);
   // Your own inbox, counted for you alone: the one number on this page.
   const requestCount = pending.ok ? pending.data.length : 0;
@@ -71,6 +74,14 @@ function ConnectionsPage() {
     }
   }
 
+  // Said at page level: a report that also blocked removes its row.
+  function reported(name: string) {
+    return (blocked: boolean) => {
+      setNotice(reportThanks(name, blocked));
+      if (blocked) void router.invalidate();
+    };
+  }
+
   async function retry() {
     setRetrying(true);
     try {
@@ -93,6 +104,10 @@ function ConnectionsPage() {
           {actionError}
         </p>
       ) : null}
+      {/* Always mounted: a live region created with its message is not announced. */}
+      <p className="hint" role="status">
+        {notice}
+      </p>
 
       {tab === 'requests' ? (
         <ListLadder
@@ -122,6 +137,11 @@ function ConnectionsPage() {
                 >
                   Decline
                 </button>
+                <ReportButton
+                  profileId={request.requester.id}
+                  name={request.requester.display_name}
+                  onDone={reported(request.requester.display_name)}
+                />
               </PersonRow>
             ))
           }
@@ -147,6 +167,12 @@ function ConnectionsPage() {
                 >
                   Unblock
                 </button>
+                <ReportButton
+                  profileId={block.user.id}
+                  name={block.user.display_name}
+                  canBlock={false}
+                  onDone={reported(block.user.display_name)}
+                />
               </PersonRow>
             ))
           }
@@ -189,6 +215,11 @@ function ConnectionsPage() {
                 >
                   Block
                 </button>
+                <ReportButton
+                  profileId={connection.profile.id}
+                  name={connection.profile.display_name}
+                  onDone={reported(connection.profile.display_name)}
+                />
               </PersonRow>
             ))
           }
@@ -247,20 +278,20 @@ function PersonRow({
   links,
   children,
 }: {
-  profile: CardProfile;
+  profile: PublicProfile;
   sub?: string | null;
   /** Connections only: the one list that carries them. */
   links?: ProfileLink[];
   children: ReactNode;
 }) {
-  // The card tier rides every card, so every row of people shows it.
-  const golf = golfLine(profile);
+  // The card tier, on every row: whatever a tap shows, a list shows too.
+  const line = cardLine(profile);
   return (
     <div className="row">
       <Avatar profile={profile} size="row" />
       <div className="row-body">
         <span className="name">{profile.display_name}</span>
-        {golf ? <span className="sub">{golf}</span> : null}
+        {line ? <span className="sub">{line}</span> : null}
         {sub ? <span className="sub">{sub}</span> : null}
       </div>
       <div className="row-actions">{children}</div>

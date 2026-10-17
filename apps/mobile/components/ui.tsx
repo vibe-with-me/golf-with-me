@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   AccessibilityInfo,
@@ -93,6 +94,7 @@ export function Button({
   ref,
   accessibilityLabel,
   expanded,
+  icon,
 }: {
   label: string;
   onPress: () => void;
@@ -107,19 +109,23 @@ export function Button({
   accessibilityLabel?: string;
   /** For a button that shows and hides something below it. */
   expanded?: boolean;
+  /** Drawn before the label, in the label's colour. Decorative: the label names the button. */
+  icon?: ReactNode;
 }) {
   const t = useTokens();
   return (
     <Pressable
       ref={ref}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      // An icon font's glyph would join the name iOS reads from the children.
+      accessibilityLabel={accessibilityLabel ?? (icon != null ? label : undefined)}
       accessibilityState={expanded === undefined ? undefined : { expanded }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
         inline && styles.buttonInline,
+        icon != null && styles.buttonWithIcon,
         // Rank by solidity: default is solid ink, connect is the accent, quiet is text.
         kind === 'connect' && { backgroundColor: t.accent },
         kind === 'default' && { backgroundColor: t.ink },
@@ -129,6 +135,7 @@ export function Button({
         disabled && { opacity: 0.45 },
       ]}
     >
+      {icon}
       <Text
         style={[
           styles.buttonLabel,
@@ -139,6 +146,41 @@ export function Button({
       >
         {label}
       </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * A checkbox or a radio with its label: the whole line is the hit area.
+ * `label` may be a node (the terms line carries links); then pass
+ * `accessibilityLabel` with its words.
+ */
+export function Choice({
+  label,
+  checked,
+  onPress,
+  kind = 'checkbox',
+  accessibilityLabel,
+}: {
+  label: ReactNode;
+  checked: boolean;
+  onPress: () => void;
+  kind?: 'checkbox' | 'radio';
+  accessibilityLabel?: string;
+}) {
+  const t = useTokens();
+  const name =
+    kind === 'radio' ? (checked ? 'check-circle' : 'circle') : checked ? 'check-square' : 'square';
+  return (
+    <Pressable
+      accessibilityRole={kind}
+      accessibilityState={{ checked }}
+      accessibilityLabel={accessibilityLabel ?? (typeof label === 'string' ? label : undefined)}
+      onPress={onPress}
+      style={({ pressed }) => [styles.choice, pressed && { opacity: 0.85 }]}
+    >
+      <Feather name={name} size={22} color={checked ? t.ink : t.inkMuted} />
+      <Text style={[styles.choiceLabel, { color: t.ink }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -289,16 +331,16 @@ function LadderErrorText({ children }: { children: ReactNode }) {
 export function PersonRow({
   name,
   path,
+  line,
   sub,
-  detail,
   extra,
   children,
 }: {
   name: string;
   path: string | null;
+  /** The card tier under the name: `cardLine(profile)` from lib/card-line.ts, on every list. */
+  line?: string | null;
   sub?: string | null;
-  /** A line between the name and sub: the card tier (golfLine), on every row of people. */
-  detail?: string | null;
   /** Under the name and sub, full width: a connection's link chips. */
   extra?: ReactNode;
   children?: ReactNode;
@@ -312,9 +354,9 @@ export function PersonRow({
           <Text numberOfLines={2} style={[styles.personName, { color: t.ink }]}>
             {name}
           </Text>
-          {detail ? (
+          {line ? (
             <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
-              {detail}
+              {line}
             </Text>
           ) : null}
           {sub ? (
@@ -436,6 +478,10 @@ const styles = StyleSheet.create({
     minHeight: TAP_TARGET,
     paddingHorizontal: space.s3,
   },
+  buttonWithIcon: {
+    flexDirection: 'row',
+    gap: space.s2,
+  },
   buttonLabel: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
@@ -452,6 +498,20 @@ const styles = StyleSheet.create({
   field: {
     width: '100%',
     gap: 6,
+  },
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.s3,
+    minHeight: TAP_TARGET,
+    paddingVertical: space.s2,
+    width: '100%',
+  },
+  choiceLabel: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 21,
   },
   fieldLabel: {
     fontFamily: fonts.bodySemiBold,

@@ -78,6 +78,10 @@ key only, never stored. Edge limits are advisory: a direct
 `/rest/v1/rpc/...` call with the publishable key skips the Worker, so a
 limit that must hold for everyone is a ledger inside the RPC
 (`claim_tag`, `create_gathering`, `send_connect_request`).
+A side effect that must happen for every caller, such as a push
+notification, is a trigger in the database, not a step in a handler
+(`20261017120000_push_notifications.sql`): a handler never sees the
+calls that go straight to PostgREST.
 A handler that writes to Storage does it through `context.db` too (the
 caller's JWT; the Storage helpers are in
 `packages/db/src/queries/avatars.ts`) and checks uploaded bytes itself
@@ -94,7 +98,10 @@ failed loader renders a card inside the shell, never a second `<main>`.
 A new top-level section registers exactly one entry in `navItems`
 (`src/components/AppShell.tsx`, widening its `to` union); that is the
 whole tab. Config-gated tabs follow the Merch entry: present only when
-the env value is set. Detail pages un-nest with the underscore
+the env value is set. The round Your code (QR) button in the middle of
+the bar is not a tab and is not in `navItems`: `<ShareButton />` in the
+same file places it between the two halves, and removing that one line
+removes it from the web shell. Detail pages un-nest with the underscore
 (`_app.rounds_.$id.tsx` is the real one) so a list page never becomes
 a layout.
 Public and focused flows (`login.tsx`, `claim.$uid.tsx`) stay outside
@@ -118,9 +125,12 @@ the page. In-page segments are links with a search param
 the surface is shared (`t/[uid].tsx` ↔ `t.$uid.tsx`; `scan.tsx` is
 platform-specific). Signed-in top-level screens live in
 `apps/mobile/app/(tabs)/` and register one `Tabs.Screen` in
-`(tabs)/_layout.tsx` (Feather icon, title); detail and focused screens
-stay in `app/` as stack screens so they push over the bar
-(`round/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
+`(tabs)/_layout.tsx` (Feather icon, title); the bar itself is
+`components/TabBar.tsx`, which draws those entries and raises the Your
+code button out of the middle (not a tab; removing its `Pressable`
+removes it). Detail and focused screens stay in `app/` as stack screens
+so they push over the bar (`round/[id].tsx`, `claim/[uid].tsx`,
+`scan.tsx`, `share.tsx`). A config-gated
 tab follows the Merch screen: `href: null` when its env value is unset,
 so it is both hidden and unreachable. Screens compose the card primitives from `components/ui.tsx`
 (`Card`, `Title`, `Muted`, `Button` (`inline` inside rows), `Avatar`,
@@ -139,8 +149,10 @@ production build (`vite build && vite preview`): `handshake.spec.ts` (two
 strangers tap one tag and end up connected), `shell.spec.ts` (the
 signed-in shell), `gatherings.spec.ts` (tap the host's tag, join, see the
 headcount and not the host, connect, see the host), `connections.spec.ts`
-(the list ladder), and
-`profile.spec.ts` (photo, my tags, account deletion), all sharing `e2e/helpers.ts`. Extend whichever
+(the list ladder),
+`profile.spec.ts` (photo, my tags, account deletion), and `reports.spec.ts`
+(report and block from a card; the terms agreement and its re-ask), all
+sharing `e2e/helpers.ts` (`agreeToTerms` ticks the sign-up box). Extend whichever
 one your slice touches; a slice nobody can walk end-to-end is not done.
 
 ## The safety discipline

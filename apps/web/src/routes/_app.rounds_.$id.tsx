@@ -1,16 +1,11 @@
-import {
-  golfLine,
-  type Destination,
-  type Gathering,
-  type GatheringMember,
-  type Tag,
-} from '@withme/contract';
+import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
+import { cardLine } from '../lib/card-line.ts';
 import { courseWhenAndWhere, formatStartsAt, toDateTimeLocal } from '../lib/format-time.ts';
 import { goingLine } from '../lib/going.ts';
 
@@ -292,22 +287,23 @@ function GatheringDetail({
           ? "You'll see the people you're connected with here."
           : "The people you're connected with. Everyone else, you meet there."}
       </p>
-      {members.map((member) => (
-        <div className="row" key={member.profile.id}>
-          <Avatar profile={member.profile} size="row" />
-          <div className="row-body">
-            <span className="name">{member.profile.display_name}</span>
-            {golfLine(member.profile) ? (
-              <span className="sub">{golfLine(member.profile)}</span>
-            ) : null}
-            {member.profile.id === gathering.host_id ? (
-              <span className="sub">Host</span>
-            ) : member.profile.bio ? (
-              <span className="sub">{member.profile.bio}</span>
-            ) : null}
+      {members.map((member) => {
+        const line = cardLine(member.profile);
+        return (
+          <div className="row" key={member.profile.id}>
+            <Avatar profile={member.profile} size="row" />
+            <div className="row-body">
+              <span className="name">{member.profile.display_name}</span>
+              {line ? <span className="sub">{line}</span> : null}
+              {member.profile.id === gathering.host_id ? (
+                <span className="sub">Host</span>
+              ) : member.profile.bio ? (
+                <span className="sub">{member.profile.bio}</span>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

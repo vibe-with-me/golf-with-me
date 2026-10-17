@@ -291,6 +291,8 @@ export type Database = {
           home_course: string | null
           id: string
           tenant_id: string
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         ComputedFields: never
@@ -303,6 +305,8 @@ export type Database = {
           home_course?: string | null
           id: string
           tenant_id?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
@@ -314,13 +318,113 @@ export type Database = {
           home_course?: string | null
           id?: string
           tenant_id?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: []
       }
+      push_tokens: {
+        Row: {
+          created_at: string
+          last_seen_at: string
+          platform: string
+          tenant_id: string
+          token: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          last_seen_at?: string
+          platform: string
+          tenant_id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_seen_at?: string
+          platform?: string
+          tenant_id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reported_deleted_at: string | null
+          reported_id: string | null
+          reporter_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          snapshot: NonNullable<Json>
+          status: string
+          tenant_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reported_deleted_at?: string | null
+          reported_id?: string | null
+          reporter_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          snapshot: NonNullable<Json>
+          status?: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_deleted_at?: string | null
+          reported_id?: string | null
+          reporter_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          snapshot?: NonNullable<Json>
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reported_id_fkey"
+            columns: ["reported_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tag_scans: {
         Row: {
           id: string
+          scan_method: string
           scanned_at: string
           tag_uid: string
           tenant_id: string
@@ -329,6 +433,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           id?: string
+          scan_method?: string
           scanned_at?: string
           tag_uid: string
           tenant_id?: string
@@ -336,6 +441,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          scan_method?: string
           scanned_at?: string
           tag_uid?: string
           tenant_id?: string
@@ -356,6 +462,7 @@ export type Database = {
           claimed_by: string | null
           created_at: string
           destination: Json | null
+          kind: string
           status: Database["public"]["Enums"]["tag_status"]
           tenant_id: string
           uid: string
@@ -366,6 +473,7 @@ export type Database = {
           claimed_by?: string | null
           created_at?: string
           destination?: Json | null
+          kind?: string
           status?: Database["public"]["Enums"]["tag_status"]
           tenant_id?: string
           uid: string
@@ -375,6 +483,7 @@ export type Database = {
           claimed_by?: string | null
           created_at?: string
           destination?: Json | null
+          kind?: string
           status?: Database["public"]["Enums"]["tag_status"]
           tenant_id?: string
           uid?: string
@@ -426,7 +535,25 @@ export type Database = {
       }
       join_gathering: { Args: { p_gathering_id: string }; Returns: undefined }
       log_scan: {
-        Args: { p_uid: string; p_user_agent?: string }
+        Args: { p_scan_method?: string; p_uid: string; p_user_agent?: string }
+        Returns: undefined
+      }
+      my_share_code: { Args: Record<PropertyKey, never>; Returns: string }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
+      }
+      replace_my_share_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      report_user: {
+        Args: {
+          p_block?: boolean
+          p_details?: string
+          p_reason: string
+          p_reported: string
+        }
         Returns: undefined
       }
       resolve_tag: { Args: { p_uid: string }; Returns: Json }

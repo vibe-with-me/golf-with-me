@@ -1,7 +1,8 @@
-import { golfLine, type ConnectRequest, type Connection } from '@withme/contract';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import type { ConnectRequest, Connection } from '@withme/contract';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LinkChips } from '../../components/Links';
+import { PushOffer } from '../../components/Push';
 import { AccessibilityInfo, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import {
   Button,
@@ -12,6 +13,7 @@ import {
   type ListState,
 } from '../../components/ui';
 import { api, type Api } from '../../lib/api';
+import { cardLine } from '../../lib/card-line';
 import { space, useTokens } from '../../lib/tokens';
 
 type BlockRow = Awaited<ReturnType<Api['app']['blocks']['list']>>['blocks'][number];
@@ -37,6 +39,21 @@ async function settleInto<T>(
   if (isLatest()) set(next);
 }
 
+// The report screen pushes over the tabs; focus reloads the lists after it.
+function report(id: string, name: string, canBlock = true) {
+  return (
+    <Button
+      inline
+      label="Report"
+      kind="quiet"
+      accessibilityLabel={`Report ${name}`}
+      onPress={() =>
+        router.push({ pathname: '/report/[id]', params: { id, name, block: canBlock ? '1' : '0' } })
+      }
+    />
+  );
+}
+
 /**
  * Connections: three lists behind in-page segments, mirroring the web tab.
  * Each list loads and fails on its own and climbs the same ladder.
@@ -44,6 +61,7 @@ async function settleInto<T>(
  */
 export default function ConnectionsScreen() {
   const t = useTokens();
+  const params = useLocalSearchParams<{ segment?: string }>();
   const [segment, setSegment] = useState<Segment>('connections');
   const [pending, setPending] = useState<ListState<ConnectRequest>>({ status: 'loading' });
   const [connections, setConnections] = useState<ListState<Connection>>({ status: 'loading' });
@@ -86,6 +104,17 @@ export default function ConnectionsScreen() {
     () => Promise.all([loadPending(), loadConnections(), loadBlocks()]),
     [loadPending, loadConnections, loadBlocks],
   );
+
+  // A tapped request notification opens /connections?segment=requests; the
+  // tab stays mounted, so follow the param whenever it arrives.
+  useEffect(() => {
+    if (params.segment !== 'requests') return;
+    setSegment('requests');
+    // The tab may have been mounted, and loaded, before the request arrived.
+    loadAll();
+    // Cleared, so the next tapped notification changes it again.
+    router.setParams({ segment: undefined });
+  }, [params.segment, loadAll]);
 
   useFocusEffect(
     useCallback(() => {
@@ -138,6 +167,7 @@ export default function ConnectionsScreen() {
         />
       }
     >
+      <PushOffer />
       <SegmentedTabs
         items={[
           { key: 'connections', label: 'Connections' },
@@ -165,7 +195,7 @@ export default function ConnectionsScreen() {
                 key={request.id}
                 name={request.requester.display_name}
                 path={request.requester.avatar_path}
-                detail={golfLine(request.requester)}
+                line={cardLine(request.requester)}
                 sub={request.requester.bio}
               >
                 {/* Accepting completes the handshake — the accent's job. */}
@@ -177,6 +207,7 @@ export default function ConnectionsScreen() {
                   onPress={() => act(request.id, () => api.app.requests.accept({ id: request.id }))}
                 />
                 {quiet('Decline', request.id, () => api.app.requests.decline({ id: request.id }))}
+                {report(request.requester.id, request.requester.display_name)}
               </PersonRow>
             ))
           }
@@ -197,9 +228,10 @@ export default function ConnectionsScreen() {
                 key={block.user.id}
                 name={block.user.display_name}
                 path={block.user.avatar_path}
-                detail={golfLine(block.user)}
+                line={cardLine(block.user)}
               >
                 {quiet('Unblock', block.user.id, () => api.app.blocks.unblock({ user_id: block.user.id }))}
+                {report(block.user.id, block.user.display_name, false)}
               </PersonRow>
             ))
           }
@@ -220,7 +252,7 @@ export default function ConnectionsScreen() {
                 key={connection.id}
                 name={connection.profile.display_name}
                 path={connection.profile.avatar_path}
-                detail={golfLine(connection.profile)}
+                line={cardLine(connection.profile)}
                 sub={connection.profile.bio}
                 extra={<LinkChips links={connection.links} />}
               >
@@ -228,6 +260,7 @@ export default function ConnectionsScreen() {
                 {quiet('Block', connection.id, () =>
                   api.app.blocks.block({ user_id: connection.profile.id }),
                 )}
+                {report(connection.profile.id, connection.profile.display_name)}
               </PersonRow>
             ))
           }

@@ -19,7 +19,11 @@ export async function getOwnProfile(db: Db, userId: string): Promise<Tables<'pro
   return data;
 }
 
-/** Insert-or-update the caller's profile. display_name is required on first create. */
+/**
+ * Insert-or-update the caller's profile. display_name and terms_version (the
+ * sign-up agreement) are required on first create; on an update, a
+ * terms_version records agreeing again (the database stamps the time).
+ */
 export async function upsertOwnProfile(
   db: Db,
   userId: string,
@@ -28,6 +32,7 @@ export async function upsertOwnProfile(
     bio?: string | null;
     handicap?: number | null;
     home_course?: string | null;
+    terms_version?: string;
   },
 ): Promise<Tables<'profiles'>> {
   const existing = await getOwnProfile(db, userId);
@@ -41,8 +46,8 @@ export async function upsertOwnProfile(
     if (error) throw error;
     return data;
   }
-  if (!patch.display_name) {
-    throw { code: 'P0001', message: 'display_name is required to create a profile' };
+  if (!patch.display_name || !patch.terms_version) {
+    throw { code: 'P0001', message: 'display_name and terms_version are required to create a profile' };
   }
   const { data, error } = await db
     .from('profiles')
@@ -52,6 +57,7 @@ export async function upsertOwnProfile(
       bio: patch.bio ?? null,
       handicap: patch.handicap ?? null,
       home_course: patch.home_course ?? null,
+      terms_version: patch.terms_version,
     })
     .select()
     .single();
@@ -69,6 +75,22 @@ export async function upsertOwnProfile(
     }
     throw error;
   }
+  return data;
+}
+
+/** Agree to a terms version. Null when the caller has no profile yet. */
+export async function acceptOwnTerms(
+  db: Db,
+  userId: string,
+  version: string,
+): Promise<Tables<'profiles'> | null> {
+  const { data, error } = await db
+    .from('profiles')
+    .update({ terms_version: version })
+    .eq('id', userId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
   return data;
 }
 

@@ -5,8 +5,16 @@ import { AccountSection } from '../../components/AccountSection';
 import { AvatarPicker } from '../../components/AvatarPicker';
 import { Links } from '../../components/Links';
 import { MyTags } from '../../components/MyTags';
+import { PushSection } from '../../components/Push';
+import { TermsCheckbox } from '../../components/TermsAgreement';
 import { Button, Card, ErrorText, Field, Title } from '../../components/ui';
-import { formatHandicap, isProfileComplete, parseHandicap, type Profile } from '@withme/contract';
+import {
+  formatHandicap,
+  isProfileComplete,
+  parseHandicap,
+  TERMS_VERSION,
+  type Profile,
+} from '@withme/contract';
 import { api } from '../../lib/api';
 import { safeRedirect } from '../../lib/safe-redirect';
 import { space, useTokens } from '../../lib/tokens';
@@ -24,6 +32,7 @@ export default function ProfileScreen() {
   const [homeCourse, setHomeCourse] = useState('');
   const [current, setCurrent] = useState<Profile | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +118,8 @@ export default function ProfileScreen() {
         bio: bio.trim() === '' ? null : bio.trim(),
         handicap: parsedHandicap,
         home_course: homeCourse.trim() === '' ? null : homeCourse.trim(),
+        // Creating a profile is signing up: it carries the terms agreement.
+        ...(exists ? {} : { terms_version: TERMS_VERSION }),
       });
       if (draft.current.revision === revision) draft.current = { dirty: false, revision };
       setCurrent(saved.profile);
@@ -197,17 +208,23 @@ export default function ProfileScreen() {
             maxLength={80}
             placeholder="e.g. Riverside Muni"
           />
+          {exists ? null : <TermsCheckbox checked={agreed} onChange={setAgreed} />}
           {status ? (
             <Text accessibilityRole="text" style={{ color: t.inkMuted }}>
               {status}
             </Text>
           ) : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <Button label={busy ? 'Saving…' : 'Save'} onPress={save} disabled={busy || !displayName.trim()} />
+          <Button
+            label={busy ? 'Saving…' : 'Save'}
+            onPress={save}
+            disabled={busy || !displayName.trim() || (!exists && !agreed)}
+          />
         </Card>
         {/* Links hang off the profile row: it needs the row to exist first. */}
         {exists ? <Links /> : null}
         {exists ? <MyTags /> : null}
+        {exists ? <PushSection /> : null}
         <AccountSection />
       </ScrollView>
     </KeyboardAvoidingView>

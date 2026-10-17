@@ -2,6 +2,7 @@ import {
   formatHandicap,
   isProfileComplete,
   parseHandicap,
+  TERMS_VERSION,
   type Profile,
 } from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
@@ -11,6 +12,7 @@ import { AvatarField } from '../components/AvatarField.tsx';
 import { shellStates } from '../components/CalmStates.tsx';
 import { LinksEditor } from '../components/Links.tsx';
 import { MyTags } from '../components/MyTags.tsx';
+import { TermsCheckbox } from '../components/TermsAgreement.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { safeReturnTo } from '../lib/auth-guard.ts';
@@ -67,8 +69,11 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
   );
   const [handicapError, setHandicapError] = useState(false);
   const [homeCourse, setHomeCourse] = useState(profile?.home_course ?? '');
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  // Creating a profile is signing up: it carries the terms agreement.
+  const creating = !profile;
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -89,6 +94,7 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
         bio: bio.trim() === '' ? null : bio.trim(),
         handicap: parsedHandicap,
         home_course: homeCourse.trim() === '' ? null : homeCourse.trim(),
+        ...(creating ? { terms_version: TERMS_VERSION } : {}),
       });
       setHandicap(saved.profile.handicap === null ? '' : formatHandicap(saved.profile.handicap));
       // The layout caches the profile until invalidated; wait for the re-fetch
@@ -164,11 +170,16 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
           onChange={(e) => setHomeCourse(e.target.value)}
         />
       </div>
+      {creating ? <TermsCheckbox checked={agreed} onChange={setAgreed} /> : null}
       {/* Always mounted: a live region created with its message is not announced. */}
       <p className="hint" role="status">
         {status}
       </p>
-      <button className="btn" type="submit" disabled={busy || !displayName.trim()}>
+      <button
+        className="btn"
+        type="submit"
+        disabled={busy || !displayName.trim() || (creating && !agreed)}
+      >
         {busy ? 'Saving…' : 'Save'}
       </button>
     </form>

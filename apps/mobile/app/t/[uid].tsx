@@ -3,10 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import { PushOffer } from '../../components/Push';
 import { Avatar, Button, Card, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { gatheringLine } from '../../lib/format-time';
 import { gatheringHref } from '../../lib/gathering-link';
+import { scanMethod } from '../../lib/scan-method';
 import { supabase } from '../../lib/supabase';
 import { space, useTokens } from '../../lib/tokens';
 
@@ -17,7 +19,8 @@ import { space, useTokens } from '../../lib/tokens';
  */
 export default function ResolveScreen() {
   const t = useTokens();
-  const { uid } = useLocalSearchParams<{ uid: string }>();
+  // via: how the tap arrived (scan.tsx, scan-qr.tsx), for the scan log only.
+  const { uid, via } = useLocalSearchParams<{ uid: string; via?: string }>();
   const [result, setResult] = useState<ResolveOutput | 'error' | null>(null);
 
   useEffect(() => {
@@ -27,7 +30,11 @@ export default function ResolveScreen() {
       api.public.resolve({ uid: normalized }),
       // A scan is logged for real taps; failures never break the resolve.
       api.public
-        .logScan({ uid: normalized, user_agent: `golfwithme-mobile/${Platform.OS}` })
+        .logScan({
+          uid: normalized,
+          user_agent: `golfwithme-mobile/${Platform.OS}`,
+          scan_method: scanMethod(via),
+        })
         .catch(() => undefined),
     ])
       .then(async ([resolved]) => {
@@ -55,7 +62,7 @@ export default function ResolveScreen() {
     return () => {
       cancelled = true;
     };
-  }, [uid]);
+  }, [uid, via]);
 
   if (result === null) {
     // The card arrives before its contents: an empty shell the settle
@@ -105,6 +112,7 @@ export default function ResolveScreen() {
           {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
           <Muted>{gatheringLine(result.gathering)}</Muted>
           <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
+          <CardReport profileId={result.profile.id} name={result.profile.display_name} uid={result.uid} />
         </Card>
       </View>
     );
@@ -118,6 +126,7 @@ export default function ResolveScreen() {
         {golfLine(result.profile) ? <Muted>{golfLine(result.profile)}</Muted> : null}
         {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
         <ConnectAction profileId={result.profile.id} uid={result.uid} />
+        <CardReport profileId={result.profile.id} name={result.profile.display_name} uid={result.uid} />
       </Card>
     </View>
   );
@@ -195,6 +204,45 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
   );
 }
 
+/**
+ * Report this person (Guideline 1.2): anyone but the owner. Signed out, it
+ * goes through login and back to this card. Nothing until the session read
+ * settles, so the owner never sees it flash.
+ */
+function CardReport({ profileId, name, uid }: { profileId: string; name: string; uid: string }) {
+  const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'other'>('loading');
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const userId = data.session?.user.id;
+        setViewer(!userId ? 'anon' : userId === profileId ? 'self' : 'other');
+      })
+      .catch(() => {
+        if (!cancelled) setViewer('anon');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId]);
+  if (viewer === 'loading' || viewer === 'self') return null;
+  return (
+    <Button
+      kind="quiet"
+      label="Report"
+      onPress={() => {
+        if (viewer === 'anon') {
+          router.push({ pathname: '/login', params: { redirect: `/t/${uid}` } });
+          return;
+        }
+        router.push({ pathname: '/report/[id]', params: { id: profileId, name } });
+      }}
+    />
+  );
+}
+
 function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'other'>('loading');
   const [send, setSend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
@@ -235,7 +283,13 @@ function ConnectAction({ profileId, uid }: { profileId: string; uid: string }) {
   }
 
   if (send === 'sent') {
-    return <Muted>Request sent. They'll see it when they check in.</Muted>;
+    return (
+      <>
+        <Muted>Request sent. They'll see it when they check in.</Muted>
+        {/* The first request is the moment a notification explains itself. */}
+        <PushOffer bare />
+      </>
+    );
   }
 
   return (

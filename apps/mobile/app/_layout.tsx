@@ -14,6 +14,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { usePushRouting } from '../lib/push';
+import { useTermsGate } from '../lib/terms-gate';
 import { useSession } from '../lib/use-session';
 import { useTokens } from '../lib/tokens';
 
@@ -22,6 +24,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const t = useTokens();
   const { session, loading } = useSession();
+  const { needsTerms, checking } = useTermsGate(!!session);
   const [fontsLoaded] = useFonts({
     ...Feather.font,
     Caveat_500Medium,
@@ -32,7 +35,11 @@ export default function RootLayout() {
     IBMPlexSans_600SemiBold,
   });
 
-  const ready = fontsLoaded && !loading;
+  // The splash holds until the first terms check answers, so a profile that
+  // must agree again never sees the tabs first (a failed check opens the app).
+  const ready = fontsLoaded && !loading && !checking;
+  // Signed in and mounted: refresh this device's token, open tapped pushes.
+  usePushRouting(ready && !!session);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -54,13 +61,21 @@ export default function RootLayout() {
         {/* Public — the resolver is the product and works signed out. */}
         <Stack.Screen name="t/[uid]" />
         <Stack.Screen name="scan" />
+        <Stack.Screen name="scan-qr" />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" />
         </Stack.Protected>
-        <Stack.Protected guard={!!session}>
+        {/* Signed in and agreed to the current terms: the app. */}
+        <Stack.Protected guard={!!session && !needsTerms}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="round/[id]" />
           <Stack.Screen name="claim/[uid]" />
+          <Stack.Screen name="share" />
+          <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
+        </Stack.Protected>
+        {/* Signed in under older terms: only the re-ask screen, not dismissible. */}
+        <Stack.Protected guard={!!session && needsTerms}>
+          <Stack.Screen name="terms-update" options={{ gestureEnabled: false }} />
         </Stack.Protected>
       </Stack>
     </>
