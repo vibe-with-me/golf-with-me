@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { PushOffer } from '../../components/Push';
+import { GatheringMeta } from '../../components/GatheringMeta';
 import { Avatar, Button, Card, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { gatheringLine } from '../../lib/format-time';
@@ -110,7 +111,7 @@ export default function ResolveScreen() {
           <Title>{result.profile.display_name}</Title>
           {golfLine(result.profile) ? <Muted>{golfLine(result.profile)}</Muted> : null}
           {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
-          <Muted>{gatheringLine(result.gathering)}</Muted>
+          <GatheringMeta line={gatheringLine(result.gathering)} />
           <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
           <CardReport profileId={result.profile.id} name={result.profile.display_name} uid={result.uid} />
         </Card>
@@ -232,9 +233,17 @@ function CardReport({ profileId, name, uid }: { profileId: string; name: string;
     <Button
       kind="quiet"
       label="Report"
-      onPress={() => {
+      onPress={async () => {
         if (viewer === 'anon') {
           router.push({ pathname: '/login', params: { redirect: `/t/${uid}` } });
+          return;
+        }
+        // A report needs the reporter's own profile (report_user refuses
+        // without one): make it first, as Connect does. A failed read goes
+        // on to the report screen, whose own error state covers it.
+        const { profile } = await api.app.profile.get().catch(() => ({ profile: true }));
+        if (!profile) {
+          router.push({ pathname: '/profile', params: { redirect: `/t/${uid}` } });
           return;
         }
         router.push({ pathname: '/report/[id]', params: { id: profileId, name } });

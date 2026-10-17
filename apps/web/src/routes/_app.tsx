@@ -1,6 +1,5 @@
-import { termsAreCurrent } from '@withme/contract';
 import { createFileRoute, Navigate, useLocation, useRouterState } from '@tanstack/react-router';
-import { isProfileComplete } from '@withme/contract';
+import { isProfileComplete, shellGate } from '@withme/contract';
 import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
@@ -58,24 +57,17 @@ function ShellRoute() {
   const { profile } = Route.useLoaderData();
   const { pathname, href } = useLocation();
   const navigating = useRouterState({ select: (s) => s.isLoading });
-  // /terms is exempt too: the terms gate below sends a stale profile there,
-  // and without the exemption an incomplete one would bounce between the two.
-  if (!isProfileComplete(profile) && pathname !== '/profile' && pathname !== '/terms') {
+  // The profile gate, then the terms gate: a profile that agreed to another
+  // version (or none, from before terms existed) is asked again before
+  // anything else. Both live in shellGate, which keeps them from bouncing a
+  // profile between /profile and /terms; extend-profile passes it
+  // isProfileComplete instead of editing this.
+  const to = shellGate(profile, pathname, isProfileComplete);
+  if (to) {
     if (navigating) return <ShellPending />;
     return (
       <>
-        <Navigate to="/profile" search={{ returnTo: href }} replace />
-        <ShellPending />
-      </>
-    );
-  }
-  // The same gate for terms: a profile that agreed to another version (or
-  // none, from before terms existed) is asked again before anything else.
-  if (profile && !termsAreCurrent(profile) && pathname !== '/terms') {
-    if (navigating) return <ShellPending />;
-    return (
-      <>
-        <Navigate to="/terms" search={{ returnTo: href }} replace />
+        <Navigate to={to} search={{ returnTo: href }} replace />
         <ShellPending />
       </>
     );

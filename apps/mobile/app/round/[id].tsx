@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GatheringMeta } from '../../components/GatheringMeta';
 import { Button, Card, ErrorText, Field, Muted, PersonRow, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { cardLine } from '../../lib/card-line';
@@ -290,7 +291,7 @@ function GatheringDetail({
           ) : (
             <>
               <Title>{gathering.title}</Title>
-              <Muted>{courseWhenAndWhere(gathering)}</Muted>
+              <GatheringMeta line={courseWhenAndWhere(gathering)} />
               <Muted>{goingLine(memberCount)}</Muted>
             </>
           )}
