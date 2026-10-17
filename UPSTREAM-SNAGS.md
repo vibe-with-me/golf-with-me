@@ -371,3 +371,28 @@ upstream only by the fork's columns. What still fell short:
       `git switch main` first, or the merge is a no-op on `starter-sync`.
     - `packages/db/test/reports.test.ts` ~L38: the post-report bio edit's
       result is never asserted, so the snapshot test can pass vacuously.
+
+## Third starter sync: #78, #80–#83, #85–#87
+
+The snag 32–37 fixes worked as designed: `pushScreen` routed pushes through
+the fork's `gatheringHref` with no fork code, `shellGate` took
+`isProfileComplete` as an argument, and the derived scrim picked up the
+fork's ink. Step 4's env diff and step 4b's sweep ran clean. 11 conflicts,
+all predictable. Two notes:
+
+38. **The Maps link searches the wrong field for a fork whose place is a new
+    field.** #85 links a gathering's `location` to Maps. In this fork
+    `location` is "Meet at" ("The first tee"), and the place is
+    `course_name` ("Riverside Muni"), so the link searches Maps for "The
+    first tee". customize-gathering doesn't say which field a fork's Maps
+    link should use. *Did instead:* left the starter's behavior and raised
+    it with the owner. Suggest: a line in customize-gathering §2 ("if your
+    new field is the place, point `mapsSearchUrl` at it, or at both").
+
+39. **Step 4b's sweep is mostly identifiers.** On this merge it printed
+    ~40 lines, every one an internal name (`GatheringsPage`,
+    `feed.gatherings`, `gathering_id`) or a pure-function test input; the
+    real copy hits from the last sync would have been lost in that. Suggest:
+    split it in two, a copy sweep over string literals and JSX text
+    (`grep -nE "['\">][^'\"<>]*(withme|[Gg]athering|Events)"`) and a path
+    sweep (`'/gatherings`, `/gathering/`).
