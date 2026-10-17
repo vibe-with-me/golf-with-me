@@ -17,6 +17,7 @@ import { Route as AppConnectionsRouteImport } from './routes/_app.connections'
 import { Route as AppGatheringsRouteImport } from './routes/_app.gatherings'
 import { Route as AppMerchRouteImport } from './routes/_app.merch'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppShareRouteImport } from './routes/_app.share'
 import { Route as AppTermsRouteImport } from './routes/_app.terms'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
@@ -62,6 +63,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShareRoute = AppShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTermsRoute = AppTermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
+  '/share': typeof AppShareRoute
   '/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
+  '/share': typeof AppShareRoute
   '/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/_app/gatherings': typeof AppGatheringsRoute
   '/_app/merch': typeof AppMerchRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/share': typeof AppShareRoute
   '/_app/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/gatherings'
     | '/merch'
     | '/profile'
+    | '/share'
     | '/terms'
     | '/auth/callback'
     | '/claim/$uid'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/gatherings'
     | '/merch'
     | '/profile'
+    | '/share'
     | '/terms'
     | '/auth/callback'
     | '/claim/$uid'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/_app/gatherings'
     | '/_app/merch'
     | '/_app/profile'
+    | '/_app/share'
     | '/_app/terms'
     | '/auth/callback'
     | '/claim/$uid'
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/share': {
+      id: '/_app/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof AppShareRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/terms': {
       id: '/_app/terms'
       path: '/terms'
@@ -289,6 +308,7 @@ interface AppRouteChildren {
   AppGatheringsRoute: typeof AppGatheringsRoute
   AppMerchRoute: typeof AppMerchRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppShareRoute: typeof AppShareRoute
   AppTermsRoute: typeof AppTermsRoute
   AppGatheringsIdRoute: typeof AppGatheringsIdRoute
 }
@@ -298,6 +318,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGatheringsRoute: AppGatheringsRoute,
   AppMerchRoute: AppMerchRoute,
   AppProfileRoute: AppProfileRoute,
+  AppShareRoute: AppShareRoute,
   AppTermsRoute: AppTermsRoute,
   AppGatheringsIdRoute: AppGatheringsIdRoute,
 }

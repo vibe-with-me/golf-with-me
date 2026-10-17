@@ -204,17 +204,38 @@ because a real build made that mistake first.
 
 ## Scans are privacy-default
 
-**The promise.** A tap records a user-agent string and a timestamp.
-Nothing else.
+**The promise.** A tap records a user-agent string, a timestamp, and
+whether it came by NFC or a QR code. Nothing else.
 
 **How.** The `tag_scans` table has no columns for location, IP, or
-device identifiers. The API uses the caller's IP as a rate-limit key only
+device identifiers. `scan_method` is how the tap arrived (`nfc`, `qr`,
+`direct`, `unknown`), not who made it. For a physical tag it is the
+client's own hint and anyone can send any value, so it is advisory:
+nothing may branch on it. Only a share code's `qr` is set by the
+database. The API uses the caller's IP as a rate-limit key only
 and never stores it. There is no analytics or telemetry in the starter;
 that stance is part of its identity, and the roadmap records the
 decision to skip an analytics skill permanently.
 
-**The test.** The columns do not exist; `tags.test.ts` covers the write
-path.
+**The test.** The columns do not exist (`tags.test.ts` pins the list);
+`tags.test.ts` and `share-code.test.ts` cover the write path.
+
+## A shared code can be taken back
+
+**The promise.** Your QR code (the Your code button in the tab bar)
+shows exactly what a tap on your tag shows, and nothing more. If a screenshot of it gets
+somewhere it shouldn't, Replace code makes every copy of the old one open
+an inactive tag.
+
+**How.** A share code is a tag row of kind `qr` claimed to you, resolved
+by the same `resolve_tag`: same card, same block behavior, same limits.
+Replacing it retires the old row (no owner, no destination, no scans), so
+it resolves as `disabled` and `claim_tag` cannot take it. A share code is
+never unclaimed, always points at your card, and you manage it only
+through its two RPCs. [nfc-tags.md](nfc-tags.md) § Share codes has the
+details.
+
+**The test.** `packages/db/test/share-code.test.ts`.
 
 ## Photos cannot point off-site
 
@@ -291,8 +312,10 @@ the web app shows the pending count instead.
 **The promise.** Delete your account and your profile, connections,
 requests, blocks, hosted gatherings and memberships, photos, push
 tokens, and scan history are gone. Your claimed tags return to
-unclaimed. Reports you filed stay, anonymised; reports about you stay
-90 days, then go (see Reports are private).
+unclaimed; your share code is retired, so a screenshot of it opens an
+inactive tag and can never be claimed by someone else. Reports you filed
+stay, anonymised; reports about you stay 90 days, then go (see Reports
+are private).
 
 **How.** Profile → Account clears the photo pointer, sweeps the avatar
 files through the Storage API, then calls `delete_my_account()`, a

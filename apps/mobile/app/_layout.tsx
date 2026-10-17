@@ -61,6 +61,7 @@ export default function RootLayout() {
         {/* Public — the resolver is the product and works signed out. */}
         <Stack.Screen name="t/[uid]" />
         <Stack.Screen name="scan" />
+        <Stack.Screen name="scan-qr" />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" />
         </Stack.Protected>
@@ -69,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="gathering/[id]" />
           <Stack.Screen name="claim/[uid]" />
+          <Stack.Screen name="share" />
           <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
         </Stack.Protected>
         {/* Signed in under older terms: only the re-ask screen, not dismissible. */}

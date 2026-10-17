@@ -717,7 +717,7 @@ a.link:hover {
   }
 
   .shell-nav__item {
-    flex: 1 1 0;
+    flex: var(--nav-grow, 1) 1 0;
     flex-direction: column;
     justify-content: center;
     gap: var(--space-1);
@@ -803,6 +803,112 @@ a.link:hover {
   min-width: 0;
   width: 100%;
   max-width: 100%;
+}
+
+/* --- share code ------------------------------------------------------------ */
+
+/* Dark modules on a light panel in both schemes, because camera apps read a
+ * light-on-dark code poorly: ink on surface in light, bg on ink in dark. No
+ * token of its own; sized for a phone held at arm's length. */
+.share-code {
+  width: 100%;
+  max-width: 16rem;
+  aspect-ratio: 1;
+  border-radius: var(--radius-control);
+}
+
+.share-code__bg {
+  fill: var(--color-surface);
+}
+
+.share-code__ink {
+  fill: var(--color-ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  .share-code__bg {
+    fill: var(--color-ink);
+  }
+
+  .share-code__ink {
+    fill: var(--color-bg);
+  }
+}
+
+/* the link under the code: long, unbroken, and selectable */
+.share-url {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+  user-select: all;
+  margin: 0;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+/* --- the share button (shell) ------------------------------------------- */
+
+/* Your code, from every tab. Solid ink, like the default button: the accent
+ * stays with a screen's primary action. Wide screens float it bottom-right;
+ * under 720px it rises out of the middle of the bottom bar. */
+.share-fab {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 11;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  transition: opacity var(--motion-press-duration) ease;
+}
+
+.share-fab:hover {
+  opacity: 0.92;
+}
+
+.share-fab:active {
+  opacity: 0.85;
+}
+
+/* Room under the last card so the floating button never covers it (wide
+ * screens; under 720px the bottom bar already reserves its height). */
+@media (min-width: 720px) {
+  .shell-main {
+    padding-bottom: calc(56px + var(--space-5) * 2);
+  }
+}
+
+.share-fab svg {
+  width: 26px;
+  height: 26px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-fab {
+    transition: none;
+  }
+}
+
+@media (max-width: 719.98px) {
+  .share-fab {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    flex: 0 0 auto;
+    align-self: flex-start;
+    margin: calc(-1 * var(--space-5)) var(--space-2) 0;
+  }
 }
 
 /* --- choices and the report dialog ----------------------------------------- */

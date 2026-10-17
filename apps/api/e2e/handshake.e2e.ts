@@ -102,6 +102,8 @@ for (const [label, call] of [
   ['gatherings.list', () => anonApp.gatherings.list()],
   ['requests.send', () => anonApp.requests.send({ recipient_id: alice.id })],
   ['links.replace', () => anonApp.links.replace({ links: [] })],
+  ['shareCode.get', () => anonApp.shareCode.get()],
+  ['shareCode.replace', () => anonApp.shareCode.replace()],
 ] as const) {
   const code = await call().then(
     () => 'succeeded',
@@ -467,6 +469,27 @@ const anonReport = await anonApp.reports
 assert(anonReport === 'UNAUTHORIZED', `anon cannot report (got ${anonReport})`);
 const selfReport = await bobApp.reports.create({ reported_id: bob.id, reason: 'spam' }).then(() => 'stored', codeOf);
 assert(selfReport === 'BAD_REQUEST', `reporting yourself is refused (got ${selfReport})`);
+
+// 19c. share code: the same resolver, a scan logged as qr, and replacing it retires the old one
+const code = await bobApp.shareCode.get();
+assert((await bobApp.shareCode.get()).uid === code.uid, 'shareCode.get is stable');
+const byCode = await anon.resolve(code.uid);
+assert(
+  byCode.status === 'claimed' && byCode.profile.display_name === 'E2E Bob',
+  'a share code resolves to its owner’s card',
+);
+// The published SDK sends no method; the database knows a share code is a QR scan.
+await anon.logScan(code.uid, 'e2e-camera');
+const { data: codeScans } = await admin.from('tag_scans').select('scan_method').eq('tag_uid', code.uid);
+assert(codeScans?.[0]?.scan_method === 'qr', `a share-code scan is logged as qr (got ${codeScans?.[0]?.scan_method})`);
+assert(
+  !(await bobApp.tags.listMine()).tags.some((t) => t.uid === code.uid),
+  'the share code is not one of My tags',
+);
+const replacedCode = await bobApp.shareCode.replace();
+assert(replacedCode.uid !== code.uid, 'shareCode.replace mints a new code');
+const retired = await anon.resolve(code.uid);
+assert(retired.status === 'disabled', `the old code is inactive (got ${retired.status})`);
 
 // 20. push: this device's token, owner-only. A fresh user who receives
 // nothing afterwards, so no push is ever attempted for the fake token.

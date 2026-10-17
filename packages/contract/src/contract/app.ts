@@ -19,6 +19,7 @@ import {
 } from '../schemas/profile.ts';
 import { RegisterPushTokenInputSchema, UnregisterPushTokenInputSchema } from '../schemas/push.ts';
 import { CreateReportInputSchema } from '../schemas/report.ts';
+import { ShareCodeSchema } from '../schemas/share-code.ts';
 import { TagSchema, UpdateMyTagInputSchema } from '../schemas/tag.ts';
 import { AcceptTermsInputSchema } from '../schemas/terms.ts';
 
@@ -201,6 +202,18 @@ const updateMyTag = oc
   // Not yours and nonexistent are the same NOT_FOUND.
   .output(z.object({ tag: TagSchema }));
 
+// Your code: the tab bar's raised button. A QR-only tag claimed to the caller.
+// get mints it on first use: idempotent, but NOT side-effect free, so
+// never cache, prefetch or preload it. replace retires it and mints a new
+// one, so every copy of the old code opens an inactive tag.
+const getMyShareCode = oc
+  .route({ method: 'GET', path: '/me/share-code', tags: ['Tags'] })
+  .output(ShareCodeSchema);
+
+const replaceMyShareCode = oc
+  .route({ method: 'POST', path: '/me/share-code/replace', tags: ['Tags'] })
+  .output(ShareCodeSchema);
+
 // Push: this device's token, for the three transactional pushes (a request
 // to you, yours accepted, people joined your gathering). Owner-only.
 const registerPushToken = oc
@@ -246,5 +259,6 @@ export const appContract = {
     remove: removeGathering,
   },
   tags: { listMine: listMyTags, update: updateMyTag },
+  shareCode: { get: getMyShareCode, replace: replaceMyShareCode },
   push: { register: registerPushToken, unregister: unregisterPushToken },
 };

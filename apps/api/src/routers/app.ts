@@ -358,6 +358,21 @@ const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) =
   return { tag: tag as Tag };
 });
 
+// Your code. Both RPCs act on the caller only and take no uid, so neither
+// can be pointed at someone else's row.
+const shareCodeGet = appProcedure.shareCode.get.handler(async ({ context }) => {
+  const { data, error } = await context.db.rpc('my_share_code');
+  if (error) throwFromDbError(error, context.logger);
+  return { uid: data };
+});
+
+const shareCodeReplace = appProcedure.shareCode.replace.handler(async ({ context }) => {
+  const { data, error } = await context.db.rpc('replace_my_share_code');
+  if (error) throwFromDbError(error, context.logger);
+  context.logger.info('share code replaced');
+  return { uid: data };
+});
+
 const pushRegister = appProcedure.push.register.handler(async ({ input, context }) => {
   await run(context, () => registerPushToken(context.db, input.token, input.platform));
   return { ok: true as const };
@@ -398,5 +413,6 @@ export const appRouter = {
     remove: gatheringsRemove,
   },
   tags: { listMine: tagsListMine, update: tagsUpdate },
+  shareCode: { get: shareCodeGet, replace: shareCodeReplace },
   push: { register: pushRegister, unregister: pushUnregister },
 };

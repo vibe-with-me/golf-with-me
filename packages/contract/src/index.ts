@@ -10,6 +10,7 @@ export * from './schemas/phone.ts';
 export * from './schemas/profile.ts';
 export * from './schemas/push.ts';
 export * from './schemas/report.ts';
+export * from './schemas/share-code.ts';
 export * from './schemas/tag.ts';
 export * from './schemas/terms.ts';
 export * from './schemas/text.ts';
