@@ -288,3 +288,15 @@ left `supabase.ts` differing from upstream only by the fork's columns.
     (enable "Allow merge commits" for it, or merge locally and push).
     Suggest: a line in step 6 ("merge, don't squash, the sync PR; check
     with `git merge-base --is-ancestor upstream/main main` afterwards").
+
+31. **extend-profile leaves the card tier off every list of people.** §6–§7
+    say the Requests and Blocked rows (and a round's member list) "may"
+    show the card-tier field, and the worked example passes only the
+    connections tier to the Connections row. A literal run therefore shows
+    a card field on the tapped card and nowhere else: Ada sees Lin's request
+    without Lin's handicap, the one moment a golfer wants it. The owner
+    noticed it in review. *Did instead:* web `PersonRow` prints `golfLine`
+    itself; mobile `PersonRow` gains the skill's own `detail` prop, passed
+    from Requests, Connections, Blocked and Who's playing; a Playwright
+    check on the Connections row. Suggest: make it the default ("the card
+    tier rides every card, so every row of people shows it"), not optional.

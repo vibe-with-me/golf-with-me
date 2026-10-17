@@ -1,4 +1,10 @@
-import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contract';
+import {
+  golfLine,
+  type Destination,
+  type Gathering,
+  type GatheringMember,
+  type Tag,
+} from '@withme/contract';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -330,6 +336,7 @@ function GatheringDetail({
             key={member.profile.id}
             name={member.profile.display_name}
             path={member.profile.avatar_path}
+            detail={golfLine(member.profile)}
             // Web's convention: "Host" takes the sub line; the row's right side is for actions.
             sub={member.profile.id === gathering.host_id ? 'Host' : member.profile.bio}
           />

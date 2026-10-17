@@ -290,12 +290,15 @@ export function PersonRow({
   name,
   path,
   sub,
+  detail,
   extra,
   children,
 }: {
   name: string;
   path: string | null;
   sub?: string | null;
+  /** A line between the name and sub: the card tier (golfLine), on every row of people. */
+  detail?: string | null;
   /** Under the name and sub, full width: a connection's link chips. */
   extra?: ReactNode;
   children?: ReactNode;
@@ -309,6 +312,11 @@ export function PersonRow({
           <Text numberOfLines={2} style={[styles.personName, { color: t.ink }]}>
             {name}
           </Text>
+          {detail ? (
+            <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
+              {detail}
+            </Text>
+          ) : null}
           {sub ? (
             <Text numberOfLines={2} style={[styles.personSub, { color: t.inkMuted }]}>
               {sub}

@@ -71,4 +71,7 @@ test('two strangers tap a tag and remain connected', async ({ browser }) => {
   await expect(ada.getByText('Saved.')).toBeVisible();
   await bob.goto(`/t/${uid}`);
   await expect(bob.getByText('Handicap +2.4 · Smoke Links')).toBeVisible();
+  // ... and on every row of people, here Bob's Connections list.
+  await bob.goto('/connections');
+  await expect(bob.getByText('Handicap +2.4 · Smoke Links')).toBeVisible();
 });

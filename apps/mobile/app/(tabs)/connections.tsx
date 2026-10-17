@@ -1,4 +1,4 @@
-import type { ConnectRequest, Connection } from '@withme/contract';
+import { golfLine, type ConnectRequest, type Connection } from '@withme/contract';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { LinkChips } from '../../components/Links';
@@ -165,6 +165,7 @@ export default function ConnectionsScreen() {
                 key={request.id}
                 name={request.requester.display_name}
                 path={request.requester.avatar_path}
+                detail={golfLine(request.requester)}
                 sub={request.requester.bio}
               >
                 {/* Accepting completes the handshake — the accent's job. */}
@@ -192,7 +193,12 @@ export default function ConnectionsScreen() {
         >
           {(list) =>
             list.map((block) => (
-              <PersonRow key={block.user.id} name={block.user.display_name} path={block.user.avatar_path}>
+              <PersonRow
+                key={block.user.id}
+                name={block.user.display_name}
+                path={block.user.avatar_path}
+                detail={golfLine(block.user)}
+              >
                 {quiet('Unblock', block.user.id, () => api.app.blocks.unblock({ user_id: block.user.id }))}
               </PersonRow>
             ))
@@ -214,6 +220,7 @@ export default function ConnectionsScreen() {
                 key={connection.id}
                 name={connection.profile.display_name}
                 path={connection.profile.avatar_path}
+                detail={golfLine(connection.profile)}
                 sub={connection.profile.bio}
                 extra={<LinkChips links={connection.links} />}
               >

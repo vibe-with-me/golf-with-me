@@ -1,4 +1,10 @@
-import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contract';
+import {
+  golfLine,
+  type Destination,
+  type Gathering,
+  type GatheringMember,
+  type Tag,
+} from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
@@ -291,6 +297,9 @@ function GatheringDetail({
           <Avatar profile={member.profile} size="row" />
           <div className="row-body">
             <span className="name">{member.profile.display_name}</span>
+            {golfLine(member.profile) ? (
+              <span className="sub">{golfLine(member.profile)}</span>
+            ) : null}
             {member.profile.id === gathering.host_id ? (
               <span className="sub">Host</span>
             ) : member.profile.bio ? (
