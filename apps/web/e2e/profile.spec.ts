@@ -60,7 +60,7 @@ test('a photo replaces the initial: uploaded, shown, removable', async ({ page }
   await expect(page.getByLabel('Add a photo')).toBeFocused();
 });
 
-test('My tags: a claimed tag turns off and on, and re-points at a gathering', async ({ browser }) => {
+test('My tags: a claimed tag turns off and on, and re-points at a round', async ({ browser }) => {
   const owner = await (await browser.newContext()).newPage();
   const uid = await claimFreshTag(owner, `smoke-tags-${Date.now()}@rls.test`, 'Smoke Tags');
 
@@ -79,9 +79,9 @@ test('My tags: a claimed tag turns off and on, and re-points at a gathering', as
   await stranger.reload();
   await expect(stranger.getByRole('heading', { name: 'Smoke Tags' })).toBeVisible();
 
-  await owner.goto('/gatherings');
+  await owner.goto('/rounds');
   await owner.getByLabel('Title').fill('Smoke Tag Night');
-  await owner.getByRole('button', { name: 'Create gathering' }).click();
+  await owner.getByRole('button', { name: 'Create round' }).click();
   // Listed under Happening and under Yours: the first is enough.
   await expect(owner.getByText('Smoke Tag Night').first()).toBeVisible();
   await owner.goto('/profile');

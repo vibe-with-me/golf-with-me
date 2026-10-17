@@ -14,13 +14,13 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as AppConnectionsRouteImport } from './routes/_app.connections'
-import { Route as AppGatheringsRouteImport } from './routes/_app.gatherings'
 import { Route as AppMerchRouteImport } from './routes/_app.merch'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppRoundsRouteImport } from './routes/_app.rounds'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
 import { Route as TUidRouteImport } from './routes/t.$uid'
-import { Route as AppGatheringsIdRouteImport } from './routes/_app.gatherings_.$id'
+import { Route as AppRoundsIdRouteImport } from './routes/_app.rounds_.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,11 +46,6 @@ const AppConnectionsRoute = AppConnectionsRouteImport.update({
   path: '/connections',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGatheringsRoute = AppGatheringsRouteImport.update({
-  id: '/gatherings',
-  path: '/gatherings',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppMerchRoute = AppMerchRouteImport.update({
   id: '/merch',
   path: '/merch',
@@ -59,6 +54,11 @@ const AppMerchRoute = AppMerchRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRoundsRoute = AppRoundsRouteImport.update({
+  id: '/rounds',
+  path: '/rounds',
   getParentRoute: () => AppRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -76,9 +76,9 @@ const TUidRoute = TUidRouteImport.update({
   path: '/t/$uid',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppGatheringsIdRoute = AppGatheringsIdRouteImport.update({
-  id: '/gatherings_/$id',
-  path: '/gatherings/$id',
+const AppRoundsIdRoute = AppRoundsIdRouteImport.update({
+  id: '/rounds_/$id',
+  path: '/rounds/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -87,26 +87,26 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
-  '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
+  '/rounds': typeof AppRoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
-  '/gatherings/$id': typeof AppGatheringsIdRoute
+  '/rounds/$id': typeof AppRoundsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/connections': typeof AppConnectionsRoute
-  '/gatherings': typeof AppGatheringsRoute
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
+  '/rounds': typeof AppRoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
-  '/gatherings/$id': typeof AppGatheringsIdRoute
+  '/rounds/$id': typeof AppRoundsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,13 +115,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/_app/connections': typeof AppConnectionsRoute
-  '/_app/gatherings': typeof AppGatheringsRoute
   '/_app/merch': typeof AppMerchRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/rounds': typeof AppRoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
-  '/_app/gatherings_/$id': typeof AppGatheringsIdRoute
+  '/_app/rounds_/$id': typeof AppRoundsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,26 +130,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/connections'
-    | '/gatherings'
     | '/merch'
     | '/profile'
+    | '/rounds'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
-    | '/gatherings/$id'
+    | '/rounds/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/me'
     | '/connections'
-    | '/gatherings'
     | '/merch'
     | '/profile'
+    | '/rounds'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
-    | '/gatherings/$id'
+    | '/rounds/$id'
   id:
     | '__root__'
     | '/'
@@ -157,13 +157,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/_app/connections'
-    | '/_app/gatherings'
     | '/_app/merch'
     | '/_app/profile'
+    | '/_app/rounds'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
-    | '/_app/gatherings_/$id'
+    | '/_app/rounds_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,13 +213,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectionsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gatherings': {
-      id: '/_app/gatherings'
-      path: '/gatherings'
-      fullPath: '/gatherings'
-      preLoaderRoute: typeof AppGatheringsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/merch': {
       id: '/_app/merch'
       path: '/merch'
@@ -232,6 +225,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rounds': {
+      id: '/_app/rounds'
+      path: '/rounds'
+      fullPath: '/rounds'
+      preLoaderRoute: typeof AppRoundsRouteImport
       parentRoute: typeof AppRoute
     }
     '/auth/callback': {
@@ -255,11 +255,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TUidRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/gatherings_/$id': {
-      id: '/_app/gatherings_/$id'
-      path: '/gatherings/$id'
-      fullPath: '/gatherings/$id'
-      preLoaderRoute: typeof AppGatheringsIdRouteImport
+    '/_app/rounds_/$id': {
+      id: '/_app/rounds_/$id'
+      path: '/rounds/$id'
+      fullPath: '/rounds/$id'
+      preLoaderRoute: typeof AppRoundsIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -267,18 +267,18 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppConnectionsRoute: typeof AppConnectionsRoute
-  AppGatheringsRoute: typeof AppGatheringsRoute
   AppMerchRoute: typeof AppMerchRoute
   AppProfileRoute: typeof AppProfileRoute
-  AppGatheringsIdRoute: typeof AppGatheringsIdRoute
+  AppRoundsRoute: typeof AppRoundsRoute
+  AppRoundsIdRoute: typeof AppRoundsIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConnectionsRoute: AppConnectionsRoute,
-  AppGatheringsRoute: AppGatheringsRoute,
   AppMerchRoute: AppMerchRoute,
   AppProfileRoute: AppProfileRoute,
-  AppGatheringsIdRoute: AppGatheringsIdRoute,
+  AppRoundsRoute: AppRoundsRoute,
+  AppRoundsIdRoute: AppRoundsIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

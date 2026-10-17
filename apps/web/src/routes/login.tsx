@@ -24,7 +24,7 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const destination = returnTo ?? '/gatherings';
+  const destination = returnTo ?? '/rounds';
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   async function submit(event: React.FormEvent) {
@@ -84,8 +84,8 @@ function LoginPage() {
   // The tapper arrives here mid-handshake; keep the thread visible.
   const context = returnTo?.startsWith('/t/')
     ? 'to connect with the person whose tag you tapped'
-    : returnTo?.startsWith('/gatherings/')
-      ? 'to join the gathering you were invited to'
+    : returnTo?.startsWith('/rounds/')
+      ? 'to join the round you were invited to'
       : null;
 
   if (method === 'phone') {

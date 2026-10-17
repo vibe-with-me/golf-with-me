@@ -31,7 +31,7 @@ function AuthCallbackPage() {
           setError(exchangeError.message);
           return;
         }
-        navigate({ href: returnTo ?? '/gatherings', replace: true });
+        navigate({ href: returnTo ?? '/rounds', replace: true });
       });
     return () => {
       cancelled = true;

@@ -38,7 +38,7 @@ function Home() {
           </p>
         ) : null}
         {signedIn ? (
-          <Link className="btn" to="/gatherings">
+          <Link className="btn" to="/rounds">
             Open the app
           </Link>
         ) : (

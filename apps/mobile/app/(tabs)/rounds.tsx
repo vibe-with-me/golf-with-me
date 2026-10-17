@@ -115,7 +115,7 @@ export default function GatheringsScreen() {
       setWhen(tomorrowEvening());
       await load();
     } catch {
-      setError('Could not create the gathering. Check the fields and try again.');
+      setError('Could not create the round. Check the fields and try again.');
     } finally {
       setBusy(false);
     }
@@ -131,7 +131,7 @@ export default function GatheringsScreen() {
       viewerId !== null && gathering.host_id === viewerId
         ? 'Hosting'
         : gathering.is_member
-          ? 'Going'
+          ? 'Playing'
           : null;
     const line = [mark, whenAndWhere(gathering), goingLine(gathering.member_count)]
       .filter(Boolean)
@@ -141,7 +141,7 @@ export default function GatheringsScreen() {
       <Pressable
         key={gathering.id}
         accessibilityRole="button"
-        onPress={() => router.push({ pathname: '/gathering/[id]', params: { id: gathering.id } })}
+        onPress={() => router.push({ pathname: '/round/[id]', params: { id: gathering.id } })}
         style={({ pressed }) => [
           styles.row,
           { borderTopColor: t.border },
@@ -183,13 +183,13 @@ export default function GatheringsScreen() {
         }
       >
         <Card>
-          <Title>Create a gathering</Title>
+          <Title>Create a round</Title>
           <Field
             label="Title"
             value={title}
             onChangeText={setTitle}
             maxLength={120}
-            placeholder="e.g. Rooftop listening session"
+            placeholder="e.g. Saturday dawn nine"
           />
           <Field
             label="Date"
@@ -200,7 +200,7 @@ export default function GatheringsScreen() {
             placeholder="2026-10-09"
           />
           <Field
-            label="Time"
+            label="Tee time"
             value={when.time}
             onChangeText={(time) => setWhen((w) => ({ ...w, time }))}
             autoCapitalize="none"
@@ -208,25 +208,25 @@ export default function GatheringsScreen() {
             placeholder="18:00"
           />
           <Field
-            label="Location (optional)"
+            label="Meet at (optional)"
             value={location}
             onChangeText={setLocation}
             maxLength={160}
-            placeholder="Where to find it"
+            placeholder="e.g. the first tee"
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           <Button
-            label={busy ? 'Creating…' : 'Create gathering'}
+            label={busy ? 'Creating…' : 'Create round'}
             onPress={create}
             disabled={busy || !title.trim() || !when.date.trim() || !when.time.trim()}
           />
         </Card>
 
-        <Text style={[styles.sectionTitle, { color: t.ink }]}>Happening</Text>
+        <Text style={[styles.sectionTitle, { color: t.ink }]}>Tee sheet</Text>
         {!loaded ? null : loadError ? (
-          <ErrorText>Could not load gatherings. Pull to retry.</ErrorText>
+          <ErrorText>Could not load rounds. Pull to retry.</ErrorText>
         ) : happening.length === 0 ? (
-          <Muted>Nothing happening yet. Create the first one.</Muted>
+          <Muted>No rounds on the tee sheet yet. Create the first one.</Muted>
         ) : (
           happening.map(row)
         )}

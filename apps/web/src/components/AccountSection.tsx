@@ -5,7 +5,7 @@ import { api } from '../lib/api.ts';
 import { getSupabase } from '../lib/supabase.ts';
 
 const DELETE_COPY =
-  "Your profile, connections, requests, blocks, and the gatherings you host are deleted, and your photo with them. Your tags are released so anyone can claim them. This can't be undone.";
+  "Your profile, connections, requests, blocks, and the rounds you host are deleted, and your photo with them. Your tags are released so anyone can claim them. This can't be undone.";
 
 /**
  * Profile → Account: sign out, and delete the account behind a second,

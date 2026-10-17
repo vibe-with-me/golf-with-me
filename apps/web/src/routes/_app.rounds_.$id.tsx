@@ -22,9 +22,9 @@ interface Hints {
   starts_at?: string;
 }
 
-export const Route = createFileRoute('/_app/gatherings_/$id')({
+export const Route = createFileRoute('/_app/rounds_/$id')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Gathering — golfwithme' }] }),
+  head: () => ({ meta: [{ title: 'Round — golfwithme' }] }),
   validateSearch: (search): Hints => {
     const hints: Hints = {};
     if (typeof search.title === 'string' && search.title !== '') {
@@ -76,10 +76,10 @@ function JoinCard() {
 
   return (
     <div className="card card--settle">
-      <h1>Join this gathering?</h1>
+      <h1>Join this round?</h1>
       {hint ? <p className="hint">{hint}</p> : null}
       {join === 'unavailable' ? (
-        <p className="hint">This gathering isn't available.</p>
+        <p className="hint">This round isn't available.</p>
       ) : (
         <button
           type="button"
@@ -141,7 +141,7 @@ function GatheringDetail({
     } catch (error) {
       setActionError(
         (error as { code?: string }).code === 'NOT_FOUND'
-          ? "This gathering isn't available."
+          ? "This round isn't available."
           : 'That didn’t go through. Try again.',
       );
     } finally {
@@ -169,7 +169,7 @@ function GatheringDetail({
     try {
       await api.app.gatherings.remove({ id: gathering.id });
       // Replace, so Back does not land on a gathering that no longer exists.
-      navigate({ to: '/gatherings', replace: true });
+      navigate({ to: '/rounds', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -183,7 +183,7 @@ function GatheringDetail({
       await api.app.gatherings.leave({ id: gathering.id });
       // Back to the list (replace, so Back does not return here): the
       // gathering is still visible, but the tab is where it is listed.
-      navigate({ to: '/gatherings', replace: true });
+      navigate({ to: '/rounds', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -237,14 +237,14 @@ function GatheringDetail({
               disabled={busy}
               onClick={() => setMode('confirm-delete')}
             >
-              Delete gathering
+              Delete round
             </button>
           </div>
         ) : null}
         {mode === 'confirm-delete' ? (
           <>
             <p className="bio">
-              Delete this gathering? Members lose it, and tags pointing here fall back to your
+              Delete this round? Members lose it, and tags pointing here fall back to your
               profile.
             </p>
             <div className="row-actions">
@@ -264,7 +264,7 @@ function GatheringDetail({
         ) : null}
         {mode === 'view' && isMember && !isHost ? (
           <button type="button" className="btn btn--quiet" disabled={busy} onClick={leave}>
-            {busy ? 'Leaving…' : 'Leave gathering'}
+            {busy ? 'Leaving…' : 'Leave round'}
           </button>
         ) : null}
         {/* Joining is the consent moment: the accent's job, as on the resolver. */}
@@ -275,7 +275,7 @@ function GatheringDetail({
         ) : null}
       </div>
 
-      <h2 className="section-title">Who's going</h2>
+      <h2 className="section-title">Who's playing</h2>
       <p className="hint">
         {members.length === 0
           ? "You'll see the people you're connected with here."
@@ -335,7 +335,7 @@ function EditForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="edit_starts_at">Starts</label>
+        <label htmlFor="edit_starts_at">Tee time</label>
         <input
           id="edit_starts_at"
           type="datetime-local"
@@ -345,7 +345,7 @@ function EditForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="edit_location">Location (optional)</label>
+        <label htmlFor="edit_location">Meet at (optional)</label>
         <input
           id="edit_location"
           maxLength={160}
@@ -390,7 +390,7 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
   }, [load]);
 
   if (tags === 'loading' || tags === 'failed') return null;
-  if (tags.length === 0) return <p className="hint">Claim a tag to point it at this gathering.</p>;
+  if (tags.length === 0) return <p className="hint">Claim a tag to point it at this round.</p>;
 
   const pointsHere = (tag: Tag) =>
     tag.destination?.type === 'gathering' && tag.destination.gathering_id === gatheringId;
@@ -419,7 +419,7 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
         disabled={busy}
         onClick={() => repoint(elsewhere, { type: 'gathering', gathering_id: gatheringId })}
       >
-        Point my tags at this gathering
+        Point my tags at this round
       </button>
     ) : null;
   const back =

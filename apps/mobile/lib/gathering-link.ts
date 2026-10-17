@@ -28,5 +28,5 @@ export function gatheringHref(id: string, hints: GatheringHints = {}): string {
     const ms = Date.parse(hints.starts_at);
     if (!Number.isNaN(ms)) query.push(`starts_at=${encodeURIComponent(new Date(ms).toISOString())}`);
   }
-  return query.length > 0 ? `/gathering/${id}?${query.join('&')}` : `/gathering/${id}`;
+  return query.length > 0 ? `/round/${id}?${query.join('&')}` : `/round/${id}`;
 }

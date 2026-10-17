@@ -47,7 +47,7 @@ type ScreenState =
  */
 function goBack() {
   if (router.canGoBack()) router.back();
-  else router.dismissTo('/gatherings');
+  else router.dismissTo('/rounds');
 }
 
 export default function GatheringScreen() {
@@ -93,7 +93,7 @@ export default function GatheringScreen() {
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card>
-          <Title>Couldn't load this gathering</Title>
+          <Title>Couldn't load this round</Title>
           <ErrorText>Check your connection and try again.</ErrorText>
           <Button label="Retry" onPress={load} />
           <Button label="Back" kind="quiet" onPress={goBack} />
@@ -109,10 +109,10 @@ export default function GatheringScreen() {
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card settle>
-          <Title>Join this gathering?</Title>
+          <Title>Join this round?</Title>
           {hint ? <Muted>{hint}</Muted> : null}
           {join === 'unavailable' ? (
-            <Muted>This gathering isn't available.</Muted>
+            <Muted>This round isn't available.</Muted>
           ) : (
             <Button
               kind="connect"
@@ -200,7 +200,7 @@ function GatheringDetail({
     } catch (error) {
       setActionError(
         (error as { code?: string }).code === 'NOT_FOUND'
-          ? "This gathering isn't available."
+          ? "This round isn't available."
           : "That didn't go through. Try again.",
       );
     } finally {
@@ -220,7 +220,7 @@ function GatheringDetail({
       if (then === 'list') {
         // Pop back to the tabs if they are below us; on a cold deep link,
         // replace this screen with them. Never stack a second tab shell.
-        router.dismissTo('/gatherings');
+        router.dismissTo('/rounds');
         return;
       }
       await reload();
@@ -234,7 +234,7 @@ function GatheringDetail({
 
   function confirmDelete() {
     Alert.alert(
-      'Delete this gathering?',
+      'Delete this round?',
       'Members lose it, and tags pointing here fall back to your profile.',
       [
         { text: 'Keep', style: 'cancel' },
@@ -287,12 +287,12 @@ function GatheringDetail({
           {!editing && isHost ? (
             <>
               <Button label="Edit" kind="quiet" disabled={busy} onPress={() => setEditing(true)} />
-              <Button label="Delete gathering" kind="quiet" disabled={busy} onPress={confirmDelete} />
+              <Button label="Delete round" kind="quiet" disabled={busy} onPress={confirmDelete} />
             </>
           ) : null}
           {!editing && isMember && !isHost ? (
             <Button
-              label={busy ? 'Leaving…' : 'Leave gathering'}
+              label={busy ? 'Leaving…' : 'Leave round'}
               kind="quiet"
               disabled={busy}
               onPress={() => run(() => api.app.gatherings.leave({ id: gathering.id }), 'list')}
@@ -305,7 +305,7 @@ function GatheringDetail({
           {!editing ? <Button label="Back" kind="quiet" onPress={goBack} /> : null}
         </Card>
 
-        <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's going</Text>
+        <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's playing</Text>
         <Muted>
           {members.length === 0
             ? "You'll see the people you're connected with here."
@@ -351,13 +351,13 @@ function EditFields({
         keyboardType="numbers-and-punctuation"
       />
       <Field
-        label="Time"
+        label="Tee time"
         value={when.time}
         onChangeText={(time) => setWhen((w) => ({ ...w, time }))}
         autoCapitalize="none"
         keyboardType="numbers-and-punctuation"
       />
-      <Field label="Location (optional)" value={location} onChangeText={setLocation} maxLength={160} />
+      <Field label="Meet at (optional)" value={location} onChangeText={setLocation} maxLength={160} />
       {error ? <ErrorText>{error}</ErrorText> : null}
       <Button
         label={busy ? 'Saving…' : 'Save'}
@@ -406,7 +406,7 @@ function TagPointer({ gatheringId, hidden }: { gatheringId: string; hidden: bool
   }, [load]);
 
   if (hidden || tags === 'loading' || tags === 'failed') return null;
-  if (tags.length === 0) return <Muted>Claim a tag to point it at this gathering.</Muted>;
+  if (tags.length === 0) return <Muted>Claim a tag to point it at this round.</Muted>;
 
   const pointsHere = (tag: Tag) =>
     tag.destination?.type === 'gathering' && tag.destination.gathering_id === gatheringId;
@@ -437,7 +437,7 @@ function TagPointer({ gatheringId, hidden }: { gatheringId: string; hidden: bool
       ) : null}
       {elsewhere.length > 0 ? (
         <Button
-          label="Point my tags at this gathering"
+          label="Point my tags at this round"
           disabled={busy}
           onPress={() => repoint(elsewhere, { type: 'gathering', gathering_id: gatheringId })}
         />

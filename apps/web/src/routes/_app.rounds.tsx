@@ -14,9 +14,9 @@ import { goingLine, withLine } from '../lib/going.ts';
  * viewer's connections among the members (docs/the-slice.md). The tap is
  * still how people meet; the list is how they find out where.
  */
-export const Route = createFileRoute('/_app/gatherings')({
+export const Route = createFileRoute('/_app/rounds')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Events — golfwithme' }] }),
+  head: () => ({ meta: [{ title: 'Rounds — golfwithme' }] }),
   loader: async () => {
     const [feed, { gatherings: mine }] = await asSignedInAccount(() =>
       Promise.all([api.app.gatherings.list(), api.app.gatherings.listMine()]),
@@ -97,7 +97,7 @@ function GatheringsPage() {
       // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
       await router.invalidate({ sync: true });
     } catch {
-      setError('Could not create the gathering. Check the fields and try again.');
+      setError('Could not create the round. Check the fields and try again.');
     } finally {
       setBusy(false);
     }
@@ -106,20 +106,20 @@ function GatheringsPage() {
   return (
     <div className="stack">
       <form className="card" onSubmit={create}>
-        <h1>Create a gathering</h1>
+        <h1>Create a round</h1>
         <div className="field">
           <label htmlFor="title">Title</label>
           <input
             id="title"
             required
             maxLength={120}
-            placeholder="e.g. Rooftop listening session"
+            placeholder="e.g. Saturday dawn nine"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
         <div className="field">
-          <label htmlFor="starts_at">Starts</label>
+          <label htmlFor="starts_at">Tee time</label>
           <input
             id="starts_at"
             type="datetime-local"
@@ -129,11 +129,11 @@ function GatheringsPage() {
           />
         </div>
         <div className="field">
-          <label htmlFor="location">Location (optional)</label>
+          <label htmlFor="location">Meet at (optional)</label>
           <input
             id="location"
             maxLength={160}
-            placeholder="Where to find it"
+            placeholder="e.g. the first tee"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
@@ -144,16 +144,16 @@ function GatheringsPage() {
           </p>
         ) : null}
         <button className="btn" type="submit" disabled={busy || !title.trim() || !startsAt}>
-          {busy ? 'Creating…' : 'Create gathering'}
+          {busy ? 'Creating…' : 'Create round'}
         </button>
       </form>
 
       <section aria-labelledby="happening">
         <h2 className="section-title" id="happening">
-          Happening
+          Tee sheet
         </h2>
         {happening.length === 0 ? (
-          <p className="empty">Nothing happening yet. Create the first one.</p>
+          <p className="empty">No rounds on the tee sheet yet. Create the first one.</p>
         ) : (
           happening.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
         )}
@@ -209,7 +209,7 @@ function GatheringRow({
     viewerId !== null && gathering.host_id === viewerId
       ? 'Hosting'
       : gathering.is_member
-        ? 'Going'
+        ? 'Playing'
         : null;
   const line = [mark, whenAndWhere(gathering), goingLine(gathering.member_count)]
     .filter(Boolean)
@@ -223,7 +223,7 @@ function GatheringRow({
         {names ? <span className="sub">{names}</span> : null}
       </div>
       <div className="row-actions">
-        <Link className="btn btn--quiet" to="/gatherings/$id" params={{ id: gathering.id }}>
+        <Link className="btn btn--quiet" to="/rounds/$id" params={{ id: gathering.id }}>
           Open
         </Link>
       </div>

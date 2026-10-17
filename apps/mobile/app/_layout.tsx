@@ -59,7 +59,7 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="gathering/[id]" />
+          <Stack.Screen name="round/[id]" />
           <Stack.Screen name="claim/[uid]" />
         </Stack.Protected>
       </Stack>

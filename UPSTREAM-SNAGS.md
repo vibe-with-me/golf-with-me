@@ -135,3 +135,25 @@ nothing here was fixed in the starter from inside this fork.
     `@expovibes/golfwithme` project is left for the owner to delete.
     Suggest: step 5 sets `owner` to the fork's Expo account instead of
     deleting it.
+
+13. **The RLS suite leaves its fixtures in the dev database.** After
+    `bun run test`, the demo's Events feed lists "Tee time", "Open house"
+    and a stack of "Rooftop listening session" rows hosted by test users
+    (Alice, Host). Running the gate means the next visual check runs on a
+    noisy feed. *Did instead:* `bun run db:reset && bun run db:seed` before
+    each visual check. Suggest: say so where the skills end with "gate,
+    then the visual check".
+
+## Step 3: `customize-gathering`
+
+14. **Relabelled form fields slip past §1's sweeps.** §1 lists the vertical
+    labels to rewrite ("Location (optional)", "Starts", "Time") but its
+    Playwright guidance only greps for "gathering", "Events" and
+    `getByLabel(` ambiguity. `gatherings.spec.ts` fills
+    `getByLabel('Location (optional)')`, so a relabel times the spec out
+    after 90s. *Did instead:* updated the selector. Suggest: "for every
+    label you change, `grep -rn \"getByLabel('<old label>')\" apps/web/e2e`".
+
+15. **The Playwright smoke needs the service-role key too**, the same as
+    snag 2: `bunx playwright test` finds no tests until
+    `SUPABASE_SERVICE_ROLE_KEY` is exported. §1's checkpoint doesn't say so.
