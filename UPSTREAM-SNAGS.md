@@ -254,3 +254,37 @@ nothing here was fixed in the starter from inside this fork.
     open. Neither is new in this fork; both were declined on PR #5 with
     that reason. Suggest: decide upstream (re-check the gate on focus;
     reload Profile with `useFocusEffect`) so forks stop re-litigating them.
+
+## Starter sync: #67, #69, #70, #71 into the fork
+
+Followed `docs/staying-current.md` "Taking an update" literally. It worked:
+six conflicts, all in the table's predicted places (tokens, the wordmark,
+README, a screen the fork extended), git followed the renamed round screens
+on its own, no migrations arrived, and the new prettier step in `db:types`
+left `supabase.ts` differing from upstream only by the fork's columns.
+
+28. **A new starter test can encode a path the fork renamed, with no
+    conflict to warn you.** `apps/mobile/lib/gathering-link.test.ts`
+    (#70/#71) asserts `/gathering/g1…`; after customize-gathering's URL step
+    the fork builds `/round/…`, so the merge is clean and `bun run test`
+    fails. *Did instead:* changed the test's paths to `/round/` and added a
+    course-hint case. Suggest: list the test beside `lib/gathering-link.ts`
+    in customize-gathering's URL step, and in staying-current's conflict
+    table ("route files and nouns") note that tests can carry the old path.
+
+29. **Merging the starter's displaySize means deleting your own.** A fork
+    that followed snag 7's workaround has its own `displaySize` export in
+    `tokens.ts`; the starter's lands elsewhere in the file without a
+    conflict, so the file briefly has two (`tsc` catches it). Minor, and
+    only for forks that predate the fix.
+
+30. **A sync PR must not be squash-merged, and the doc doesn't say so.**
+    staying-current says "merge it through a PR so CI runs" but not *how*.
+    A fork that squash-merges every PR (as this one does, and as the
+    starter itself does) loses the merge commit's upstream parent: the
+    starter's commits never become ancestors of `main`, so the next sync
+    finds the old merge base and re-raises every conflict already resolved.
+    *Did instead:* asked the owner to merge the sync PR with a merge commit
+    (enable "Allow merge commits" for it, or merge locally and push).
+    Suggest: a line in step 6 ("merge, don't squash, the sync PR; check
+    with `git merge-base --is-ancestor upstream/main main` afterwards").

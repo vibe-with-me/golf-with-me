@@ -3,8 +3,9 @@ import { useColorScheme } from 'react-native';
 /**
  * Design tokens — the mobile mirror of apps/web/src/styles/tokens.css.
  * Same dormant-seam logic: V2 theming is a token swap, not a redesign.
- * Near-monochrome scorecard neutrals (graphite on card stock) with EXACTLY ONE vivid accent, reserved
- * for the handshake pair (Connect and Accept).
+ * Near-monochrome scorecard neutrals (graphite on card stock) with EXACTLY ONE
+ * vivid accent, reserved for the primary action of a screen (Connect, Accept,
+ * Claim tag, Join, Read NFC tag): `kind="connect"` on Button, and nothing else.
  */
 export interface Tokens {
   bg: string;
@@ -103,6 +104,16 @@ export const fonts = {
   bodySemiBold: 'IBMPlexSans_600SemiBold',
 } as const;
 
+/**
+ * Display sizes (pt): the mobile mirror of --text-title and --text-lg in
+ * tokens.css, which only display text uses. `title` is the card name and
+ * page title (web's 2rem runs a step larger, 32px); `section` is a section
+ * header and `wordmark` the header wordmark (both --text-lg). A display face
+ * that sets small raises these here and the two web tokens together.
+ */
+// Caveat sets small: raised with --text-title (2.5rem) and --text-lg (1.5rem).
+export const displaySize = { title: 38, section: 24, wordmark: 24 } as const;
+
 export const radius = {
   card: 24,
   control: 14,
@@ -124,11 +135,3 @@ export const TAP_TARGET = 44;
 
 /** Mirror of --shell-nav-height in tokens.css. The tab bar keeps React Navigation's default height. */
 export const SHELL = { headerHeight: 56 } as const;
-
-/**
- * Display sizes: the mobile mirror of --text-title and --text-lg in tokens.css,
- * which only display text uses (names, titles, section headers, the header
- * wordmark). The display face (Caveat) sets small, so both run larger than a
- * grotesk would need.
- */
-export const displaySize = { title: 38, section: 24, wordmark: 24 } as const;

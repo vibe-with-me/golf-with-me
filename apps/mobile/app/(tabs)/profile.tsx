@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { AccountSection } from '../../components/AccountSection';
 import { AvatarPicker } from '../../components/AvatarPicker';
@@ -28,28 +28,66 @@ export default function ProfileScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  // Unsaved typing survives a focus reload: the reload refreshes the form
+  // only while it holds no edits. `draft` counts edits, so a save clears the
+  // flag only if nothing was typed while it was in flight.
+  const draft = useRef({ dirty: false, revision: 0 });
+  const edit = (set: (value: string) => void) => (value: string) => {
+    draft.current = { dirty: true, revision: draft.current.revision + 1 };
+    set(value);
+  };
+
+  // Each load gets a generation; only the latest may touch state, so a slow
+  // answer from an earlier focus never lands over a newer one.
+  const loadGeneration = useRef(0);
+  const load = useCallback(() => {
+    const generation = ++loadGeneration.current;
     setLoadFailed(false);
     api.app.profile
       .get()
       .then(({ profile }: { profile: Profile | null }) => {
+        if (generation !== loadGeneration.current) return;
+        const keepDraft = draft.current.dirty;
         if (profile) {
           setExists(true);
-          setDisplayName(profile.display_name);
-          setBio(profile.bio ?? '');
-          setHandicap(profile.handicap === null ? '' : formatHandicap(profile.handicap));
-          setHomeCourse(profile.home_course ?? '');
+          if (!keepDraft) {
+            setDisplayName(profile.display_name);
+            setBio(profile.bio ?? '');
+            setHandicap(profile.handicap === null ? '' : formatHandicap(profile.handicap));
+            setHomeCourse(profile.home_course ?? '');
+          }
           setAvatarPath(profile.avatar_path);
           setCurrent(profile);
+        } else {
+          setExists(false);
+          setCurrent(null);
+          if (!keepDraft) {
+            setDisplayName('');
+            setBio('');
+            setHandicap('');
+            setHomeCourse('');
+          }
+          setAvatarPath(null);
         }
         setLoaded(true);
       })
       // A failed load must NOT render the blank create form: saving it
       // would silently overwrite the existing profile.
-      .catch(() => setLoadFailed(true));
-  };
-  // oxlint-disable-next-line exhaustive-deps
-  useEffect(load, []);
+      .catch(() => {
+        if (generation === loadGeneration.current) setLoadFailed(true);
+      });
+  }, []);
+  // On every focus, not once: a tab stays mounted, so a load on mount alone
+  // would keep showing (and the next Save would write back) values changed
+  // since on another device. Web's loader re-reads on every visit the same way.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      return () => {
+        loadGeneration.current += 1;
+      };
+    }, [load]),
+  );
 
   async function save() {
     // Parse first: an undefined key would be dropped by the input schema and
@@ -65,12 +103,14 @@ export default function ProfileScreen() {
     setStatus(null);
     setError(null);
     try {
+      const revision = draft.current.revision;
       const saved = await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
         handicap: parsedHandicap,
         home_course: homeCourse.trim() === '' ? null : homeCourse.trim(),
       });
+      if (draft.current.revision === revision) draft.current = { dirty: false, revision };
       setCurrent(saved.profile);
       setHandicap(saved.profile.handicap === null ? '' : formatHandicap(saved.profile.handicap));
       const redirect = safeRedirect(params.redirect);
@@ -129,11 +169,11 @@ export default function ProfileScreen() {
               onChange={(profile) => setAvatarPath(profile.avatar_path)}
             />
           ) : null}
-          <Field label="Name" value={displayName} onChangeText={setDisplayName} maxLength={80} />
+          <Field label="Name" value={displayName} onChangeText={edit(setDisplayName)} maxLength={80} />
           <Field
             label="Bio"
             value={bio}
-            onChangeText={setBio}
+            onChangeText={edit(setBio)}
             maxLength={280}
             multiline
             placeholder="A line or two about you"
@@ -141,7 +181,7 @@ export default function ProfileScreen() {
           <Field
             label="Handicap"
             value={handicap}
-            onChangeText={setHandicap}
+            onChangeText={edit(setHandicap)}
             maxLength={5}
             autoCapitalize="none"
             keyboardType="numbers-and-punctuation"
@@ -153,7 +193,7 @@ export default function ProfileScreen() {
           <Field
             label="Home course"
             value={homeCourse}
-            onChangeText={setHomeCourse}
+            onChangeText={edit(setHomeCourse)}
             maxLength={80}
             placeholder="e.g. Riverside Muni"
           />
