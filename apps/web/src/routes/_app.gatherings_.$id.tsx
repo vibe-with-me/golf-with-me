@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
 import { GatheringMeta } from '../components/GatheringMeta.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
+import { ReportButton, reportThanks } from '../components/ReportDialog.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { cardLine } from '../lib/card-line.ts';
@@ -125,7 +126,10 @@ function GatheringDetail({
 }) {
   const navigate = useNavigate();
   const router = useRouter();
-  const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view');
+  const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete' | 'confirm-block'>('view');
+  // Set after a report; a report that also blocked hides the gathering, so
+  // the page then shows only the thanks and the way back.
+  const [reported, setReported] = useState<null | { blocked: boolean }>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -178,6 +182,20 @@ function GatheringDetail({
     }
   }
 
+  async function blockHost() {
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.app.blocks.block({ user_id: gathering.host_id });
+      // The gathering is hidden from a blocker: back to the list (replace,
+      // so Back does not return to a gathering that is now NOT_FOUND).
+      navigate({ to: '/gatherings', replace: true });
+    } catch {
+      setActionError('That didn’t go through. Try again.');
+      setBusy(false);
+    }
+  }
+
   async function leave() {
     setBusy(true);
     setActionError(null);
@@ -190,6 +208,25 @@ function GatheringDetail({
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
     }
+  }
+
+  // A report that also blocked hides the gathering from the viewer, as Block
+  // host does: what is left is the thanks and the way back.
+  if (reported?.blocked) {
+    return (
+      <div className="card card--settle">
+        <p className="hint" role="status">
+          {reportThanks('the host', true)}
+        </p>
+        <button
+          type="button"
+          className="btn btn--quiet"
+          onClick={() => navigate({ to: '/gatherings', replace: true })}
+        >
+          Back to gatherings
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -276,6 +313,55 @@ function GatheringDetail({
           <button type="button" className="btn btn--connect" disabled={busy} onClick={join}>
             {busy ? 'Joining…' : 'Join'}
           </button>
+        ) : null}
+        {/* Report and Block (Guideline 1.2): everyone sees a gathering, so
+            anyone but the host can report it or block the person behind it. */}
+        {reported ? (
+          <p className="hint" role="status">
+            {reportThanks('the host', false)}
+          </p>
+        ) : null}
+        {/* After a report, Report goes; Block host stays (one that blocked returned above). */}
+        {mode === 'view' && !isHost ? (
+          <div className="row-actions">
+            {reported ? null : (
+              <ReportButton
+                profileId={gathering.host_id}
+                gatheringId={gathering.id}
+                name="the host"
+                onDone={(blocked) => setReported({ blocked })}
+              />
+            )}
+            <button
+              type="button"
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={() => setMode('confirm-block')}
+            >
+              Block host
+            </button>
+          </div>
+        ) : null}
+        {mode === 'confirm-block' ? (
+          <>
+            <p className="bio">
+              Block the host? This gathering and any they host disappear for you, and they aren’t
+              told. You can undo it in Connections → Blocked.
+            </p>
+            <div className="row-actions">
+              <button type="button" className="btn" disabled={busy} onClick={blockHost}>
+                {busy ? 'Blocking…' : 'Block'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--quiet"
+                disabled={busy}
+                onClick={() => setMode('view')}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
         ) : null}
       </div>
 

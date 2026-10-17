@@ -115,8 +115,9 @@ cannot join, in either direction.
 
 ## Reports are private
 
-**The promise.** You can report anyone whose card you see, and block them
-in the same step. Only the people who run the app read reports. The person
+**The promise.** You can report anyone whose card you see, and any
+gathering you can see (the report is filed against its host), and block
+them in the same step. Only the people who run the app read reports. The person
 you reported never learns of it, you cannot read your report back, and
 nothing about a report is ever public. Reporting is not a way to find out
 whether someone exists.
@@ -135,6 +136,13 @@ inside the function, as `claim_tag`'s is. Its block option inserts the same
 block row Block does, with `reveals_card` decided by the same
 `private.sees_card` rule. Each report keeps a snapshot of the card as it
 was, so editing a name afterwards does not erase what was reported.
+
+`report_gathering` is the second way in, with the same guarantees: it
+checks the reason and text first, answers a gathering you cannot see
+exactly like a stored report, shares `report_user`'s ledger, and blocks
+by the same `private.sees_card` rule. It files the row against the host,
+with `gathering_id` and the gathering (title, start, location) in the
+snapshot.
 
 **Account deletion.** Reports you filed are **anonymised**, not deleted:
 the reporter column is cleared, and the reason, your words and the
