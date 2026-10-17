@@ -17,7 +17,11 @@ import {
   PublicProfileSchema,
   UpdateProfileInputSchema,
 } from '../schemas/profile.ts';
+import { RegisterPushTokenInputSchema, UnregisterPushTokenInputSchema } from '../schemas/push.ts';
+import { CreateReportInputSchema } from '../schemas/report.ts';
+import { ShareCodeSchema } from '../schemas/share-code.ts';
 import { TagSchema, UpdateMyTagInputSchema } from '../schemas/tag.ts';
+import { AcceptTermsInputSchema } from '../schemas/terms.ts';
 
 const getProfile = oc
   .route({ method: 'GET', path: '/me/profile', tags: ['Profile'] })
@@ -26,6 +30,14 @@ const getProfile = oc
 const updateProfile = oc
   .route({ method: 'PATCH', path: '/me/profile', tags: ['Profile'] })
   .input(UpdateProfileInputSchema)
+  .output(z.object({ profile: ProfileSchema }));
+
+const acceptTerms = oc
+  .route({ method: 'POST', path: '/me/terms', tags: ['Profile'] })
+  .input(AcceptTermsInputSchema)
+  // Agree to the current terms (the re-ask screen after TERMS_VERSION
+  // changes). The database stamps terms_accepted_at. Without a profile,
+  // BAD_REQUEST: creating one carries terms_version itself.
   .output(z.object({ profile: ProfileSchema }));
 
 const uploadAvatar = oc
@@ -113,6 +125,15 @@ const listBlocks = oc
     }),
   );
 
+const createReport = oc
+  .route({ method: 'POST', path: '/reports', tags: ['Reports'] })
+  .input(CreateReportInputSchema)
+  // A bare ack whatever the id: an id that is not a person in your domain
+  // answers exactly like a stored report (no existence oracle). Reports are
+  // read by the operator only, never by you or the person reported. 10 per
+  // rolling day, then TOO_MANY_REQUESTS. `block: true` also blocks them.
+  .output(z.object({ ok: z.literal(true) }));
+
 const createGathering = oc
   .route({ method: 'POST', path: '/gatherings', tags: ['Gatherings'] })
   .input(CreateGatheringInputSchema)
@@ -181,11 +202,38 @@ const updateMyTag = oc
   // Not yours and nonexistent are the same NOT_FOUND.
   .output(z.object({ tag: TagSchema }));
 
+// Your code: the tab bar's raised button. A QR-only tag claimed to the caller.
+// get mints it on first use: idempotent, but NOT side-effect free, so
+// never cache, prefetch or preload it. replace retires it and mints a new
+// one, so every copy of the old code opens an inactive tag.
+const getMyShareCode = oc
+  .route({ method: 'GET', path: '/me/share-code', tags: ['Tags'] })
+  .output(ShareCodeSchema);
+
+const replaceMyShareCode = oc
+  .route({ method: 'POST', path: '/me/share-code/replace', tags: ['Tags'] })
+  .output(ShareCodeSchema);
+
+// Push: this device's token, for the three transactional pushes (a request
+// to you, yours accepted, people joined your gathering). Owner-only.
+const registerPushToken = oc
+  .route({ method: 'PUT', path: '/me/push-tokens', tags: ['Push'] })
+  .input(RegisterPushTokenInputSchema)
+  // Registers or refreshes; a token another account held moves to you.
+  .output(z.object({ ok: z.literal(true) }));
+
+const unregisterPushToken = oc
+  .route({ method: 'DELETE', path: '/me/push-tokens', tags: ['Push'] })
+  .input(UnregisterPushTokenInputSchema)
+  // Turning pushes off, and signing out. Not yours is the same ok.
+  .output(z.object({ ok: z.literal(true) }));
+
 /** Session-scoped surface — every procedure requires a verified Supabase JWT. */
 export const appContract = {
   profile: {
     get: getProfile,
     update: updateProfile,
+    acceptTerms,
     uploadAvatar,
     removeAvatar,
     deleteAccount,
@@ -199,6 +247,7 @@ export const appContract = {
   },
   connections: { list: listConnections, remove: removeConnection },
   blocks: { block, unblock, list: listBlocks },
+  reports: { create: createReport },
   gatherings: {
     create: createGathering,
     get: getGathering,
@@ -210,4 +259,6 @@ export const appContract = {
     remove: removeGathering,
   },
   tags: { listMine: listMyTags, update: updateMyTag },
+  shareCode: { get: getMyShareCode, replace: replaceMyShareCode },
+  push: { register: registerPushToken, unregister: unregisterPushToken },
 };

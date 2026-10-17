@@ -2,6 +2,7 @@ import { ORPCError } from '@orpc/server';
 import { GATHERINGS_PAGE_SIZE } from '@withme/contract';
 import type { Connection, Gathering, Profile, ProfileLink, Tag } from '@withme/contract';
 import {
+  acceptOwnTerms,
   blockUser,
   decodeFeedCursor,
   deleteGathering,
@@ -19,11 +20,14 @@ import {
   listOwnLinks,
   listOwnTags,
   listPendingRequests,
+  registerPushToken,
   removeAvatarObjects,
   removeConnection,
   replaceOwnLinks,
+  reportUser,
   setOwnAvatarPath,
   unblockUser,
+  unregisterPushToken,
   updateGathering,
   updateOwnTag,
   uploadAvatarObject,
@@ -103,6 +107,15 @@ const getProfile = appProcedure.profile.get.handler(async ({ context }) => {
 const updateProfile = appProcedure.profile.update.handler(async ({ input, context }) => {
   const { userId } = context;
   const profile = await run(context, () => upsertOwnProfile(context.db, userId, input));
+  return { profile: profile as Profile };
+});
+
+const profileAcceptTerms = appProcedure.profile.acceptTerms.handler(async ({ input, context }) => {
+  const { userId } = context;
+  const profile = await run(context, () => acceptOwnTerms(context.db, userId, input.version));
+  // No profile yet: creating one carries terms_version itself.
+  if (!profile) throw new ORPCError('BAD_REQUEST', { message: 'Profile required' });
+  context.logger.info('terms accepted');
   return { profile: profile as Profile };
 });
 
@@ -248,6 +261,14 @@ const blocksList = appProcedure.blocks.list.handler(async ({ context }) => {
   return { blocks };
 });
 
+const reportsCreate = appProcedure.reports.create.handler(async ({ input, context }) => {
+  await run(context, () => reportUser(context.db, input));
+  // Ids, names and the reason stay out of the log: the report itself is
+  // the record, and it is the operator's alone (docs/moderation.md).
+  context.logger.info('report filed');
+  return { ok: true as const };
+});
+
 const gatheringsCreate = appProcedure.gatherings.create.handler(async ({ input, context }) => {
   const { data, error } = await context.db.rpc('create_gathering', {
     p_title: input.title,
@@ -338,10 +359,36 @@ const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) =
   return { tag: tag as Tag };
 });
 
+// Your code. Both RPCs act on the caller only and take no uid, so neither
+// can be pointed at someone else's row.
+const shareCodeGet = appProcedure.shareCode.get.handler(async ({ context }) => {
+  const { data, error } = await context.db.rpc('my_share_code');
+  if (error) throwFromDbError(error, context.logger);
+  return { uid: data };
+});
+
+const shareCodeReplace = appProcedure.shareCode.replace.handler(async ({ context }) => {
+  const { data, error } = await context.db.rpc('replace_my_share_code');
+  if (error) throwFromDbError(error, context.logger);
+  context.logger.info('share code replaced');
+  return { uid: data };
+});
+
+const pushRegister = appProcedure.push.register.handler(async ({ input, context }) => {
+  await run(context, () => registerPushToken(context.db, input.token, input.platform));
+  return { ok: true as const };
+});
+
+const pushUnregister = appProcedure.push.unregister.handler(async ({ input, context }) => {
+  await run(context, () => unregisterPushToken(context.db, input.token));
+  return { ok: true as const };
+});
+
 export const appRouter = {
   profile: {
     get: getProfile,
     update: updateProfile,
+    acceptTerms: profileAcceptTerms,
     uploadAvatar: profileUploadAvatar,
     removeAvatar: profileRemoveAvatar,
     deleteAccount: profileDeleteAccount,
@@ -355,6 +402,7 @@ export const appRouter = {
   },
   connections: { list: connectionsList, remove: connectionsRemove },
   blocks: { block, unblock, list: blocksList },
+  reports: { create: reportsCreate },
   gatherings: {
     create: gatheringsCreate,
     get: gatheringsGet,
@@ -366,4 +414,6 @@ export const appRouter = {
     remove: gatheringsRemove,
   },
   tags: { listMine: tagsListMine, update: tagsUpdate },
+  shareCode: { get: shareCodeGet, replace: shareCodeReplace },
+  push: { register: pushRegister, unregister: pushUnregister },
 };

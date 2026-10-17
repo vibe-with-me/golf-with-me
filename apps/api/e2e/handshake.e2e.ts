@@ -102,6 +102,8 @@ for (const [label, call] of [
   ['gatherings.list', () => anonApp.gatherings.list()],
   ['requests.send', () => anonApp.requests.send({ recipient_id: alice.id })],
   ['links.replace', () => anonApp.links.replace({ links: [] })],
+  ['shareCode.get', () => anonApp.shareCode.get()],
+  ['shareCode.replace', () => anonApp.shareCode.replace()],
 ] as const) {
   const code = await call().then(
     () => 'succeeded',
@@ -462,7 +464,86 @@ const release = await aliceApp.tags
   .then(() => 'updated', codeOf);
 assert(release === 'BAD_REQUEST', `an owner cannot release a tag (got ${release})`);
 
-// 20. account deletion: pointer cleared, files swept (Storage API, own JWT), then the definer RPC
+// 19a. terms: a profile is created only with the agreement; a version bump is agreed to again
+const { TERMS_VERSION } = await import('@withme/contract');
+const newcomerEmail = `${crypto.randomUUID()}@rls.test`;
+await admin.auth.admin.createUser({ email: newcomerEmail, password: 'e2e-password-1!', email_confirm: true });
+const { anonClient } = await import('@withme/db/test-utils');
+const newcomer = anonClient();
+await newcomer.auth.signInWithPassword({ email: newcomerEmail, password: 'e2e-password-1!' });
+const newcomerApp = appClientFor((await newcomer.auth.getSession()).data.session?.access_token ?? '');
+const noTerms = await newcomerApp.profile.update({ display_name: 'E2E Newcomer' }).then(() => 'created', codeOf);
+assert(noTerms === 'BAD_REQUEST', `a profile without the terms agreement is refused (got ${noTerms})`);
+const newcomerCreated = await newcomerApp.profile.update({ display_name: 'E2E Newcomer', terms_version: TERMS_VERSION });
+assert(newcomerCreated.profile.terms_version === TERMS_VERSION, 'creating with the agreement records the version');
+assert(newcomerCreated.profile.terms_accepted_at !== null, 'and the database stamps the time');
+await admin.from('profiles').update({ terms_version: 'e2e-old' }).eq('id', newcomerCreated.profile.id);
+const reaccepted = await newcomerApp.profile.acceptTerms({ version: TERMS_VERSION });
+assert(reaccepted.profile.terms_version === TERMS_VERSION, 'acceptTerms records the current version');
+
+// 19b. reports: stored for the operator only, the same ack for an id that is not a person
+const reportedBefore = await admin.from('reports').select('id').eq('reported_id', alice.id);
+const reportAck = await bobApp.reports.create({ reported_id: alice.id, reason: 'spam', details: 'e2e' });
+assert(reportAck.ok, 'report acks');
+const reportedAfter = await admin.from('reports').select('id').eq('reported_id', alice.id);
+assert(
+  (reportedAfter.data?.length ?? 0) === (reportedBefore.data?.length ?? 0) + 1,
+  'the report is stored for the operator',
+);
+const ghostAck = await bobApp.reports.create({ reported_id: crypto.randomUUID(), reason: 'spam' });
+assert(JSON.stringify(ghostAck) === JSON.stringify(reportAck), 'an unknown id gets the same ack');
+const anonReport = await anonApp.reports
+  .create({ reported_id: alice.id, reason: 'spam' })
+  .then(() => 'stored', codeOf);
+assert(anonReport === 'UNAUTHORIZED', `anon cannot report (got ${anonReport})`);
+const selfReport = await bobApp.reports.create({ reported_id: bob.id, reason: 'spam' }).then(() => 'stored', codeOf);
+assert(selfReport === 'BAD_REQUEST', `reporting yourself is refused (got ${selfReport})`);
+
+// 19c. share code: the same resolver, a scan logged as qr, and replacing it retires the old one
+const code = await bobApp.shareCode.get();
+assert((await bobApp.shareCode.get()).uid === code.uid, 'shareCode.get is stable');
+const byCode = await anon.resolve(code.uid);
+assert(
+  byCode.status === 'claimed' && byCode.profile.display_name === 'E2E Bob',
+  'a share code resolves to its owner’s card',
+);
+// The published SDK sends no method; the database knows a share code is a QR scan.
+await anon.logScan(code.uid, 'e2e-camera');
+const { data: codeScans } = await admin.from('tag_scans').select('scan_method').eq('tag_uid', code.uid);
+assert(codeScans?.[0]?.scan_method === 'qr', `a share-code scan is logged as qr (got ${codeScans?.[0]?.scan_method})`);
+assert(
+  !(await bobApp.tags.listMine()).tags.some((t) => t.uid === code.uid),
+  'the share code is not one of My tags',
+);
+const replacedCode = await bobApp.shareCode.replace();
+assert(replacedCode.uid !== code.uid, 'shareCode.replace mints a new code');
+const retired = await anon.resolve(code.uid);
+assert(retired.status === 'disabled', `the old code is inactive (got ${retired.status})`);
+
+// 20. push: this device's token, owner-only. A fresh user who receives
+// nothing afterwards, so no push is ever attempted for the fake token.
+const dave = await createTestUser('E2E Dave');
+const { data: daveSession } = await dave.client.auth.getSession();
+const daveApp = appClientFor(daveSession.session?.access_token ?? '');
+const daveToken = `ExponentPushToken[e2e${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}]`;
+assert((await daveApp.push.register({ token: daveToken, platform: 'ios' })).ok, 'push.register acks');
+const daveTokens = async () =>
+  ((await dave.client.from('push_tokens').select('token')).data ?? []).map((r) => r.token);
+assert((await daveTokens()).includes(daveToken), 'the token is stored for its owner');
+const notAToken = await daveApp.push
+  .register({ token: 'https://example.com/hook', platform: 'ios' })
+  .then(() => 'registered', codeOf);
+assert(notAToken === 'BAD_REQUEST', `only an Expo token registers (got ${notAToken})`);
+assert((await bobApp.push.unregister({ token: daveToken })).ok, "someone else's token: same ack");
+assert((await daveTokens()).includes(daveToken), '...and it is untouched');
+await daveApp.push.unregister({ token: daveToken });
+assert((await daveTokens()).length === 0, 'push.unregister forgets it');
+const anonPush = await anonApp.push
+  .register({ token: daveToken, platform: 'ios' })
+  .then(() => 'registered', codeOf);
+assert(anonPush === 'UNAUTHORIZED', `anonymous cannot register (got ${anonPush})`);
+
+// 21. account deletion: pointer cleared, files swept (Storage API, own JWT), then the definer RPC
 const carol = await createTestUser('E2E Carol');
 const { data: carolSession } = await carol.client.auth.getSession();
 const carolToken = carolSession.session?.access_token ?? '';

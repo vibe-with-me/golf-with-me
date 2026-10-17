@@ -17,6 +17,8 @@ import { Route as AppConnectionsRouteImport } from './routes/_app.connections'
 import { Route as AppMerchRouteImport } from './routes/_app.merch'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppRoundsRouteImport } from './routes/_app.rounds'
+import { Route as AppShareRouteImport } from './routes/_app.share'
+import { Route as AppTermsRouteImport } from './routes/_app.terms'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
 import { Route as TUidRouteImport } from './routes/t.$uid'
@@ -61,6 +63,16 @@ const AppRoundsRoute = AppRoundsRouteImport.update({
   path: '/rounds',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShareRoute = AppShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTermsRoute = AppTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => AppRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -90,6 +102,8 @@ export interface FileRoutesByFullPath {
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/rounds': typeof AppRoundsRoute
+  '/share': typeof AppShareRoute
+  '/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
@@ -103,6 +117,8 @@ export interface FileRoutesByTo {
   '/merch': typeof AppMerchRoute
   '/profile': typeof AppProfileRoute
   '/rounds': typeof AppRoundsRoute
+  '/share': typeof AppShareRoute
+  '/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
@@ -118,6 +134,8 @@ export interface FileRoutesById {
   '/_app/merch': typeof AppMerchRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/rounds': typeof AppRoundsRoute
+  '/_app/share': typeof AppShareRoute
+  '/_app/terms': typeof AppTermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
@@ -133,6 +151,8 @@ export interface FileRouteTypes {
     | '/merch'
     | '/profile'
     | '/rounds'
+    | '/share'
+    | '/terms'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
@@ -146,6 +166,8 @@ export interface FileRouteTypes {
     | '/merch'
     | '/profile'
     | '/rounds'
+    | '/share'
+    | '/terms'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
@@ -160,6 +182,8 @@ export interface FileRouteTypes {
     | '/_app/merch'
     | '/_app/profile'
     | '/_app/rounds'
+    | '/_app/share'
+    | '/_app/terms'
     | '/auth/callback'
     | '/claim/$uid'
     | '/t/$uid'
@@ -234,6 +258,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRoundsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/share': {
+      id: '/_app/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof AppShareRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/terms': {
+      id: '/_app/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof AppTermsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -270,6 +308,8 @@ interface AppRouteChildren {
   AppMerchRoute: typeof AppMerchRoute
   AppProfileRoute: typeof AppProfileRoute
   AppRoundsRoute: typeof AppRoundsRoute
+  AppShareRoute: typeof AppShareRoute
+  AppTermsRoute: typeof AppTermsRoute
   AppRoundsIdRoute: typeof AppRoundsIdRoute
 }
 
@@ -278,6 +318,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppMerchRoute: AppMerchRoute,
   AppProfileRoute: AppProfileRoute,
   AppRoundsRoute: AppRoundsRoute,
+  AppShareRoute: AppShareRoute,
+  AppTermsRoute: AppTermsRoute,
   AppRoundsIdRoute: AppRoundsIdRoute,
 }
 

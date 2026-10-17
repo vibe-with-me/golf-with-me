@@ -111,6 +111,76 @@ blocked and a joiner who has blocked the host, with the same "gathering
 not found" as for a missing id: a gathering you cannot see is one you
 cannot join, in either direction.
 
+## Reports are private
+
+**The promise.** You can report anyone whose card you see, and block them
+in the same step. Only the people who run the app read reports. The person
+you reported never learns of it, you cannot read your report back, and
+nothing about a report is ever public. Reporting is not a way to find out
+whether someone exists.
+
+**How.** `public.reports` has row-level security on, no policies, and every
+privilege revoked from anon and authenticated, so only the service role
+reads it. Reports enter through `report_user`, a security-definer function.
+It answers an id that is not a person in the tenant exactly as it answers a
+real one (nothing is stored), so it is not an existence oracle. It counts
+attempts in a private ledger, 10 per rolling day, before it looks the id
+up: the publishable key reaches PostgREST directly, so the limit has to be
+inside the function, as `claim_tag`'s is. Its block option inserts the same
+block row Block does, with `reveals_card` decided by the same
+`private.sees_card` rule. Each report keeps a snapshot of the card as it
+was, so editing a name afterwards does not erase what was reported.
+
+**Account deletion.** Reports you filed are **anonymised**, not deleted:
+the reporter column is cleared, and the reason, your words and the
+snapshot stay. Victims often leave first, and a report about someone
+abusive should not disappear when they do. Reports **about** you are kept
+for **90 days** after you delete your account (the link to your account is
+cleared; the reason, the reporter's words and the snapshot of your card
+stay), then deleted. Otherwise deleting an account would erase every
+report against it before anyone read them. The basis is legitimate
+interest: acting on abuse, recognising someone who returns, and answering
+the authorities. The purge runs lazily, as request expiry does (the stack
+has no background jobs): every new report, every account deletion, and
+the operator's daily "Open reports" query (`docs/moderation.md`) first
+delete the rows past their window. Your report ledger is cleared by `delete_my_account`.
+
+**Notification.** The `report_webhook_url` row of `private.settings` holds
+one optional webhook URL, unset by default. When it is set, each new report POSTs the report's id
+and nothing else (no names, no reason, no text) through pg_net, so the
+operator learns a report exists and reads it in Studio.
+
+**The test.** `packages/db/test/reports.test.ts`, and the report steps in
+`apps/api/e2e/handshake.e2e.ts` and `apps/web/e2e/reports.spec.ts`.
+
+**What this means for a fork.** A fork that ships to the stores must act
+on reports, within 24 hours for Apple: [moderation.md](moderation.md) is
+the operator's side. Never add a way for a reporter or the reported person
+to read reports, or a count of reports anywhere a user can see it. A fork
+that must keep evidence longer (child safety, legal holds) changes the
+`reported_id` cascade on purpose and says so here.
+
+## Terms are agreed to, and recorded
+
+**The promise.** Nobody gets a profile without agreeing to the fork's terms
+of use and privacy policy, and when the terms change, everyone is asked
+again before the app opens.
+
+**How.** `profiles.terms_version` and `profiles.terms_accepted_at` record
+which version you agreed to and when. The `profiles_insert` policy refuses
+a profile without a version, and a trigger stamps `terms_accepted_at`
+itself whenever the version changes, so no client can backdate it. The
+current version is `TERMS_VERSION` in `packages/contract`; the web shell
+and the mobile root layout send a profile on any other version to the
+re-ask screen. That gate is in the apps, not the database: it records an
+agreement rather than protecting anyone, and a direct API caller already
+agreed once, at sign-up, which the database enforces. The two columns
+are on `profiles`, so anyone who can read your profile row can read
+them, as they can read `created_at`; they are not on the card.
+
+**The test.** `packages/db/test/terms.test.ts`, and the terms spec in
+`apps/web/e2e/reports.spec.ts`.
+
 ## Two tiers of profile data
 
 **The promise.** A field on your card is visible to anyone who taps your
@@ -134,17 +204,38 @@ because a real build made that mistake first.
 
 ## Scans are privacy-default
 
-**The promise.** A tap records a user-agent string and a timestamp.
-Nothing else.
+**The promise.** A tap records a user-agent string, a timestamp, and
+whether it came by NFC or a QR code. Nothing else.
 
 **How.** The `tag_scans` table has no columns for location, IP, or
-device identifiers. The API uses the caller's IP as a rate-limit key only
+device identifiers. `scan_method` is how the tap arrived (`nfc`, `qr`,
+`direct`, `unknown`), not who made it. For a physical tag it is the
+client's own hint and anyone can send any value, so it is advisory:
+nothing may branch on it. Only a share code's `qr` is set by the
+database. The API uses the caller's IP as a rate-limit key only
 and never stores it. There is no analytics or telemetry in the starter;
 that stance is part of its identity, and the roadmap records the
 decision to skip an analytics skill permanently.
 
-**The test.** The columns do not exist; `tags.test.ts` covers the write
-path.
+**The test.** The columns do not exist (`tags.test.ts` pins the list);
+`tags.test.ts` and `share-code.test.ts` cover the write path.
+
+## A shared code can be taken back
+
+**The promise.** Your QR code (the Your code button in the tab bar)
+shows exactly what a tap on your tag shows, and nothing more. If a screenshot of it gets
+somewhere it shouldn't, Replace code makes every copy of the old one open
+an inactive tag.
+
+**How.** A share code is a tag row of kind `qr` claimed to you, resolved
+by the same `resolve_tag`: same card, same block behavior, same limits.
+Replacing it retires the old row (no owner, no destination, no scans), so
+it resolves as `disabled` and `claim_tag` cannot take it. A share code is
+never unclaimed, always points at your card, and you manage it only
+through its two RPCs. [nfc-tags.md](nfc-tags.md) § Share codes has the
+details.
+
+**The test.** `packages/db/test/share-code.test.ts`.
 
 ## Photos cannot point off-site
 
@@ -164,11 +255,67 @@ and caches may serve the old file for up to an hour after that.
 **The test.** `packages/db/test/avatars.test.ts`, with a positive control
 for every negative case so none can pass vacuously.
 
+## Notifications say only what you could already see
+
+**The promise.** There are three kinds of push, ever: someone sent you
+a connect request, someone accepted yours, people joined your gathering.
+No reminders, no digests, nothing to bring you back. A push names only
+what you could already see in the app, never tells anyone a block
+exists, and is never sent across a block that exists when the request,
+acceptance, or join is written. Pushes are
+off until you turn them on, and one switch in Profile turns them off.
+
+**How.** The database sends them, from triggers on the rows that
+already carry consent (`connect_requests`, `gathering_members`), through
+`pg_net` to Expo's push service. A send that a block silently drops
+writes no row, so it cannot push; the triggers check the block again
+anyway. The check happens when the row is written: `pg_net` delivers a
+moment after the transaction commits, so a block made in that moment
+does not recall a push already queued. Because the send is in the database, a call straight to
+PostgREST pushes exactly as a call through the API does, and the API
+never needs the service-role key to read someone else's tokens. `pg_net`
+is asynchronous, so the sender's response time does not depend on
+whether a push went out. A request names the sender (their card is on
+the request); an acceptance names the person who accepted (you are
+connected now); a gathering push gives a count and never a name, because
+a host sees only their connections among the members (the count is
+the headcount the gathering page already shows everyone). Bursts collapse:
+one request push per sender per day, one gathering push per fifteen
+minutes with the joins in between counted into the next one.
+
+`push_tokens` is owner-only: you read and delete your own devices'
+tokens, and nobody reads anyone else's. A token Expo reports as
+`DeviceNotRegistered` is deleted, and so is one the app has not
+refreshed in thirty days. Signing out deletes that device's token;
+deleting your account deletes all of them. The notification text passes
+through Expo and Apple or Google on its way to your phone, so it holds
+a display name, a gathering's title, or a count, and nothing else. A
+request push shows the sender's name on the lock screen; iOS and Android
+both let a person hide notification previews, so the starter adds no
+setting of its own. Expo's push access token, when a deployment sets
+it, means a device token alone cannot be used to push to that phone.
+
+**The test.** `packages/db/test/push.test.ts`, against a stand-in for
+Expo's push endpoint, with a positive control for every "no push" case.
+
+**What this means for a fork.** A new push kind is a trigger on a row
+that already encodes consent, and its text names only what the
+recipient can already read. Never add a push that exists to bring
+someone back. Never add `net` to the API's exposed schemas: Supabase
+grants pg_net's functions to every role, and the schema being
+unexposed is what keeps an outbound HTTP call out of a client's reach.
+Web push and email are a fork's choice; the starter ships neither, and
+the web app shows the pending count instead.
+
 ## Deleting an account deletes everything
 
 **The promise.** Delete your account and your profile, connections,
-requests, blocks, hosted gatherings and memberships, photos, and scan
-history are gone. Your claimed tags return to unclaimed.
+requests, blocks, hosted gatherings and memberships, photos, push
+tokens, and scan history are gone. Your claimed tags return to
+unclaimed; your share code is retired, so a screenshot of it opens an
+inactive tag and can never be claimed by someone else. Reports you filed
+stay, anonymised; reports about you stay 90 days, then go (see Reports
+are private).
 
 **How.** Profile → Account clears the photo pointer, sweeps the avatar
 files through the Storage API, then calls `delete_my_account()`, a

@@ -1,10 +1,4 @@
-import {
-  golfLine,
-  type Destination,
-  type Gathering,
-  type GatheringMember,
-  type Tag,
-} from '@withme/contract';
+import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contract';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -19,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, ErrorText, Field, Muted, PersonRow, Title } from '../../components/ui';
 import { api } from '../../lib/api';
+import { cardLine } from '../../lib/card-line';
 import {
   courseWhenAndWhere,
   formatStartsAt,
@@ -336,7 +331,7 @@ function GatheringDetail({
             key={member.profile.id}
             name={member.profile.display_name}
             path={member.profile.avatar_path}
-            detail={golfLine(member.profile)}
+            line={cardLine(member.profile)}
             // Web's convention: "Host" takes the sub line; the row's right side is for actions.
             sub={member.profile.id === gathering.host_id ? 'Host' : member.profile.bio}
           />

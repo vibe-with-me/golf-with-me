@@ -226,6 +226,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 # Public demo only (section 1); leave unset for an app with real users:
 # VITE_DEMO_CREDENTIALS=<demo email> / <demo password>
 # VITE_STORE_URL=https://<your-store>   # optional: the Merch tab
+# Required for an app with real users (sign-up links to them; make-it-yours 7b):
+# VITE_TERMS_URL=https://<your-site>/terms
+# VITE_PRIVACY_URL=https://<your-site>/privacy
 ```
 
 ```sh
@@ -315,7 +318,8 @@ stop and tell the owner — never work around it with the service role.
    module 'yallist'`, the bunx cache is broken: use `npx -y eas-cli@24.13.0 …`
    (the version this runbook was last verified with; pin, never `@latest`).
 2. Write `apps/mobile/.env.production` with the `EXPO_PUBLIC_*` mirrors
-   of step 3's values.
+   of step 3's values (`EXPO_PUBLIC_TERMS_URL` and
+   `EXPO_PUBLIC_PRIVACY_URL` included).
 3. Publish — `--environment` is REQUIRED in non-interactive mode:
 
 ```sh
@@ -335,6 +339,51 @@ NODE_ENV=production bunx expo export --platform ios --no-bytecode \
 
 `.env.production` beats `.env` in production exports (verified), so a
 local `.env` sitting next to it is harmless.
+
+### Push credentials
+
+The database sends pushes through Expo's push service (the
+`push_notifications` migration); it needs no key of yours. The phone
+needs credentials to receive them, and both kinds are tied to the
+owner's accounts, so **every step here is the owner's, or done with
+their explicit OK**. They are free.
+
+1. **iOS (APNs key).** `bunx eas-cli credentials --platform ios`, pick
+   the production profile, then Push Notifications: Manage your Apple
+   Push Notifications Key → set up a new key. EAS signs in to the
+   owner's Apple Developer account to create it (one key serves every
+   app on the team; reuse an existing one if EAS lists it).
+2. **Android (FCM V1).** Create a Firebase project for the app, add an
+   Android app with the package from `app.json`, download its
+   `google-services.json` to `apps/mobile/` and set
+   `expo.android.googleServicesFile` to `./google-services.json` (it
+   holds no secret, but it is per-fork: commit it in the fork, not
+   upstream). Then make a service-account key (Project settings →
+   Service accounts → Generate new private key) and upload it with
+   `bunx eas-cli credentials --platform android` → Google Service
+   Account → Push Notifications (FCM V1). Delete the downloaded key file
+   afterwards; EAS holds it.
+3. **Expo push security.** On expo.dev, turn on "Enhanced Security for
+   Push Notifications" in the project's push settings and create an
+   access token for the account (Access tokens; Expo's
+   sending-notifications docs show where both live today). Then, in the
+   SQL editor:
+   `update private.settings set value = '<token>' where key =
+   'push_access_token';`. The database sends it as the bearer on every
+   push; without it, anyone who learns a device token can push to that
+   phone. Treat the token as a secret: never commit it.
+4. **A build.** Pushes reach a store or development build, not an EAS
+   Update alone, and never Expo Go on Android. `bunx eas-cli build
+   --profile production` (or `development` for a device build) after the
+   credentials exist. Builds beyond the free allotment bill, so ask.
+
+**Checkpoint:** on a real phone running the build, Connections offers
+"Turn on notifications"; after Allow, `select platform, last_seen_at
+from public.push_tokens` (SQL editor) shows the device. Send yourself a
+request from a second account: the push arrives and tapping it opens
+Requests. A pair rings once per 24 hours, so repeat the check with a
+different second account (or decline, wait out the day, and re-send). `select value from private.settings where key = 'push_url'` reads
+Expo's URL; setting it to `null` is the kill switch for every push.
 
 ## 5. Before real users
 
@@ -414,6 +463,37 @@ account:
   Settings → Advanced Security). Push protection refuses a push that
   contains a recognised key before it lands. Both are free on public
   repositories.
+
+Then the store requirements for an app with user content (App Store
+Review Guideline 1.2, Google Play's user-generated content policy;
+`docs/moderation.md` maps each one). None of these is optional for a
+store app:
+
+- [ ] **Terms and privacy published.** `docs/terms-template.md` rewritten
+  for your app (every `[bracket]` filled, the placeholder banner gone),
+  published at two https URLs, and those URLs set as `VITE_TERMS_URL` /
+  `VITE_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL` /
+  `EXPO_PUBLIC_PRIVACY_URL` (sections 3 and 4). Checkpoint: the live
+  sign-up's "I agree" line links to both, and both load.
+- [ ] **`TERMS_VERSION` matches the published version.** It is the
+  version line of your terms (`packages/contract/src/schemas/terms.ts`).
+  Change it, and deploy all three apps together, whenever you change the
+  terms in a way people must agree to again.
+- [ ] **Report notifications.** Create a Slack or Discord incoming
+  webhook for a channel the report owner watches, and set it in the
+  hosted database (SQL Editor, the owner's OK first: a production write):
+  `update private.settings set value = '<webhook URL>' where key = 'report_webhook_url';`.
+  Checkpoint: file a report from a test account; the channel shows "A
+  report was filed: <id>", and nothing else. Never commit the URL.
+- [ ] **A named report owner.** Someone runs the "Open reports" query
+  (`docs/moderation.md`) at least once a day, every day, with a named
+  stand-in, and acts within 24 hours. Write both names here.
+- [ ] **Published contact information.** The contact email in your terms,
+  and a support URL on the App Store and Play listings that reaches a
+  person.
+- [ ] **A filter, or a reason there is none.** The starter ships no
+  content filter (`docs/moderation.md`, Adding a filter). Decide with
+  the owner whether you add one before launch; App Review can ask.
 
 **Checkpoint:** every box is ticked or written down as an accepted gap,
 with the owner's name next to it.
