@@ -2,6 +2,7 @@ import type { Destination, Gathering, GatheringMember, Tag } from '@withme/contr
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
+import { GatheringMeta } from '../components/GatheringMeta.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
@@ -209,7 +210,9 @@ function GatheringDetail({
         ) : (
           <>
             <h1>{gathering.title}</h1>
-            <p className="hint">{courseWhenAndWhere(gathering)}</p>
+            <p className="hint">
+              <GatheringMeta line={courseWhenAndWhere(gathering)} />
+            </p>
             <p className="hint">{goingLine(memberCount)}</p>
           </>
         )}

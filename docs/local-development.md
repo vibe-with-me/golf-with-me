@@ -83,6 +83,40 @@ to your machine's LAN IP. NFC reading needs a development build
 UID or following a deep link. [`apps/mobile/README.md`](../apps/mobile/README.md)
 has the rest.
 
+### Push notifications
+
+The database sends them (the `push_notifications` migration) to the URL
+in `private.settings` under `push_url`, which ships pointing at Expo's
+push service. Nothing goes out until a phone registers a token, so a
+local stack and CI send nothing. The RLS suite points `push_url` at a
+stand-in on your machine for its run and puts it back afterwards.
+
+Receiving a real push needs a development build (`npx expo run:ios` on
+a device, or an EAS development build): Expo Go has not supported remote
+pushes since SDK 53. Expo Go on the iOS simulator still covers the rest:
+Connections offers "Turn on notifications", Allow registers a token, a
+request to that account makes your local database post to Expo, and a
+notification you send the simulator yourself shows what a tap opens. In
+Expo Go that payload must name the project, `@<owner>/<slug>` from
+`app.json`, or Expo Go drops the tap (a development build needs neither
+key):
+
+```json
+{
+  "Simulator Target Bundle": "host.exp.Exponent",
+  "aps": { "alert": { "title": "New connect request", "body": "Ada wants to connect." } },
+  "body": { "path": "/connections?segment=requests" },
+  "experienceId": "@<owner>/<slug>",
+  "scopeKey": "@<owner>/<slug>"
+}
+```
+
+```sh
+xcrun simctl push booted host.exp.Exponent push.json
+```
+
+Background the app first, then tap the banner.
+
 ## Tests
 
 | Command | What it runs | Needs |
@@ -136,6 +170,9 @@ cd apps/web && bun run preview  # the production build locally (needs the API Wo
 
 ## When something goes wrong
 
+The fixes below are for the local stack. A skill checkpoint that fails
+for another reason: [When a checkpoint fails](the-slice.md#when-a-checkpoint-fails).
+
 **`db:start` fails with "no space left" or Docker errors.** Old Supabase
 images from previous CLI versions accumulate in the Docker VM. Prune
 them (`docker image prune -a` removes every unused image; check what else
@@ -161,9 +198,26 @@ in that list: `docker stop <name>`. If no container shows,
 Then start again. To run
 both side by side instead, give this one other ports: change every
 `553xx` port in `supabase/config.toml` (e.g. to 556xx), the URLs in
-`apps/web/.env` and `apps/api/.dev.vars`, and export
-`SUPABASE_URL=http://127.0.0.1:<new API port>` before `db:seed` and the
-tests, which default to 55321.
+`apps/web/.env`, `apps/mobile/.env` and `apps/api/.dev.vars`, and export
+`SUPABASE_URL=http://127.0.0.1:<new API port>` and
+`SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:<new DB port>/postgres`
+before `db:seed` and the tests. They default to 55321 and 55322: without
+`SUPABASE_DB_URL`, the db tests that talk to Postgres directly (grants,
+push, reports, the SDK schema) run against whatever stack holds 55322.
+Give it its own `project_id` too (make-it-yours, "give the local stack
+its own name"): two stacks with one id share containers.
+
+**Two checkouts' web apps reach the same API Worker.** The web Worker
+calls the API through the service binding `withme-api`
+(`apps/web/wrangler.jsonc`), and wrangler's local dev registry keeps one
+Worker per name for the whole machine. With another checkout's API
+Worker running under the same name, this checkout's server-rendered
+pages (the resolver above all) talk to that one: its database, its
+contract, "Something didn't load". `ls ~/Library/Preferences/.wrangler/registry`
+(macOS) lists the names in use. Stop the other checkout's dev servers,
+or give this checkout's Worker its own name in both `wrangler.jsonc`
+files (`"name"` in `apps/api`, `"service"` in `apps/web`); a fork that
+ran make-it-yours step 6 already has its own.
 
 **Sign-in works, then the next request fails with `PGRST303`.** Your
 Supabase CLI is older than 2.118. Upgrade it, then `bun run db:stop &&

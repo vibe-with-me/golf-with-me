@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { api } from './api';
-import { pushSetting, type PushChoice, type PushPermission, type PushSetting } from './push-state';
+import { pushScreen, pushSetting, type PushChoice, type PushPermission, type PushSetting } from './push-state';
 
 /**
  * Push notifications, transactional only: a request to you, yours
@@ -175,12 +175,7 @@ export function usePushRouting(signedIn: boolean): void {
     const id = response.notification.request.identifier;
     if (handled.current === id) return;
     handled.current = id;
-    // The database names a round by the starter's internal path,
-    // /gathering/<id>; this fork's screen lives at /round/<id>.
-    const path = pushPath(response.notification.request.content.data)?.replace(
-      /^\/gathering\//,
-      '/round/',
-    );
-    if (path) router.push(path as never);
+    const path = pushPath(response.notification.request.content.data);
+    if (path) router.push(pushScreen(path) as never);
   }, [signedIn, response]);
 }

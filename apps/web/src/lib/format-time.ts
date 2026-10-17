@@ -24,18 +24,41 @@ export function tomorrowEvening(): string {
   return toDateTimeLocal(when);
 }
 
-/** "Thu, Oct 9 · 7:00 PM · Location" (the location only when set). */
-export function whenAndWhere(g: { starts_at: string; location: string | null }): string {
-  return [formatStartsAt(g.starts_at) ?? g.starts_at, g.location].filter(Boolean).join(' · ');
+/**
+ * A gathering's meta line in three parts, so a screen can render the
+ * location as a Maps link: "Hosting · Thu, Oct 9 · 7:00 PM", "The roof",
+ * "1 going". Shown joined by " · "; an empty part is left out.
+ */
+export interface MetaLine {
+  head: string;
+  location: string | null;
+  tail: string;
 }
 
-/** "Riverside Muni · Thu, Oct 9 · 7:00 PM · Location": the course first, '' shows nothing. */
-export function courseWhenAndWhere(g: {
-  course_name: string;
-  starts_at: string;
-  location: string | null;
-}): string {
-  return [g.course_name, whenAndWhere(g)].filter(Boolean).join(' · ');
+/** "Thu, Oct 9 · 7:00 PM · Location" (the location only when set), `before` and `after` around it. */
+export function whenAndWhere(
+  g: { starts_at: string; location: string | null },
+  before: (string | null)[] = [],
+  after: (string | null)[] = [],
+): MetaLine {
+  return {
+    head: [...before, formatStartsAt(g.starts_at) ?? g.starts_at].filter(Boolean).join(' · '),
+    location: g.location,
+    tail: after.filter(Boolean).join(' · '),
+  };
+}
+
+/**
+ * whenAndWhere with the course first: "Riverside Muni · Thu, Oct 9 · 7:00 PM ·
+ * Location" ('' shows nothing). `before` comes ahead of the course (a row's
+ * Hosting / Playing mark), `after` behind the location (the headcount).
+ */
+export function courseWhenAndWhere(
+  g: { course_name: string; starts_at: string; location: string | null },
+  before: (string | null)[] = [],
+  after: (string | null)[] = [],
+): MetaLine {
+  return whenAndWhere(g, [...before, g.course_name || null], after);
 }
 
 /** One line for a round: "Title · Course · Thu, Oct 9 · 7:00 PM · Location". */
@@ -44,6 +67,6 @@ export function gatheringLine(g: {
   course_name: string;
   starts_at: string;
   location: string | null;
-}): string {
-  return [g.title, courseWhenAndWhere(g)].join(' · ');
+}): MetaLine {
+  return courseWhenAndWhere(g, [g.title]);
 }

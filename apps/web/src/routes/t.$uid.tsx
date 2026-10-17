@@ -2,6 +2,7 @@ import type { GatheringSummary } from '@withme/contract';
 import { createFileRoute, Link, notFound, redirect, useHydrated, useNavigate } from '@tanstack/react-router';
 import { createIsomorphicFn } from '@tanstack/react-start';
 import { useEffect, useState } from 'react';
+import { GatheringMeta } from '../components/GatheringMeta.tsx';
 import { ProfileCard } from '../components/ProfileCard.tsx';
 import { ReportButton } from '../components/ReportDialog.tsx';
 import { api } from '../lib/api.ts';
@@ -105,7 +106,11 @@ function WordmarkFooter() {
 /** The server knows neither the viewer's timezone nor locale: the title alone until hydrated. */
 function GatheringLine({ gathering }: { gathering: GatheringSummary }) {
   const hydrated = useHydrated();
-  return <p className="hint">{hydrated ? gatheringLine(gathering) : gathering.title}</p>;
+  return (
+    <p className="hint">
+      {hydrated ? <GatheringMeta line={gatheringLine(gathering)} /> : gathering.title}
+    </p>
+  );
 }
 
 /**
@@ -167,23 +172,35 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
  * settles, so the owner never sees it flash.
  */
 function CardReport({ profileId, name, uid }: { profileId: string; name: string; uid: string }) {
-  const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'other'>('loading');
+  const [viewer, setViewer] = useState<'loading' | 'anon' | 'self' | 'noProfile' | 'other'>('loading');
   useEffect(() => {
     let cancelled = false;
     getSessionUserId()
       .catch(() => null)
-      .then((userId) => {
-        if (cancelled) return;
-        setViewer(!userId ? 'anon' : userId === profileId ? 'self' : 'other');
+      .then(async (userId) => {
+        if (!userId || userId === profileId) return userId ? 'self' : 'anon';
+        // A report needs the reporter's own profile (report_user refuses
+        // without one), so a signed-in viewer with none makes it first, as
+        // Connect does. A failed read leaves the button: the dialog's own
+        // error state covers it.
+        const { profile } = await api.app.profile.get().catch(() => ({ profile: true }));
+        return profile ? 'other' : 'noProfile';
+      })
+      .then((next) => {
+        if (!cancelled) setViewer(next);
       });
     return () => {
       cancelled = true;
     };
   }, [profileId]);
   if (viewer === 'loading' || viewer === 'self') return null;
-  if (viewer === 'anon') {
-    return (
+  if (viewer === 'anon' || viewer === 'noProfile') {
+    return viewer === 'anon' ? (
       <Link className="btn btn--quiet" to="/login" search={{ returnTo: `/t/${uid}` }}>
+        Report
+      </Link>
+    ) : (
+      <Link className="btn btn--quiet" to="/profile" search={{ returnTo: `/t/${uid}` }}>
         Report
       </Link>
     );
