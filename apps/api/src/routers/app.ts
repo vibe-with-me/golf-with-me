@@ -20,12 +20,14 @@ import {
   listOwnLinks,
   listOwnTags,
   listPendingRequests,
+  registerPushToken,
   removeAvatarObjects,
   removeConnection,
   replaceOwnLinks,
   reportUser,
   setOwnAvatarPath,
   unblockUser,
+  unregisterPushToken,
   updateGathering,
   updateOwnTag,
   uploadAvatarObject,
@@ -356,6 +358,16 @@ const tagsUpdate = appProcedure.tags.update.handler(async ({ input, context }) =
   return { tag: tag as Tag };
 });
 
+const pushRegister = appProcedure.push.register.handler(async ({ input, context }) => {
+  await run(context, () => registerPushToken(context.db, input.token, input.platform));
+  return { ok: true as const };
+});
+
+const pushUnregister = appProcedure.push.unregister.handler(async ({ input, context }) => {
+  await run(context, () => unregisterPushToken(context.db, input.token));
+  return { ok: true as const };
+});
+
 export const appRouter = {
   profile: {
     get: getProfile,
@@ -386,4 +398,5 @@ export const appRouter = {
     remove: gatheringsRemove,
   },
   tags: { listMine: tagsListMine, update: tagsUpdate },
+  push: { register: pushRegister, unregister: pushUnregister },
 };
