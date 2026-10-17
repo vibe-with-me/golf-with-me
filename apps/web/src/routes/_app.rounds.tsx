@@ -1,12 +1,13 @@
-import type { GatheringListItem } from '@withme/contract';
+import { isGatheringFull, type GatheringListItem, type GatheringVisibility } from '@withme/contract';
 import { createFileRoute, Link, useLoaderData, useRouter } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
+import { GatheringControls } from '../components/GatheringControls.tsx';
 import { GatheringMeta } from '../components/GatheringMeta.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
 import { courseWhenAndWhere, tomorrowEvening } from '../lib/format-time.ts';
-import { goingLine, withLine } from '../lib/going.ts';
+import { FULL_LABEL, audienceMark, goingLine, parseSpots, withLine } from '../lib/going.ts';
 
 /**
  * The Events tab: what is happening in the domain, and your own calendar.
@@ -58,6 +59,8 @@ function GatheringsPage() {
   const [startsAt, setStartsAt] = useState(tomorrowEvening);
   const [location, setLocation] = useState('');
   const [course, setCourse] = useState('');
+  const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
+  const [spots, setSpots] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,10 +96,14 @@ function GatheringsPage() {
         starts_at: new Date(startsAt).toISOString(),
         course_name: course.trim(),
         location: location.trim() === '' ? null : location.trim(),
+        visibility,
+        capacity: parseSpots(spots) ?? null,
       });
       setTitle('');
       setCourse('');
       setLocation('');
+      setVisibility('everyone');
+      setSpots('');
       setStartsAt(tomorrowEvening());
       // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
       await router.invalidate({ sync: true });
@@ -153,6 +160,12 @@ function GatheringsPage() {
             onChange={(e) => setLocation(e.target.value)}
           />
         </div>
+        <GatheringControls
+          visibility={visibility}
+          onVisibility={setVisibility}
+          spots={spots}
+          onSpots={setSpots}
+        />
         {error ? (
           <p className="form-error" role="alert">
             {error}
@@ -161,7 +174,7 @@ function GatheringsPage() {
         <button
           className="btn"
           type="submit"
-          disabled={busy || !title.trim() || !course.trim() || !startsAt}
+          disabled={busy || !title.trim() || !course.trim() || !startsAt || parseSpots(spots) === undefined}
         >
           {busy ? 'Creating…' : 'Create round'}
         </button>
@@ -231,13 +244,20 @@ function GatheringRow({
         ? 'Playing'
         : null;
   const names = withLine(gathering.members, viewerId);
+  // Full only matters to someone who could still join.
+  const full = !gathering.is_member && isGatheringFull(gathering, gathering.member_count);
+  const tail = [
+    goingLine(gathering.member_count, gathering.capacity),
+    full ? FULL_LABEL : null,
+    audienceMark(gathering.visibility),
+  ];
   return (
     <div className="row">
       <div className="row-body">
         <span className="name">{gathering.title}</span>
         <span className="sub">
           <GatheringMeta
-            line={courseWhenAndWhere(gathering, [mark], [goingLine(gathering.member_count)])}
+            line={courseWhenAndWhere(gathering, [mark], tail)}
           />
         </span>
         {names ? <span className="sub">{names}</span> : null}

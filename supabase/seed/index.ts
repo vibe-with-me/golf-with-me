@@ -158,6 +158,8 @@ const { error: linGatheringError } = await lin.client.rpc('create_gathering', {
   p_starts_at: linStartsAt.toISOString(),
   p_course_name: 'Cedar Hills',
   p_location: 'Back nine, the 10th tee',
+  // a capacity, so the feed shows "1 of 4 playing": a foursome
+  p_capacity: 4,
 });
 if (linGatheringError) throw linGatheringError;
 

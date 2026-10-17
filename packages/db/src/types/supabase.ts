@@ -202,6 +202,7 @@ export type Database = {
       }
       gatherings: {
         Row: {
+          capacity: number | null
           course_name: string
           created_at: string
           host_id: string
@@ -210,9 +211,11 @@ export type Database = {
           starts_at: string
           tenant_id: string
           title: string
+          visibility: string
         }
         ComputedFields: never
         Insert: {
+          capacity?: number | null
           course_name?: string
           created_at?: string
           host_id: string
@@ -221,8 +224,10 @@ export type Database = {
           starts_at: string
           tenant_id?: string
           title: string
+          visibility?: string
         }
         Update: {
+          capacity?: number | null
           course_name?: string
           created_at?: string
           host_id?: string
@@ -231,6 +236,7 @@ export type Database = {
           starts_at?: string
           tenant_id?: string
           title?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -364,6 +370,7 @@ export type Database = {
         Row: {
           created_at: string
           details: string | null
+          gathering_id: string | null
           id: string
           reason: string
           reported_deleted_at: string | null
@@ -379,6 +386,7 @@ export type Database = {
         Insert: {
           created_at?: string
           details?: string | null
+          gathering_id?: string | null
           id?: string
           reason: string
           reported_deleted_at?: string | null
@@ -393,6 +401,7 @@ export type Database = {
         Update: {
           created_at?: string
           details?: string | null
+          gathering_id?: string | null
           id?: string
           reason?: string
           reported_deleted_at?: string | null
@@ -405,6 +414,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_gathering_id_fkey"
+            columns: ["gathering_id"]
+            isOneToOne: false
+            referencedRelation: "gatherings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_reported_id_fkey"
             columns: ["reported_id"]
@@ -511,10 +527,12 @@ export type Database = {
       }
       create_gathering: {
         Args: {
+          p_capacity?: number
           p_course_name: string
           p_location?: string
           p_starts_at: string
           p_title: string
+          p_visibility?: string
         }
         Returns: Json
       }
@@ -546,6 +564,15 @@ export type Database = {
       replace_my_share_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      report_gathering: {
+        Args: {
+          p_block?: boolean
+          p_details?: string
+          p_gathering: string
+          p_reason: string
+        }
+        Returns: undefined
       }
       report_user: {
         Args: {
