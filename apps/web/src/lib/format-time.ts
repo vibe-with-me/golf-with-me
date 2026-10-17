@@ -49,16 +49,25 @@ export function whenAndWhere(
 }
 
 /**
- * whenAndWhere with the course first: "Riverside Muni · Thu, Oct 9 · 7:00 PM ·
- * Location" ('' shows nothing). `before` comes ahead of the course (a row's
- * Hosting / Playing mark), `after` behind the location (the headcount).
+ * A round's line, course first: "Riverside Muni · Thu, Oct 9 · 7:00 PM · The
+ * first tee". The course is the place, so it takes the line's `location` slot
+ * and opens in Maps; the round's own location ("Meet at": the first tee) is
+ * plain text after the time. `before` comes ahead of the course (a row's
+ * Hosting / Playing mark), `after` behind the meeting point (the headcount).
+ * A round from before the course column ('') has no Maps link.
  */
 export function courseWhenAndWhere(
   g: { course_name: string; starts_at: string; location: string | null },
   before: (string | null)[] = [],
   after: (string | null)[] = [],
 ): MetaLine {
-  return whenAndWhere(g, [...before, g.course_name || null], after);
+  return {
+    head: before.filter(Boolean).join(' · '),
+    location: g.course_name || null,
+    tail: [formatStartsAt(g.starts_at) ?? g.starts_at, g.location, ...after]
+      .filter(Boolean)
+      .join(' · '),
+  };
 }
 
 /** One line for a round: "Title · Course · Thu, Oct 9 · 7:00 PM · Location". */

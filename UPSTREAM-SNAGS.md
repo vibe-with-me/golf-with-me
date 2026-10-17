@@ -385,8 +385,10 @@ all predictable. Two notes:
     `location` is "Meet at" ("The first tee"), and the place is
     `course_name` ("Riverside Muni"), so the link searches Maps for "The
     first tee". customize-gathering doesn't say which field a fork's Maps
-    link should use. *Did instead:* left the starter's behavior and raised
-    it with the owner. Suggest: a line in customize-gathering §2 ("if your
+    link should use. *Did instead:* the owner chose the course:
+    `courseWhenAndWhere` puts `course_name` in the MetaLine's `location`
+    slot (the Maps link) and "Meet at" in the plain tail; the course now
+    leads the row, so the link always starts on a visible line. Suggest: a line in customize-gathering §2 ("if your
     new field is the place, point `mapsSearchUrl` at it, or at both").
     Related (CodeRabbit on PR #10): the mobile row's comment assumes "the
     status and date never fill both lines", but a fork that adds a field to
