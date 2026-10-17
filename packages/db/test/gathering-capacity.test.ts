@@ -17,6 +17,7 @@ async function createGathering(
 ): Promise<string> {
   const { data, error } = await client.rpc('create_gathering', {
     p_title: 'A round of four',
+    p_course_name: 'Riverside Muni',
     p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
     p_visibility: visibility,
     p_capacity: capacity ?? undefined,
@@ -125,6 +126,7 @@ describe('capacity', () => {
     for (const bad of [1, 0, -4, 501]) {
       const { error } = await host.client.rpc('create_gathering', {
         p_title: 'x',
+        p_course_name: 'Riverside Muni',
         p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
         p_capacity: bad,
       });

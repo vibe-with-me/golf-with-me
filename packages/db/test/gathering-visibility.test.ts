@@ -24,6 +24,7 @@ type Visibility = 'everyone' | 'connections';
 async function createGathering(client: Client, visibility: Visibility = 'connections'): Promise<string> {
   const { data, error } = await client.rpc('create_gathering', {
     p_title: 'Dinner at mine',
+    p_course_name: 'Riverside Muni',
     p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
     p_location: '12 Elm St',
     p_visibility: visibility,
@@ -180,6 +181,7 @@ describe('a connections gathering', () => {
     expect(unknown.error?.code).toBe('23514');
     const created = await host.client.rpc('create_gathering', {
       p_title: 'x',
+      p_course_name: 'Riverside Muni',
       p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
       p_visibility: 'friends',
     });

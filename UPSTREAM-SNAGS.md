@@ -412,3 +412,42 @@ all predictable. Two notes:
     checkpoint for Redeploys) and ~L358 (the Expo Go restriction is
     Android-only), CONTRIBUTING.md ~L138, local-development.md ~L99, and
     staying-current.md ~L136 (split the step 4b sweep, the same as 39).
+
+## Fourth starter sync: #84, #88–#92
+
+41. **A starter migration silently undid three of the fork's changes.**
+    `20261017203000_gathering_visibility_and_capacity.sql` redefines
+    `create_gathering` and `resolve_tag` from the starter's newest bodies and
+    re-issues the host's column grant. On this fork that would drop the
+    required course, the course on the tap card, handicap and home course on
+    the card, and `course_name` from the host's edit grant, with no git
+    conflict. Its `drop function if exists create_gathering(text, timestamptz, text)`
+    names the starter's old signature, so the fork's four-argument version
+    survived as a second overload, without visibility or capacity. This is
+    the case staying-current's Migrations section describes, but nothing
+    pointed at it during the merge. *Did instead:*
+    `20261017220000_golf_after_visibility_capacity.sql` reapplies the fork's
+    lines on the newest bodies, drops both old signatures, and leaves one
+    `create_gathering`. Suggest: staying-current step 1 gives the command
+    (for each incoming migration, list the `function public.…` it redefines
+    and grep your own migrations for them), and starter PRs that redefine a
+    skill-touched function (`create_gathering`, `resolve_tag`,
+    `accept_connect_request`) say so in their title.
+
+42. **New starter specs and tests still arrive in the starter's words.**
+    `gathering-controls.spec.ts` uses `/gatherings`, "Create gathering",
+    "Happening", "N of M going" and "Join this gathering"; the capacity and
+    visibility db tests and the contract tests create gatherings without
+    the fork's required field; `going.test.ts` expects "going". Step 4b's
+    sweep found the paths but not "Happening" or "going", and the required
+    field showed up only as typecheck and test failures. Suggest: the 4b
+    sweep includes the fork's renamed section titles and counters (or keeps
+    such copy in one place a fork edits once).
+
+43. **#90's two-line mobile row assumes the date is in the head.** It
+    splits the row into a head line and a link-plus-tail line. A fork whose
+    line helper puts its own field in the location slot (this fork's course,
+    snag 38) has only a Hosting / Playing mark in the head, so the split
+    leaves a near-empty first line and truncates the tail. *Did instead:*
+    kept the fork's single two-line `Text` with the starter's new tail items
+    (capacity count, Full, Connections only).

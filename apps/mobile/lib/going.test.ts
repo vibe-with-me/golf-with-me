@@ -3,11 +3,11 @@ import { audienceMark, goingLine, parseSpots } from './going';
 
 describe('goingLine', () => {
   it('counts everyone, and reads against the capacity when there is one', () => {
-    expect(goingLine(1)).toBe('1 going');
-    expect(goingLine(3, null)).toBe('3 going');
-    expect(goingLine(3, 4)).toBe('3 of 4 going');
+    expect(goingLine(1)).toBe('1 playing');
+    expect(goingLine(3, null)).toBe('3 playing');
+    expect(goingLine(3, 4)).toBe('3 of 4 playing');
     // lowered below the headcount: nobody was removed
-    expect(goingLine(5, 2)).toBe('5 of 2 going');
+    expect(goingLine(5, 2)).toBe('5 of 2 playing');
   });
 });
 

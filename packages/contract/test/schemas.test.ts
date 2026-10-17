@@ -337,9 +337,9 @@ describe('gathering schemas', () => {
       expect(GatheringSchema.safeParse({ ...gathering, visibility: bad }).success).toBe(false);
     }
     const { starts_at } = gathering;
-    expect(CreateGatheringInputSchema.parse({ title: 'Tee', starts_at }).visibility).toBeUndefined();
+    expect(CreateGatheringInputSchema.parse({ title: 'Tee', starts_at, course_name: 'Riverside Muni' }).visibility).toBeUndefined();
     expect(
-      CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, visibility: 'friends' })
+      CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, course_name: 'Riverside Muni', visibility: 'friends' })
         .success,
     ).toBe(false);
     expect(
@@ -360,7 +360,7 @@ describe('gathering schemas', () => {
       ['4', false],
     ] as const) {
       expect(GatheringSchema.safeParse({ ...gathering, capacity }).success).toBe(ok);
-      expect(CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, capacity }).success).toBe(
+      expect(CreateGatheringInputSchema.safeParse({ title: 'Tee', starts_at, course_name: 'Riverside Muni', capacity }).success).toBe(
         ok,
       );
       expect(UpdateGatheringInputSchema.safeParse({ id: gathering.id, capacity }).success).toBe(ok);

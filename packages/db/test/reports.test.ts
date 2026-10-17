@@ -175,6 +175,7 @@ describe('report_user', () => {
 async function createGathering(host: TestUser, title = 'Free afterparty, $20 to hold a spot') {
   const { data, error } = await host.client.rpc('create_gathering', {
     p_title: title,
+    p_course_name: 'Riverside Muni',
     p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
     p_location: 'Back lot',
   });
@@ -253,6 +254,7 @@ describe('report_gathering', () => {
     const stranger = await createTestUser('Stranger');
     const { data, error } = await stranger.client.rpc('create_gathering', {
       p_title: 'Friends only',
+      p_course_name: 'Riverside Muni',
       p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
       p_location: 'Back lot',
       p_visibility: 'connections',

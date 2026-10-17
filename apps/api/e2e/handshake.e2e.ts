@@ -380,6 +380,7 @@ for (const request of (await aliceApp.requests.listPending()).requests) {
 const round = await aliceApp.gatherings.create({
   title: 'E2E Round',
   starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+  course_name: 'E2E Links',
   visibility: 'connections',
   capacity: 2,
 });
