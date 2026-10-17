@@ -14,10 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, ErrorText, Field, Muted, PersonRow, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import {
+  courseWhenAndWhere,
   formatStartsAt,
   parseLocalDateTime,
   toDateAndTime,
-  whenAndWhere,
 } from '../../lib/format-time';
 import { gatheringHref } from '../../lib/gathering-link';
 import { goingLine } from '../../lib/going';
@@ -47,13 +47,18 @@ type ScreenState =
  */
 function goBack() {
   if (router.canGoBack()) router.back();
-  else router.dismissTo('/gatherings');
+  else router.dismissTo('/rounds');
 }
 
 export default function GatheringScreen() {
   const t = useTokens();
   // title/starts_at are display-only hints from the resolver — never data.
-  const params = useLocalSearchParams<{ id: string; title?: string; starts_at?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    title?: string;
+    course_name?: string;
+    starts_at?: string;
+  }>();
   const id = (params.id ?? '').trim();
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
   const [join, setJoin] = useState<'idle' | 'joining' | 'failed' | 'unavailable'>('idle');
@@ -93,7 +98,7 @@ export default function GatheringScreen() {
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card>
-          <Title>Couldn't load this gathering</Title>
+          <Title>Couldn't load this round</Title>
           <ErrorText>Check your connection and try again.</ErrorText>
           <Button label="Retry" onPress={load} />
           <Button label="Back" kind="quiet" onPress={goBack} />
@@ -103,16 +108,20 @@ export default function GatheringScreen() {
   }
 
   if (state.kind === 'join') {
-    const hint = [params.title ?? null, params.starts_at ? formatStartsAt(params.starts_at) : null]
+    const hint = [
+      params.title ?? null,
+      params.course_name ?? null,
+      params.starts_at ? formatStartsAt(params.starts_at) : null,
+    ]
       .filter(Boolean)
       .join(' · ');
     return (
       <View style={[styles.page, { backgroundColor: t.bg }]}>
         <Card settle>
-          <Title>Join this gathering?</Title>
+          <Title>Join this round?</Title>
           {hint ? <Muted>{hint}</Muted> : null}
           {join === 'unavailable' ? (
-            <Muted>This gathering isn't available.</Muted>
+            <Muted>This round isn't available.</Muted>
           ) : (
             <Button
               kind="connect"
@@ -132,7 +141,11 @@ export default function GatheringScreen() {
                     router.push({
                       pathname: '/profile',
                       params: {
-                        redirect: gatheringHref(id, { title: params.title, starts_at: params.starts_at }),
+                        redirect: gatheringHref(id, {
+                          title: params.title,
+                          course_name: params.course_name,
+                          starts_at: params.starts_at,
+                        }),
                       },
                     });
                     return;
@@ -161,6 +174,7 @@ interface GatheringPatch {
   title: string;
   starts_at: string;
   location: string | null;
+  course_name: string;
 }
 
 function GatheringDetail({
@@ -200,7 +214,7 @@ function GatheringDetail({
     } catch (error) {
       setActionError(
         (error as { code?: string }).code === 'NOT_FOUND'
-          ? "This gathering isn't available."
+          ? "This round isn't available."
           : "That didn't go through. Try again.",
       );
     } finally {
@@ -220,7 +234,7 @@ function GatheringDetail({
       if (then === 'list') {
         // Pop back to the tabs if they are below us; on a cold deep link,
         // replace this screen with them. Never stack a second tab shell.
-        router.dismissTo('/gatherings');
+        router.dismissTo('/rounds');
         return;
       }
       await reload();
@@ -234,7 +248,7 @@ function GatheringDetail({
 
   function confirmDelete() {
     Alert.alert(
-      'Delete this gathering?',
+      'Delete this round?',
       'Members lose it, and tags pointing here fall back to your profile.',
       [
         { text: 'Keep', style: 'cancel' },
@@ -275,7 +289,7 @@ function GatheringDetail({
           ) : (
             <>
               <Title>{gathering.title}</Title>
-              <Muted>{whenAndWhere(gathering)}</Muted>
+              <Muted>{courseWhenAndWhere(gathering)}</Muted>
               <Muted>{goingLine(memberCount)}</Muted>
             </>
           )}
@@ -287,12 +301,12 @@ function GatheringDetail({
           {!editing && isHost ? (
             <>
               <Button label="Edit" kind="quiet" disabled={busy} onPress={() => setEditing(true)} />
-              <Button label="Delete gathering" kind="quiet" disabled={busy} onPress={confirmDelete} />
+              <Button label="Delete round" kind="quiet" disabled={busy} onPress={confirmDelete} />
             </>
           ) : null}
           {!editing && isMember && !isHost ? (
             <Button
-              label={busy ? 'Leaving…' : 'Leave gathering'}
+              label={busy ? 'Leaving…' : 'Leave round'}
               kind="quiet"
               disabled={busy}
               onPress={() => run(() => api.app.gatherings.leave({ id: gathering.id }), 'list')}
@@ -305,7 +319,7 @@ function GatheringDetail({
           {!editing ? <Button label="Back" kind="quiet" onPress={goBack} /> : null}
         </Card>
 
-        <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's going</Text>
+        <Text style={[styles.sectionTitle, { color: t.ink }]}>Who's playing</Text>
         <Muted>
           {members.length === 0
             ? "You'll see the people you're connected with here."
@@ -339,10 +353,12 @@ function EditFields({
   const [title, setTitle] = useState(gathering.title);
   const [when, setWhen] = useState(() => toDateAndTime(new Date(gathering.starts_at)));
   const [location, setLocation] = useState(gathering.location ?? '');
+  const [course, setCourse] = useState(gathering.course_name);
   const [error, setError] = useState<string | null>(null);
   return (
     <>
       <Field label="Title" value={title} onChangeText={setTitle} maxLength={120} />
+      <Field label="Course" value={course} onChangeText={setCourse} maxLength={80} />
       <Field
         label="Date"
         value={when.date}
@@ -351,17 +367,17 @@ function EditFields({
         keyboardType="numbers-and-punctuation"
       />
       <Field
-        label="Time"
+        label="Tee time"
         value={when.time}
         onChangeText={(time) => setWhen((w) => ({ ...w, time }))}
         autoCapitalize="none"
         keyboardType="numbers-and-punctuation"
       />
-      <Field label="Location (optional)" value={location} onChangeText={setLocation} maxLength={160} />
+      <Field label="Meet at (optional)" value={location} onChangeText={setLocation} maxLength={160} />
       {error ? <ErrorText>{error}</ErrorText> : null}
       <Button
         label={busy ? 'Saving…' : 'Save'}
-        disabled={busy || !title.trim()}
+        disabled={busy || !title.trim() || !course.trim()}
         onPress={() => {
           const startsAt = parseLocalDateTime(when.date, when.time);
           if (!startsAt) {
@@ -373,6 +389,7 @@ function EditFields({
             title: title.trim(),
             starts_at: startsAt,
             location: location.trim() === '' ? null : location.trim(),
+            course_name: course.trim(),
           });
         }}
       />
@@ -406,7 +423,7 @@ function TagPointer({ gatheringId, hidden }: { gatheringId: string; hidden: bool
   }, [load]);
 
   if (hidden || tags === 'loading' || tags === 'failed') return null;
-  if (tags.length === 0) return <Muted>Claim a tag to point it at this gathering.</Muted>;
+  if (tags.length === 0) return <Muted>Claim a tag to point it at this round.</Muted>;
 
   const pointsHere = (tag: Tag) =>
     tag.destination?.type === 'gathering' && tag.destination.gathering_id === gatheringId;
@@ -437,7 +454,7 @@ function TagPointer({ gatheringId, hidden }: { gatheringId: string; hidden: bool
       ) : null}
       {elsewhere.length > 0 ? (
         <Button
-          label="Point my tags at this gathering"
+          label="Point my tags at this round"
           disabled={busy}
           onPress={() => repoint(elsewhere, { type: 'gathering', gathering_id: gatheringId })}
         />

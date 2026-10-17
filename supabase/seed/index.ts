@@ -64,8 +64,8 @@ async function createDemoUser(email: string, displayName: string, bio: string) {
 
 console.log('Seeding demo data…');
 
-const ada = await createDemoUser(DEMO_USERS.ada, 'Ada', 'Brings the good playlists.');
-const lin = await createDemoUser(DEMO_USERS.lin, 'Lin', 'Will trade book recs.');
+const ada = await createDemoUser(DEMO_USERS.ada, 'Ada', 'Walks nine before work. Always has a spare ball.');
+const lin = await createDemoUser(DEMO_USERS.lin, 'Lin', 'Twilight scrambles and a slow backswing.');
 
 // Ada's links: what Lin will see once Ada accepts (Profile → Links).
 const { error: linksError } = await ada.client.rpc('set_my_links', {
@@ -109,15 +109,16 @@ const { error: requestError } = await lin.client.rpc('send_connect_request', {
 });
 if (requestError) throw requestError;
 
-// Ada hosts a gathering, Lin has joined, and Ada's live tag points at it:
+// Ada hosts a round, Lin has joined, and Ada's live tag points at it:
 // a tap on 04BBBBBBBBBBBB shows her card as the invitation.
 const startsAt = new Date();
 startsAt.setDate(startsAt.getDate() + 2);
-startsAt.setHours(19, 0, 0, 0);
+startsAt.setHours(6, 40, 0, 0);
 const { data: gathering, error: gatheringError } = await ada.client.rpc('create_gathering', {
-  p_title: 'Rooftop listening session',
+  p_title: 'Dawn nine',
   p_starts_at: startsAt.toISOString(),
-  p_location: 'The roof, 14 Loom St',
+  p_course_name: 'Riverside Muni',
+  p_location: 'The first tee',
 });
 if (gatheringError) throw gatheringError;
 const gatheringId = (gathering as { id: string }).id;
@@ -132,23 +133,24 @@ const { error: pointError } = await ada.client
   .eq('uid', TAGS.claimed);
 if (pointError) throw pointError;
 
-// Lin hosts one too, which Ada has not joined: her Events tab shows the
+// Lin hosts one too, which Ada has not joined: her Rounds tab shows the
 // domain's feed working, not just her own calendar.
 const linStartsAt = new Date();
 linStartsAt.setDate(linStartsAt.getDate() + 5);
-linStartsAt.setHours(14, 0, 0, 0);
+linStartsAt.setHours(17, 10, 0, 0);
 const { error: linGatheringError } = await lin.client.rpc('create_gathering', {
-  p_title: 'Vinyl swap in the park',
+  p_title: 'Twilight scramble',
   p_starts_at: linStartsAt.toISOString(),
-  p_location: 'The bandstand, Loom Park',
+  p_course_name: 'Cedar Hills',
+  p_location: 'Back nine, the 10th tee',
 });
 if (linGatheringError) throw linGatheringError;
 
 console.log(`
 Seeded.
-  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a gathering Lin joined; two links)
-            ${DEMO_USERS.lin} / ${DEMO_PASSWORD}   (hosts a second gathering, listed to the domain)
-  Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her gathering
+  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a round Lin joined; two links)
+            ${DEMO_USERS.lin} / ${DEMO_PASSWORD}   (hosts a second round, listed to the domain)
+  Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her round
             /t/${TAGS.unclaimed}  -> claim flow
             /t/${TAGS.disabled}  -> inactive
 `);

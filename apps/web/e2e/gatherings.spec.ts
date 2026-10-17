@@ -33,9 +33,9 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await ada.waitForURL(/\/profile\?/);
   await ada.getByLabel('Name').fill('Smoke Ada');
   await ada.getByRole('button', { name: 'Save' }).click();
-  await ada.waitForURL('**/gatherings');
+  await ada.waitForURL('**/rounds');
   const adaNav = ada.getByRole('navigation', { name: 'Primary' });
-  await expect(adaNav.getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page');
+  await expect(adaNav.getByRole('link', { name: 'Rounds' })).toHaveAttribute('aria-current', 'page');
 
   // --- Ada claims a tag (signed in: tap -> claim flow) --------------------------
   await ada.goto(`/t/${uid}`);
@@ -45,25 +45,26 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await expect(ada.getByText('This is your tag.')).toBeVisible();
 
   // --- Ada creates a gathering: it lands in Happening and in Yours ------------
-  await ada.goto('/gatherings');
+  await ada.goto('/rounds');
   const title = `Smoke Rooftop ${stamp}`;
   await ada.getByLabel('Title').fill(title);
-  await ada.getByLabel('Location (optional)').fill('The roof');
-  await ada.getByRole('button', { name: 'Create gathering' }).click();
-  const adaHappening = ada.getByRole('region', { name: 'Happening' });
+  await ada.getByLabel('Course', { exact: true }).fill('Riverside Muni');
+  await ada.getByLabel('Meet at (optional)').fill('The first tee');
+  await ada.getByRole('button', { name: 'Create round' }).click();
+  const adaHappening = ada.getByRole('region', { name: 'Tee sheet' });
   const adaYours = ada.getByRole('region', { name: 'Yours' });
   await revealInFeed(adaHappening, title);
-  await expect(adaHappening.getByText(/Hosting · .* · 1 going/)).toBeVisible();
+  await expect(adaHappening.getByText(/Hosting · .* · 1 playing/)).toBeVisible();
   await expect(adaYours.getByText(title)).toBeVisible();
 
   // --- ...and she points her tag at it from the detail ---------------------------
   await adaYours.getByRole('link', { name: 'Open' }).click();
-  await ada.waitForURL(/\/gatherings\/[0-9a-f-]{36}$/);
+  await ada.waitForURL(/\/rounds\/[0-9a-f-]{36}$/);
   const detailPath = new URL(ada.url()).pathname;
   await expect(ada.getByRole('heading', { name: title })).toBeVisible();
-  await expect(ada.getByText('1 going')).toBeVisible();
+  await expect(ada.getByText('1 playing')).toBeVisible();
   await expect(ada.getByText('Host', { exact: true })).toBeVisible();
-  await ada.getByRole('button', { name: 'Point my tags at this gathering' }).click();
+  await ada.getByRole('button', { name: 'Point my tags at this round' }).click();
   await expect(ada.getByRole('button', { name: 'Point my tags back to my profile' })).toBeVisible();
 
   // --- Bob: taps anonymously, sees the invitation, signs up, lands on the detail
@@ -71,7 +72,7 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await bob.goto(`/t/${uid}`);
   await expect(bob.getByRole('heading', { name: 'Smoke Ada' })).toBeVisible();
   await expect(bob.getByText(title)).toBeVisible();
-  await bob.getByRole('link', { name: 'Join this gathering' }).click(); // shell guard -> login
+  await bob.getByRole('link', { name: 'Join this round' }).click(); // shell guard -> login
   await bob.waitForURL(/\/login\?/);
   await signUp(bob, `smoke-guest-${stamp}@rls.test`);
   await bob.waitForURL(/\/profile\?/); // no profile yet: name first, destination remembered
@@ -81,32 +82,32 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   // A stranger reads the detail: the headcount, no member rows, and Join.
   await bob.waitForURL(`**${detailPath}**`);
   await expect(bob.getByRole('heading', { name: title })).toBeVisible();
-  await expect(bob.getByText('1 going')).toBeVisible();
+  await expect(bob.getByText('1 playing')).toBeVisible();
   await expect(bob.getByText('Smoke Ada')).toHaveCount(0);
   await bob.getByRole('button', { name: 'Join', exact: true }).click();
-  await expect(bob.getByText('2 going')).toBeVisible();
-  await expect(bob.getByRole('button', { name: 'Leave gathering' })).toBeVisible();
+  await expect(bob.getByText('2 playing')).toBeVisible();
+  await expect(bob.getByRole('button', { name: 'Leave round' })).toBeVisible();
   // Joining revealed Bob's own row and nothing else: the host is not a connection yet.
   await expect(bob.getByText('Smoke Bob')).toBeVisible();
   await expect(bob.getByText('Smoke Ada')).toHaveCount(0);
 
   // Tapping the tag again as a member opens the gathering instead of inviting twice.
   await bob.goto(`/t/${uid}`);
-  await expect(bob.getByRole('link', { name: 'Open gathering' })).toBeVisible();
+  await expect(bob.getByRole('link', { name: 'Open round' })).toBeVisible();
 
   // The feed lists it to Bob as Going; Ada's side counts him without naming him.
-  await bob.goto('/gatherings');
-  const bobHappening = bob.getByRole('region', { name: 'Happening' });
+  await bob.goto('/rounds');
+  const bobHappening = bob.getByRole('region', { name: 'Tee sheet' });
   await revealInFeed(bobHappening, title);
-  await expect(bobHappening.getByText(/Going · .* · 2 going/)).toBeVisible();
+  await expect(bobHappening.getByText(/Playing · .* · 2 playing/)).toBeVisible();
   await ada.reload();
-  await expect(ada.getByText('2 going')).toBeVisible();
+  await expect(ada.getByText('2 playing')).toBeVisible();
   await expect(ada.getByText('Smoke Bob')).toHaveCount(0);
 
   // --- Connecting is what reveals who's going -------------------------------------
   // Ada points her tag back at her profile so a tap offers Connect.
   await ada.getByRole('button', { name: 'Point my tags back to my profile' }).click();
-  await expect(ada.getByRole('button', { name: 'Point my tags at this gathering' })).toBeVisible();
+  await expect(ada.getByRole('button', { name: 'Point my tags at this round' })).toBeVisible();
   await bob.goto(`/t/${uid}`);
   await bob.getByRole('button', { name: 'Connect' }).click();
   await expect(bob.getByText(/request sent/i)).toBeVisible();
@@ -119,7 +120,7 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   // Now each sees the other in who's going, and the feed names them.
   await bob.goto(detailPath);
   await expect(bob.getByText('Smoke Ada')).toBeVisible();
-  await bob.goto('/gatherings');
+  await bob.goto('/rounds');
   await revealInFeed(bobHappening, title);
   await expect(bobHappening.getByText('With Smoke Ada')).toBeVisible();
   await ada.goto(detailPath);

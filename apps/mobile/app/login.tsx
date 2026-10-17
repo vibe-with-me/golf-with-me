@@ -34,11 +34,11 @@ export default function LoginScreen() {
       setAwaitingConfirmation(true);
       return;
     }
-    router.replace(safeRedirect(params.redirect) ?? '/gatherings');
+    router.replace(safeRedirect(params.redirect) ?? '/rounds');
   }
 
-  const context = params.redirect?.startsWith('/gathering/') ? (
-    <Muted>to join the gathering you were invited to</Muted>
+  const context = params.redirect?.startsWith('/round/') ? (
+    <Muted>to join the round you were invited to</Muted>
   ) : params.redirect?.startsWith('/t/') || params.redirect?.startsWith('/claim/') ? (
     <Muted>to connect over the tag you just tapped</Muted>
   ) : null;
@@ -62,7 +62,7 @@ export default function LoginScreen() {
       {method === 'phone' ? (
         <PhoneSignIn
           context={context}
-          onSignedIn={() => router.replace(safeRedirect(params.redirect) ?? '/gatherings')}
+          onSignedIn={() => router.replace(safeRedirect(params.redirect) ?? '/rounds')}
           onUseEmail={() => setMethod('email')}
         />
       ) : (

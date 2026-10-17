@@ -5,7 +5,7 @@ import { useAccountSwitching } from '../lib/account-scope.ts';
 import { ErrorBody, PendingBody } from './CalmStates.tsx';
 
 interface NavItem {
-  to: '/gatherings' | '/connections' | '/merch' | '/profile';
+  to: '/rounds' | '/connections' | '/merch' | '/profile';
   label: string;
   icon: LucideIcon;
 }
@@ -19,7 +19,7 @@ interface NavItem {
  * fulfillment pointer is dormant by default.
  */
 export const navItems: readonly [NavItem, ...NavItem[]] = [
-  { to: '/gatherings', label: 'Events', icon: Calendar },
+  { to: '/rounds', label: 'Rounds', icon: Calendar },
   { to: '/connections', label: 'Connections', icon: Users },
   ...(import.meta.env.VITE_STORE_URL
     ? ([{ to: '/merch', label: 'Merch', icon: ShoppingBag }] as const)

@@ -5,7 +5,7 @@ import { shellStates } from '../components/CalmStates.tsx';
 import { Avatar } from '../components/ProfileCard.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { formatStartsAt, toDateTimeLocal, whenAndWhere } from '../lib/format-time.ts';
+import { courseWhenAndWhere, formatStartsAt, toDateTimeLocal } from '../lib/format-time.ts';
 import { goingLine } from '../lib/going.ts';
 
 type LoaderResult =
@@ -19,16 +19,20 @@ type LoaderResult =
 /** Display-only hints carried from the tag resolver, shown before joining. Never data. */
 interface Hints {
   title?: string;
+  course_name?: string;
   starts_at?: string;
 }
 
-export const Route = createFileRoute('/_app/gatherings_/$id')({
+export const Route = createFileRoute('/_app/rounds_/$id')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Gathering — golfwithme' }] }),
+  head: () => ({ meta: [{ title: 'Round — golfwithme' }] }),
   validateSearch: (search): Hints => {
     const hints: Hints = {};
     if (typeof search.title === 'string' && search.title !== '') {
       hints.title = search.title.slice(0, 120);
+    }
+    if (typeof search.course_name === 'string' && search.course_name !== '') {
+      hints.course_name = search.course_name.slice(0, 80);
     }
     if (typeof search.starts_at === 'string' && search.starts_at !== '') {
       hints.starts_at = search.starts_at.slice(0, 40);
@@ -67,19 +71,19 @@ function GatheringPage() {
 /** The gathering is hidden (blocked, or gone): offer the join the tag promised; it answers "not available". */
 function JoinCard() {
   const { id } = Route.useParams();
-  const { title, starts_at } = Route.useSearch();
+  const { title, course_name, starts_at } = Route.useSearch();
   const router = useRouter();
   const [join, setJoin] = useState<'idle' | 'joining' | 'failed' | 'unavailable'>('idle');
-  const hint = [title ?? null, starts_at ? formatStartsAt(starts_at) : null]
+  const hint = [title ?? null, course_name ?? null, starts_at ? formatStartsAt(starts_at) : null]
     .filter(Boolean)
     .join(' · ');
 
   return (
     <div className="card card--settle">
-      <h1>Join this gathering?</h1>
+      <h1>Join this round?</h1>
       {hint ? <p className="hint">{hint}</p> : null}
       {join === 'unavailable' ? (
-        <p className="hint">This gathering isn't available.</p>
+        <p className="hint">This round isn't available.</p>
       ) : (
         <button
           type="button"
@@ -108,6 +112,7 @@ interface GatheringPatch {
   title: string;
   starts_at: string;
   location: string | null;
+  course_name: string;
 }
 
 function GatheringDetail({
@@ -141,7 +146,7 @@ function GatheringDetail({
     } catch (error) {
       setActionError(
         (error as { code?: string }).code === 'NOT_FOUND'
-          ? "This gathering isn't available."
+          ? "This round isn't available."
           : 'That didn’t go through. Try again.',
       );
     } finally {
@@ -169,7 +174,7 @@ function GatheringDetail({
     try {
       await api.app.gatherings.remove({ id: gathering.id });
       // Replace, so Back does not land on a gathering that no longer exists.
-      navigate({ to: '/gatherings', replace: true });
+      navigate({ to: '/rounds', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -183,7 +188,7 @@ function GatheringDetail({
       await api.app.gatherings.leave({ id: gathering.id });
       // Back to the list (replace, so Back does not return here): the
       // gathering is still visible, but the tab is where it is listed.
-      navigate({ to: '/gatherings', replace: true });
+      navigate({ to: '/rounds', replace: true });
     } catch {
       setActionError('That didn’t go through. Try again.');
       setBusy(false);
@@ -203,7 +208,7 @@ function GatheringDetail({
         ) : (
           <>
             <h1>{gathering.title}</h1>
-            <p className="hint">{whenAndWhere(gathering)}</p>
+            <p className="hint">{courseWhenAndWhere(gathering)}</p>
             <p className="hint">{goingLine(memberCount)}</p>
           </>
         )}
@@ -237,14 +242,14 @@ function GatheringDetail({
               disabled={busy}
               onClick={() => setMode('confirm-delete')}
             >
-              Delete gathering
+              Delete round
             </button>
           </div>
         ) : null}
         {mode === 'confirm-delete' ? (
           <>
             <p className="bio">
-              Delete this gathering? Members lose it, and tags pointing here fall back to your
+              Delete this round? Members lose it, and tags pointing here fall back to your
               profile.
             </p>
             <div className="row-actions">
@@ -264,7 +269,7 @@ function GatheringDetail({
         ) : null}
         {mode === 'view' && isMember && !isHost ? (
           <button type="button" className="btn btn--quiet" disabled={busy} onClick={leave}>
-            {busy ? 'Leaving…' : 'Leave gathering'}
+            {busy ? 'Leaving…' : 'Leave round'}
           </button>
         ) : null}
         {/* Joining is the consent moment: the accent's job, as on the resolver. */}
@@ -275,7 +280,7 @@ function GatheringDetail({
         ) : null}
       </div>
 
-      <h2 className="section-title">Who's going</h2>
+      <h2 className="section-title">Who's playing</h2>
       <p className="hint">
         {members.length === 0
           ? "You'll see the people you're connected with here."
@@ -312,6 +317,7 @@ function EditForm({
   const [title, setTitle] = useState(gathering.title);
   const [startsAt, setStartsAt] = useState(() => toDateTimeLocal(new Date(gathering.starts_at)));
   const [location, setLocation] = useState(gathering.location ?? '');
+  const [course, setCourse] = useState(gathering.course_name);
   return (
     <form
       className="stack"
@@ -321,6 +327,7 @@ function EditForm({
           title: title.trim(),
           starts_at: new Date(startsAt).toISOString(),
           location: location.trim() === '' ? null : location.trim(),
+          course_name: course.trim(),
         });
       }}
     >
@@ -335,7 +342,17 @@ function EditForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="edit_starts_at">Starts</label>
+        <label htmlFor="edit_course_name">Course</label>
+        <input
+          id="edit_course_name"
+          required
+          maxLength={80}
+          value={course}
+          onChange={(e) => setCourse(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="edit_starts_at">Tee time</label>
         <input
           id="edit_starts_at"
           type="datetime-local"
@@ -345,7 +362,7 @@ function EditForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="edit_location">Location (optional)</label>
+        <label htmlFor="edit_location">Meet at (optional)</label>
         <input
           id="edit_location"
           maxLength={160}
@@ -354,7 +371,11 @@ function EditForm({
         />
       </div>
       <div className="row-actions">
-        <button className="btn" type="submit" disabled={busy || !title.trim() || !startsAt}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy || !title.trim() || !course.trim() || !startsAt}
+        >
           {busy ? 'Saving…' : 'Save'}
         </button>
         <button className="btn btn--quiet" type="button" disabled={busy} onClick={onCancel}>
@@ -390,7 +411,7 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
   }, [load]);
 
   if (tags === 'loading' || tags === 'failed') return null;
-  if (tags.length === 0) return <p className="hint">Claim a tag to point it at this gathering.</p>;
+  if (tags.length === 0) return <p className="hint">Claim a tag to point it at this round.</p>;
 
   const pointsHere = (tag: Tag) =>
     tag.destination?.type === 'gathering' && tag.destination.gathering_id === gatheringId;
@@ -419,7 +440,7 @@ function TagPointer({ gatheringId }: { gatheringId: string }) {
         disabled={busy}
         onClick={() => repoint(elsewhere, { type: 'gathering', gathering_id: gatheringId })}
       >
-        Point my tags at this gathering
+        Point my tags at this round
       </button>
     ) : null;
   const back =

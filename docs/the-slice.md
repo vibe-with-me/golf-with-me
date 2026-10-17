@@ -95,7 +95,7 @@ A new top-level section registers exactly one entry in `navItems`
 (`src/components/AppShell.tsx`, widening its `to` union); that is the
 whole tab. Config-gated tabs follow the Merch entry: present only when
 the env value is set. Detail pages un-nest with the underscore
-(`_app.gatherings_.$id.tsx` is the real one) so a list page never becomes
+(`_app.rounds_.$id.tsx` is the real one) so a list page never becomes
 a layout.
 Public and focused flows (`login.tsx`, `claim.$uid.tsx`) stay outside
 the shell: the resolver (`t.$uid.tsx`) is the idiom — loader does the
@@ -120,7 +120,7 @@ platform-specific). Signed-in top-level screens live in
 `apps/mobile/app/(tabs)/` and register one `Tabs.Screen` in
 `(tabs)/_layout.tsx` (Feather icon, title); detail and focused screens
 stay in `app/` as stack screens so they push over the bar
-(`gathering/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
+(`round/[id].tsx`, `claim/[uid].tsx`, `scan.tsx`). A config-gated
 tab follows the Merch screen: `href: null` when its env value is unset,
 so it is both hidden and unreachable. Screens compose the card primitives from `components/ui.tsx`
 (`Card`, `Title`, `Muted`, `Button` (`inline` inside rows), `Avatar`,

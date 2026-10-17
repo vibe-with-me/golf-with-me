@@ -9,5 +9,5 @@ import { useSession } from '../lib/use-session';
 export default function Index() {
   const { session, loading } = useSession();
   if (loading) return null;
-  return <Redirect href={session ? '/gatherings' : '/login'} />;
+  return <Redirect href={session ? '/rounds' : '/login'} />;
 }

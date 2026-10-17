@@ -26,9 +26,9 @@ export function describeTag(tag: Tag, gatherings: Gathering[] | null): string {
   if (tag.status === 'disabled') return 'Off. A tap shows an inactive tag.';
   const destination = tag.destination;
   if (destination?.type !== 'gathering') return 'A tap shows your card.';
-  if (gatherings === null) return 'A tap invites people to a gathering.';
+  if (gatherings === null) return 'A tap invites people to a round.';
   const target = gatherings.find((g) => g.id === destination.gathering_id);
   return target
     ? `A tap invites people to ${target.title}.`
-    : 'A tap shows your card: the gathering it pointed at is gone, or you left it.';
+    : 'A tap shows your card: the round it pointed at is gone, or you left it.';
 }

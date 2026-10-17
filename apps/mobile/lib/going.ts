@@ -1,8 +1,8 @@
 import type { GatheringMember } from '@withme/contract';
 
-/** "1 going", "12 going". The count is everyone; the names below are not. */
+/** "1 playing", "12 playing". The count is everyone; the names below are not. */
 export function goingLine(count: number): string {
-  return `${count} going`;
+  return `${count} playing`;
 }
 
 /**

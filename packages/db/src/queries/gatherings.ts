@@ -198,6 +198,7 @@ export interface GatheringPatch {
   title?: string;
   starts_at?: string;
   location?: string | null;
+  course_name?: string;
 }
 
 /** Host-only by RLS and the column grant: a non-host's patch matches zero

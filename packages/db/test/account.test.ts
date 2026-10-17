@@ -101,6 +101,7 @@ describe('delete_my_account', () => {
     const carol = await createTestUser('Carol');
     const created = await alice.client.rpc('create_gathering', {
       p_title: 'Alice hosts',
+      p_course_name: 'Riverside Muni',
       p_starts_at: tomorrow(),
     });
     expect(created.error).toBeNull();
@@ -108,6 +109,7 @@ describe('delete_my_account', () => {
     expect((await bob.client.rpc('join_gathering', { p_gathering_id: hosted.id })).error).toBeNull();
     const other = await carol.client.rpc('create_gathering', {
       p_title: 'Carol hosts',
+      p_course_name: 'Riverside Muni',
       p_starts_at: tomorrow(),
     });
     expect(other.error).toBeNull();

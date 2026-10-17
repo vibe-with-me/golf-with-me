@@ -64,7 +64,7 @@ export default function TabsLayout() {
         tabBarLabel: label,
       }}
     >
-      <Tabs.Screen name="gatherings" options={{ title: 'Events', tabBarIcon: icon('calendar') }} />
+      <Tabs.Screen name="rounds" options={{ title: 'Rounds', tabBarIcon: icon('calendar') }} />
       <Tabs.Screen name="connections" options={{ title: 'Connections', tabBarIcon: icon('users') }} />
       <Tabs.Screen
         name="merch"

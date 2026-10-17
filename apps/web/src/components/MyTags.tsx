@@ -152,7 +152,7 @@ function TagRow({
           ))}
           {orphan ? (
             <option value={current} disabled>
-              {gatherings === null ? 'A gathering' : "A gathering you're not in"}
+              {gatherings === null ? 'A round' : "A round you're not in"}
             </option>
           ) : null}
         </select>

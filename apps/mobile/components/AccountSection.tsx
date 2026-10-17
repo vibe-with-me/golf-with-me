@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Button, Card, ErrorText, SectionHeader } from './ui';
 
 const DELETE_COPY =
-  "Your profile, connections, requests, blocks, and the gatherings you host are deleted, and your photo with them. Your tags are released so anyone can claim them. This can't be undone.";
+  "Your profile, connections, requests, blocks, and the rounds you host are deleted, and your photo with them. Your tags are released so anyone can claim them. This can't be undone.";
 
 const FAILED = "That didn't go through. Try again.";
 

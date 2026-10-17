@@ -144,6 +144,7 @@ describe('visibility', () => {
     await setLinks(alice, ADA);
     const { data: gathering, error } = await alice.client.rpc('create_gathering', {
       p_title: 'Rooftop listening session',
+      p_course_name: 'Riverside Muni',
       p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
     });
     expect(error).toBeNull();

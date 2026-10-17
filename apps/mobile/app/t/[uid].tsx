@@ -125,7 +125,7 @@ export default function ResolveScreen() {
  * gathering/[id] sits behind Stack.Protected: a signed-out push would bounce
  * to the anchor and lose the id, so the signed-out path carries the id and
  * the display hints through login. The tag's owner and other members have
- * nothing to join and get "Open gathering" in the default style. Until we
+ * nothing to join and get "Open round" in the default style. Until we
  * know which, no button: guessing "Join" would flash the accent at a member.
  */
 function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; ownerId: string }) {
@@ -164,7 +164,7 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
   return (
     <Button
       kind={isMember ? 'default' : 'connect'}
-      label={isMember ? 'Open gathering' : 'Join this gathering'}
+      label={isMember ? 'Open round' : 'Join this round'}
       onPress={async () => {
         // Decided at tap time, not from the mount verdict: a session read that
         // failed then fell back to 'other', and a signed-out push to the
@@ -180,8 +180,13 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
           return;
         }
         router.push({
-          pathname: '/gathering/[id]',
-          params: { id: gathering.id, title: gathering.title, starts_at: gathering.starts_at },
+          pathname: '/round/[id]',
+          params: {
+            id: gathering.id,
+            title: gathering.title,
+            course_name: gathering.course_name,
+            starts_at: gathering.starts_at,
+          },
         });
       }}
     />

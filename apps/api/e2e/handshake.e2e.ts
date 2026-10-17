@@ -174,9 +174,11 @@ async function wholeFeed(client: AppClient) {
 const created = await aliceApp.gatherings.create({
   title: 'E2E Rooftop',
   starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+  course_name: 'E2E Links',
   location: 'The roof',
 });
 assert(created.gathering.title === 'E2E Rooftop', 'gathering created');
+assert(created.gathering.course_name === 'E2E Links', 'the round carries its course');
 assert(created.gathering.host_id === alice.id, 'creator is the host');
 
 const gatheringUid = await provisionTag();
@@ -186,8 +188,9 @@ assert(
   gatheringResolved.status === 'claimed' &&
     gatheringResolved.destination.type === 'gathering' &&
     gatheringResolved.gathering?.title === 'E2E Rooftop' &&
-    gatheringResolved.gathering.location === 'The roof',
-  'gathering tag resolves with the summary',
+    gatheringResolved.gathering.location === 'The roof' &&
+    gatheringResolved.gathering.course_name === 'E2E Links',
+  'gathering tag resolves with the summary, course included',
 );
 const plainResolved = await anon.resolve(uid);
 assert(
@@ -313,6 +316,7 @@ await aliceApp.blocks.unblock({ user_id: bob.id });
 const doomed = await aliceApp.gatherings.create({
   title: 'E2E Doomed',
   starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+  course_name: 'E2E Links',
 });
 await aliceApp.tags.update({
   uid: gatheringUid,

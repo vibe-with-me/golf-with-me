@@ -225,7 +225,7 @@ function TagRow({
           ))}
           {orphan ? (
             <Choice
-              label={gatherings === null ? 'A gathering' : "A gathering you're not in"}
+              label={gatherings === null ? 'A round' : "A round you're not in"}
               checked
               disabled
             />

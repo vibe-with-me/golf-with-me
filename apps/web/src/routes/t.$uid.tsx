@@ -109,7 +109,7 @@ function GatheringLine({ gathering }: { gathering: GatheringSummary }) {
  * The Join link lands on the detail route under the shell, carrying
  * display-only hints. A signed-out tapper is sent through login by the
  * shell's own guard (returnTo keeps the hints). The tag's owner and other
- * members have nothing to join and get a plain "Open gathering". Until we
+ * members have nothing to join and get a plain "Open round". Until we
  * know which, there is no link at all: guessing "Join" would flash the
  * accent at a member.
  */
@@ -146,14 +146,14 @@ function GatheringInvite({ gathering, ownerId }: { gathering: GatheringSummary; 
   return (
     <Link
       className={isMember ? 'btn' : 'btn btn--connect'}
-      to="/gatherings/$id"
+      to="/rounds/$id"
       params={{ id: gathering.id }}
       // Display-only hints; the returnTo guard refuses control characters and
       // backslashes, so they must not enter the URL in the first place.
       // oxlint-disable-next-line no-control-regex -- stripping control chars is the point
-      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
+      search={{ title: gathering.title.replace(/[\\\u0000-\u001f]/g, ' '), course_name: gathering.course_name.replace(/[\\\u0000-\u001f]/g, ' '), starts_at: gathering.starts_at }}
     >
-      {isMember ? 'Open gathering' : 'Join this gathering'}
+      {isMember ? 'Open round' : 'Join this round'}
     </Link>
   );
 }

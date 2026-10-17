@@ -252,6 +252,7 @@ const gatheringsCreate = appProcedure.gatherings.create.handler(async ({ input, 
   const { data, error } = await context.db.rpc('create_gathering', {
     p_title: input.title,
     p_starts_at: input.starts_at,
+    p_course_name: input.course_name,
     p_location: input.location ?? undefined,
   });
   if (error) throwFromDbError(error, context.logger);

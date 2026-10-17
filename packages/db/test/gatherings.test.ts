@@ -28,6 +28,7 @@ async function createGathering(
 ): Promise<string> {
   const { data, error } = await client.rpc('create_gathering', {
     p_title: title,
+    p_course_name: 'Riverside Muni',
     p_starts_at: new Date(Date.now() + 86_400_000).toISOString(),
     p_location: 'The roof',
   });
@@ -191,6 +192,7 @@ describe('gathering membership and visibility', () => {
 
     const { error: createError } = await anon.rpc('create_gathering', {
       p_title: 'X',
+      p_course_name: 'Riverside Muni',
       p_starts_at: new Date().toISOString(),
     });
     expect(createError?.message).toContain('permission denied for function create_gathering');
@@ -405,7 +407,13 @@ describe('gathering destinations', () => {
   type Resolved = {
     status: string;
     destination: { type: string; gathering_id?: string };
-    gathering: { id: string; title: string; starts_at: string; location: string | null } | null;
+    gathering: {
+      id: string;
+      title: string;
+      starts_at: string;
+      location: string | null;
+      course_name: string;
+    } | null;
   };
 
   it('a gathering tag resolves to the summary, anonymously', async () => {
@@ -424,6 +432,7 @@ describe('gathering destinations', () => {
     expect(resolved.destination).toEqual({ type: 'gathering', gathering_id: id });
     expect(resolved.gathering?.title).toBe('Pinehurst at dawn');
     expect(resolved.gathering?.location).toBe('The roof');
+    expect(resolved.gathering?.course_name).toBe('Riverside Muni');
   });
 
   it('a dangling gathering destination degrades to the profile card', async () => {
@@ -536,6 +545,7 @@ describe('gathering limits', () => {
     for (let i = 0; i < 5; i++) await createGathering(alice.client, `Night ${i}`);
     const { error } = await alice.client.rpc('create_gathering', {
       p_title: 'One too many',
+      p_course_name: 'Riverside Muni',
       p_starts_at: inDays(1),
     });
     expect(error?.code).toBe('P0004');
@@ -552,6 +562,7 @@ describe('gathering limits', () => {
       Array.from({ length: n }, (_, i) => ({
         host_id: alice.id,
         title: `Seeded ${i}`,
+        course_name: 'Riverside Muni',
         starts_at: startsAt(i),
       }));
     // Seeded with the service role, around the hourly limit. 19 upcoming, 5 past.
@@ -563,6 +574,7 @@ describe('gathering limits', () => {
     await createGathering(alice.client, 'The 20th');
     const { error } = await alice.client.rpc('create_gathering', {
       p_title: 'The 21st',
+      p_course_name: 'Riverside Muni',
       p_starts_at: inDays(2),
     });
     expect(error?.code).toBe('P0004');
@@ -599,6 +611,7 @@ describe('gathering limits', () => {
     const alice = await createTestUser('Alice');
     const far = await alice.client.rpc('create_gathering', {
       p_title: 'Next decade',
+      p_course_name: 'Riverside Muni',
       p_starts_at: inDays(400),
     });
     expect(far.error?.code).toBe('22023');
@@ -617,6 +630,70 @@ describe('gathering limits', () => {
   });
 });
 
+describe('the course a round is played on', () => {
+  it('a create needs a course, at most 80 characters, even straight through PostgREST', async () => {
+    const alice = await createTestUser('Alice');
+    // Blank is refused by the RPC; too long by the column's CHECK.
+    for (const [course, code] of [
+      ['', '22023'],
+      ['   ', '22023'],
+      ['x'.repeat(81), '23514'],
+    ] as const) {
+      const { error } = await alice.client.rpc('create_gathering', {
+        p_title: 'Dawn nine',
+        p_starts_at: inDays(1),
+        p_course_name: course,
+      });
+      expect(error?.code).toBe(code);
+    }
+    // Positive control: 80 characters is the limit, not past it.
+    const { data, error } = await alice.client.rpc('create_gathering', {
+      p_title: 'Dawn nine',
+      p_starts_at: inDays(1),
+      p_course_name: 'x'.repeat(80),
+    });
+    expect(error).toBeNull();
+    expect((data as { course_name: string }).course_name).toBe('x'.repeat(80));
+  });
+
+  it('only the host edits the course, never blank and never past 80 characters', async () => {
+    const alice = await createTestUser('Alice');
+    const bob = await createTestUser('Bob');
+    const id = await createGathering(alice.client);
+
+    const tooLong = await alice.client
+      .from('gatherings')
+      .update({ course_name: 'x'.repeat(81) })
+      .eq('id', id);
+    expect(tooLong.error?.code).toBe('23514');
+
+    // Bob is not the host: RLS admits no row, so nothing changes.
+    const notHis = await bob.client
+      .from('gatherings')
+      .update({ course_name: 'Not his' })
+      .eq('id', id)
+      .select('course_name');
+    expect(notHis.error).toBeNull();
+    expect(notHis.data).toEqual([]);
+    const kept = await admin.from('gatherings').select('course_name').eq('id', id).single();
+    expect(kept.data?.course_name).toBe('Riverside Muni');
+
+    // Nor can the host blank it straight through PostgREST.
+    for (const course_name of ['', '   ']) {
+      const blanked = await alice.client.from('gatherings').update({ course_name }).eq('id', id);
+      expect(blanked.error?.message).toContain('gatherings_course_name_present');
+    }
+    const moved = await alice.client
+      .from('gatherings')
+      .update({ course_name: 'Cedar Hills' })
+      .eq('id', id)
+      .select('course_name')
+      .single();
+    expect(moved.error).toBeNull();
+    expect(moved.data?.course_name).toBe('Cedar Hills');
+  });
+});
+
 describe('the feed, a page at a time', () => {
   it('pages through every upcoming gathering once, in order, ties on start broken by id', async () => {
     const alice = await createTestUser('Alice');
@@ -631,6 +708,7 @@ describe('the feed, a page at a time', () => {
         [tie, tie, tie, tie, tie, after, after].map((starts_at, i) => ({
           host_id: alice.id,
           title: `Paged ${i}`,
+          course_name: 'Riverside Muni',
           starts_at,
         })),
       )

@@ -44,7 +44,7 @@ export async function signUpWithProfile(page: Page, email: string, name: string)
   await page.waitForURL(/\/profile\?/);
   await page.getByLabel('Name').fill(name);
   await page.getByRole('button', { name: 'Save' }).click();
-  await page.waitForURL('**/gatherings');
+  await page.waitForURL('**/rounds');
 }
 
 /** Provisions a fresh tag, signs up from its tap, and claims it. Returns the uid. */
