@@ -66,13 +66,15 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await expect(ada.getByText('1 playing')).toBeVisible();
   await expect(ada.getByText('Host', { exact: true })).toBeVisible();
   // The location searches a maps app for its text, encoded, in a new tab.
-  const maps = ada.getByRole('link', { name: 'The first tee, opens in Maps' });
+  // Golf With Me: the course is the place; the meeting point is plain text.
+  const maps = ada.getByRole('link', { name: 'Riverside Muni, opens in Maps' });
   await expect(maps).toHaveAttribute(
     'href',
-    'https://www.google.com/maps/search/?api=1&query=The%20first%20tee',
+    'https://www.google.com/maps/search/?api=1&query=Riverside%20Muni',
   );
   await expect(maps).toHaveAttribute('target', '_blank');
   await expect(maps).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(ada.getByRole('link', { name: /The first tee/ })).toHaveCount(0);
   await ada.getByRole('button', { name: 'Point my tags at this round' }).click();
   await expect(ada.getByRole('button', { name: 'Point my tags back to my profile' })).toBeVisible();
 

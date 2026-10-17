@@ -158,13 +158,14 @@ export default function GatheringsScreen() {
       >
         <View style={styles.rowBody}>
           <Text style={[styles.rowName, { color: t.ink }]}>{gathering.title}</Text>
-          {/* Two lines, as on web: the status and date never fill both, so the
-              location's link always starts on a visible line. */}
+          {/* Two lines, as on web. The course is the Maps link and leads the
+              line (after at most a Hosting / Playing mark), so it always
+              starts on a visible line. */}
           <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
             {line.head}
             {where ? (
               <>
-                {' · '}
+                {line.head ? ' · ' : null}
                 <Text
                   style={[styles.rowLink, { color: t.ink }]}
                   suppressHighlighting
@@ -174,7 +175,7 @@ export default function GatheringsScreen() {
                 </Text>
               </>
             ) : null}
-            {line.tail ? ` · ${line.tail}` : null}
+            {line.tail ? `${line.head || where ? ' · ' : ''}${line.tail}` : null}
           </Text>
           {names ? (
             <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
