@@ -467,3 +467,13 @@ all predictable. Two notes:
     cancelling) and ~L129 (Major: require the API URL before deploying);
     `docs/moderation.md` ~L58 (a visibility claim); `docs/staying-current.md`
     ~L141 (include the known labels in the copy sweep, the same as 42).
+
+46. **"Require linear history" and the sync routine can't both hold.** This
+    repository gained a "Protect main" ruleset (linear history, PRs, status
+    checks, resolved conversations). staying-current's sync must land as a
+    merge commit (snag 30), and the ruleset refuses any merge commit on
+    `main`, so a sync can only be squashed, which re-raises every resolved
+    conflict on the next one. *Did instead:* stopped and asked the owner.
+    Suggest: staying-current says so, with the two working setups (no linear
+    history rule, or a bypass for the sync PR), and a note that "resolve
+    conversations" means resolving bot threads too.
