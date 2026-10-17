@@ -92,7 +92,9 @@ function ResolvePage() {
 function WordmarkFooter() {
   return (
     <p className="hint">
-      <Link to="/">withme</Link>
+      <Link to="/" className="wordmark">
+        golfwithme
+      </Link>
     </p>
   );
 }

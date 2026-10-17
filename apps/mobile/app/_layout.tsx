@@ -1,14 +1,14 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
+  Caveat_500Medium,
+  Caveat_600SemiBold,
+  Caveat_700Bold,
   useFonts,
-} from '@expo-google-fonts/inter';
+} from '@expo-google-fonts/caveat';
 import {
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+} from '@expo-google-fonts/ibm-plex-sans';
 import { Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -24,12 +24,12 @@ export default function RootLayout() {
   const { session, loading } = useSession();
   const [fontsLoaded] = useFonts({
     ...Feather.font,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
+    Caveat_500Medium,
+    Caveat_600SemiBold,
+    Caveat_700Bold,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
   });
 
   const ready = fontsLoaded && !loading;

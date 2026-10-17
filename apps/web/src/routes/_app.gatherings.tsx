@@ -16,7 +16,7 @@ import { goingLine, withLine } from '../lib/going.ts';
  */
 export const Route = createFileRoute('/_app/gatherings')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Events — withme' }] }),
+  head: () => ({ meta: [{ title: 'Events — golfwithme' }] }),
   loader: async () => {
     const [feed, { gatherings: mine }] = await asSignedInAccount(() =>
       Promise.all([api.app.gatherings.list(), api.app.gatherings.listMine()]),

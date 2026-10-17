@@ -3,7 +3,7 @@
  * value in the app. Same dormant-seam logic as tenant_id: V2 theming becomes
  * a token swap, not a redesign. Components must reference var(--*) only.
  *
- * Palette: near-monochrome warm neutrals with EXACTLY ONE vivid accent,
+ * Palette: near-monochrome scorecard neutrals (graphite on card stock) with EXACTLY ONE vivid accent,
  * reserved for the handshake pair (Connect and Accept).
  */
 
@@ -12,28 +12,28 @@
 
   /* surfaces & ink. The page sits a visible step below the surface so a
      card needs no border to read as an object. */
-  --color-bg: #f3efe8;
-  --color-surface: #fffefb;
-  --color-border: rgba(28, 25, 22, 0.09);
+  --color-bg: #eeebe1;
+  --color-surface: #fdfcf7;
+  --color-border: rgba(38, 38, 42, 0.1);
   /* input boundaries need >=3:1 against the surface (WCAG 1.4.11):
-     3.32:1 light, 4.43:1 dark */
-  --color-border-input: rgba(28, 25, 22, 0.5);
-  --color-ink: #1c1916;
-  --color-ink-muted: #6f6a62;
+     3.06:1 light, 4.36:1 dark */
+  --color-border-input: rgba(38, 38, 42, 0.5);
+  --color-ink: #26262a;
+  --color-ink-muted: #63625d;
 
   /* the accent. The handshake pair — Connect and Accept — and nothing else.
-     (5.18:1 with --color-accent-ink in light; 6.46:1 in dark) */
-  --color-accent: #c2410c;
+     (5.68:1 with --color-accent-ink in light; 6.62:1 in dark) */
+  --color-accent: #c42a1f;
   --color-accent-ink: #ffffff;
 
   /* type */
-  --font-display: 'Space Grotesk Variable', 'Avenir Next', 'Helvetica Neue', sans-serif;
-  --font-body: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Caveat Variable', 'Bradley Hand', 'Segoe Print', cursive;
+  --font-body: 'IBM Plex Sans Variable', -apple-system, 'Segoe UI', sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.9375rem;
   --text-md: 1.0625rem;
-  --text-lg: 1.25rem;
-  --text-title: 2rem;
+  --text-lg: 1.5rem;
+  --text-title: 2.5rem;
 
   /* geometry — rounded, card-like, echoing the physical tag */
   --radius-card: 24px;
@@ -61,10 +61,10 @@
      have no border; the shadow and the bg/surface step do the work.
      Mobile mirrors these as `shadow` in tokens.ts. */
   --shadow-card:
-    0 1px 2px rgba(28, 25, 22, 0.05),
-    0 8px 24px -12px rgba(28, 25, 22, 0.18),
-    0 28px 56px -32px rgba(28, 25, 22, 0.22);
-  --shadow-bar: 0 -8px 24px -12px rgba(28, 25, 22, 0.18);
+    0 1px 2px rgba(38, 38, 42, 0.05),
+    0 8px 24px -12px rgba(38, 38, 42, 0.18),
+    0 28px 56px -32px rgba(38, 38, 42, 0.22);
+  --shadow-bar: 0 -8px 24px -12px rgba(38, 38, 42, 0.18);
 
   /* the motion budget: the card's settle on resolve, and a button's
      opacity on hover and press. Nothing else moves. */
@@ -75,14 +75,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #141210;
-    --color-surface: #26221e;
-    --color-border: rgba(240, 236, 229, 0.1);
-    --color-border-input: rgba(240, 236, 229, 0.5);
-    --color-ink: #f0ece5;
-    --color-ink-muted: #a39c91;
-    --color-accent: #ff6a3d;
-    --color-accent-ink: #211008;
+    --color-bg: #131314;
+    --color-surface: #222224;
+    --color-border: rgba(236, 234, 226, 0.1);
+    --color-border-input: rgba(236, 234, 226, 0.5);
+    --color-ink: #eceae2;
+    --color-ink-muted: #a3a199;
+    --color-accent: #ff6b5b;
+    --color-accent-ink: #2b0703;
     --shadow-card:
       0 1px 2px rgba(0, 0, 0, 0.5),
       0 8px 24px -12px rgba(0, 0, 0, 0.55),

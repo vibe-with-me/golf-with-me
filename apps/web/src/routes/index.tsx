@@ -25,10 +25,10 @@ function Home() {
   return (
     <main className="page">
       <div className="card">
-        <h1 className="wordmark">withme</h1>
-        <p className="bio">Tap a tag. Meet a person. Stay connected.</p>
+        <h1 className="wordmark">golfwithme</h1>
+        <p className="bio">Tap a tag. Meet your four. Pencil them in.</p>
         <p className="hint">
-          This is the starter app — tags resolve at <code>/t/&lt;uid&gt;</code>.
+          Tap the tag on someone&rsquo;s bag or ball marker to see who they are and join their round.
         </p>
         {/* The tag link matches the seed script's claimed demo tag. */}
         {import.meta.env.VITE_DEMO_CREDENTIALS ? (

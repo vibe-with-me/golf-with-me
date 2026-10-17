@@ -27,7 +27,7 @@ export default function ResolveScreen() {
       api.public.resolve({ uid: normalized }),
       // A scan is logged for real taps; failures never break the resolve.
       api.public
-        .logScan({ uid: normalized, user_agent: `withme-mobile/${Platform.OS}` })
+        .logScan({ uid: normalized, user_agent: `golfwithme-mobile/${Platform.OS}` })
         .catch(() => undefined),
     ])
       .then(async ([resolved]) => {

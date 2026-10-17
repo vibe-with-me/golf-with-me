@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Before filing: is it one of the known fresh-machine problems in
-        [Local development](https://github.com/vibe-with-me/withme-starter/blob/main/docs/local-development.md#when-something-goes-wrong)?
+        [Local development](https://github.com/vibe-with-me/golf-with-me/blob/main/docs/local-development.md#when-something-goes-wrong)?
         If the bug lets someone see a card, a connection, or a gathering they
         should not, do not file it here. Report it privately on the Security tab.
   - type: textarea
@@ -41,7 +41,7 @@ body:
       description: On the local demo if you can (`bun run db:reset && bun run db:seed`, then the steps). Say which demo account or tag UID you used.
       placeholder: |
         1. bun run db:reset && bun run db:seed
-        2. Sign in as ada@demo.withme.local
+        2. Sign in as ada@demo.golfwithme.local
         3. Open /t/04BBBBBBBBBBBB
         4. ...
     validations:

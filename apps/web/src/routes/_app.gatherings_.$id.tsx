@@ -24,7 +24,7 @@ interface Hints {
 
 export const Route = createFileRoute('/_app/gatherings_/$id')({
   ...shellStates,
-  head: () => ({ meta: [{ title: 'Gathering — withme' }] }),
+  head: () => ({ meta: [{ title: 'Gathering — golfwithme' }] }),
   validateSearch: (search): Hints => {
     const hints: Hints = {};
     if (typeof search.title === 'string' && search.title !== '') {

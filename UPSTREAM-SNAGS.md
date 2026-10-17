@@ -66,3 +66,72 @@ nothing here was fixed in the starter from inside this fork.
    placement on Join and Claim) say it goes on a screen's primary action.
    Minor, but the brief tells `/design` to read `tokens.css`. *Did
    instead:* followed the skill (primary action only).
+
+6. **`gh` targets the starter once an `upstream` remote exists.** With the
+   remotes step 0 recommends, `gh pr create` resolved the base repository
+   to `upstream` (withme-starter) and failed with "No commits between main
+   and …". *Did instead:* `gh repo set-default <org>/<app>`. Suggest: add
+   that line next to `git remote add upstream` in step 0 and
+   staying-current.md.
+
+## Step 2: `make-it-yours`
+
+7. **Mobile has no type scale to adjust, though step 1 says it does.**
+   Step 1 says the non-color tokens "(type scale, radii, spacing, fonts)
+   also exist in both files", but `apps/mobile/lib/tokens.ts` has `fonts`,
+   `radius` and `space` only; display sizes are literals in `ui.tsx`,
+   `Header.tsx`, `(tabs)/gatherings.tsx` and `gathering/[id].tsx`. A display
+   face with a small x-height (Caveat here) needs its sizes raised. On web
+   that is a token change (`--text-title` and `--text-lg` are used only by
+   display text); on mobile it is a code change in four files. *Did
+   instead:* raised `--text-title` 2rem→2.5rem and `--text-lg`
+   1.25rem→1.5rem, added `displaySize` to `tokens.ts` mirroring them, and
+   pointed the four mobile call sites at it. Suggest: ship `displaySize`
+   (or a full type scale) in the starter's `tokens.ts`, and have
+   design-direction ask whether the display face needs a size adjustment.
+
+8. **Step 1's checkpoint can't pass until step 8.** The old-accent grep
+   over `apps/` matches `apps/web/public/favicon.svg`, which carries the
+   old tokens and is only rewritten in step 8. *Did instead:* went on and
+   re-ran the grep after step 8 (clean). Suggest: exclude `favicon.svg` in
+   step 1's grep, or move the favicon to step 1.
+
+9. **Private vulnerability reporting isn't available on a private repo.**
+   Step 8 says to turn it on in Settings → Code security; GitHub offers it
+   only on public repositories (`PUT /repos/{repo}/private-vulnerability-reporting`
+   returns 404 here). The issue template's advisory link 404s until then.
+   *Did instead:* wrote SECURITY.md and the issue template for this repo's
+   private reporting, to be switched on when the repo goes public. Suggest:
+   say so in step 8, with a security email as the private-repo option.
+
+10. **The final sweep has no story for a fork in the starter's own org.**
+    It allows only the README badge line for a same-org fork, but step 8's
+    own contact-point rewrites put `github.com/vibe-with-me/<fork>` into
+    `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md` and
+    `CONTRIBUTING.md`, and a fork whose reviewer is the starter's
+    maintainer keeps `@alex-eisele` in CODEOWNERS. All of them print.
+    *Did instead:* read each remaining line and kept the deliberate ones.
+    Suggest: a same-org filter on `github.com/vibe-with-me/<your-repo>/`
+    for every file, not only the README.
+
+11. **render.sh rasterizes `<text>` with whatever fonts the machine has.**
+    A wordmark or letter mark in the brand's display face renders in a
+    fallback unless it is outlined to paths first. Step 8 doesn't say so,
+    and `social-preview.svg` ships as `<text>`. *Did instead:* outlined
+    the Caveat "g" and the social-preview wordmark to paths (opentype.js on
+    the `@fontsource/caveat` woff). Suggest: one line in step 8.
+
+12. **Step 5's `eas init` lands on the wrong account when the login has
+    more than one.** Step 5 says to delete `expo.owner` and run `eas init`
+    "logged in as the fork owner". An Expo login that owns a personal
+    account and an org gets the personal one: `eas init` (non-interactive)
+    created `@expovibes/golfwithme` instead of `@vibe-with-me/golfwithme`.
+    It also wrote a duplicated `android.permissions: [NFC, NFC]` block into
+    `app.json`, and `update:configure` added `channel`s to `eas.json`,
+    neither of which the skill mentions. *Did instead:* set `expo.owner` to
+    the org, deleted only `extra.eas.projectId` and `updates.url`, re-ran
+    `eas init` (it created `@vibe-with-me/golfwithme`), removed the
+    duplicated permissions, and kept the channels. The stray
+    `@expovibes/golfwithme` project is left for the owner to delete.
+    Suggest: step 5 sets `owner` to the fork's Expo account instead of
+    deleting it.

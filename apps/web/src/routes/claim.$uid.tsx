@@ -7,7 +7,7 @@ import { requireSession } from '../lib/auth-guard.ts';
 /** Auth-gated claim flow: authenticate -> confirm -> claim binds tag to profile. */
 export const Route = createFileRoute('/claim/$uid')({
   ssr: false,
-  head: () => ({ meta: [{ title: 'Claim tag — withme' }] }),
+  head: () => ({ meta: [{ title: 'Claim tag — golfwithme' }] }),
   beforeLoad: ({ params }) => requireSession(`/claim/${params.uid}`),
   // Outside the shell, so the account scope's re-load does not reach here: the
   // load itself must belong to one account.

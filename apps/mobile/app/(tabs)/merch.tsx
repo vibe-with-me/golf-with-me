@@ -29,7 +29,7 @@ export default function MerchScreen() {
     <View style={[styles.page, { backgroundColor: t.bg }]}>
       <Card>
         <Title>Merch</Title>
-        <Muted>Tags and gear from the store.</Muted>
+        <Muted>Ball markers, bag tags and divot tools.</Muted>
         {failed ? <ErrorText>Couldn't open the store. Try again in a moment.</ErrorText> : null}
         <Button
           label="Open store"

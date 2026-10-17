@@ -1,4 +1,4 @@
-# Contributing to withme-starter
+# Contributing to Golf With Me
 
 Thanks for helping. This file is short on purpose: it says what the repo
 will and will not take, and points at the docs that explain why. Read the
@@ -146,7 +146,7 @@ To cut a release:
 
 ## Where things go
 
-- **Bugs and proposals:** [Issues](https://github.com/vibe-with-me/withme-starter/issues),
+- **Bugs and proposals:** [Issues](https://github.com/vibe-with-me/golf-with-me/issues),
   using the templates.
 - **Questions and "would this fit":** Discussions, once the repo is public.
 - **Security issues** (anything that lets someone see a card, a connection,

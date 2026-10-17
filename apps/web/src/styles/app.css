@@ -1,16 +1,16 @@
 /* Self-hosted variable fonts (OFL). No font CDNs. */
 @font-face {
-  font-family: 'Space Grotesk Variable';
-  src: url('../fonts/space-grotesk-var-latin.woff2') format('woff2');
-  font-weight: 300 700;
+  font-family: 'Caveat Variable';
+  src: url('../fonts/caveat-var-latin.woff2') format('woff2');
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Inter Variable';
-  src: url('../fonts/inter-var-latin.woff2') format('woff2');
-  font-weight: 100 900;
+  font-family: 'IBM Plex Sans Variable';
+  src: url('../fonts/ibm-plex-sans-var-latin.woff2') format('woff2');
+  font-weight: 100 700;
   font-style: normal;
   font-display: swap;
 }
@@ -65,10 +65,11 @@ a {
 }
 
 /* The wordmark is a setting, not a drawing: face, weight, tracking, lowercase. */
-.wordmark {
+.wordmark,
+.card h1.wordmark {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: var(--color-ink);
 }
 

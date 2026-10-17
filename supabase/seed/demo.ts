@@ -2,8 +2,8 @@ import type { Db } from '@withme/db';
 
 // What the demo seed creates, shared with unseed so the two cannot drift.
 export const DEMO_USERS = {
-  ada: 'ada@demo.withme.local',
-  lin: 'lin@demo.withme.local',
+  ada: 'ada@demo.golfwithme.local',
+  lin: 'lin@demo.golfwithme.local',
 } as const;
 
 export const DEMO_TAGS = {

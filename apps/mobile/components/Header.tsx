@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts, SHELL, space, TAP_TARGET, useTokens } from '../lib/tokens';
+import { displaySize, fonts, SHELL, space, TAP_TARGET, useTokens } from '../lib/tokens';
 
 /**
  * The shared tab header: wordmark left, scan right. There is no home tab, so
@@ -23,7 +23,7 @@ export function Header() {
         },
       ]}
     >
-      <Text accessibilityRole="header" style={[styles.wordmark, { color: t.ink }]}>withme</Text>
+      <Text accessibilityRole="header" style={[styles.wordmark, { color: t.ink }]}>golfwithme</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Scan a tag"
@@ -45,11 +45,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.s5,
     borderBottomWidth: 1,
   },
-  // A setting, not a drawing: display face, 700, -0.03em, lowercase (mirrors .wordmark).
+  // A setting, not a drawing: display face, 700, no tracking, lowercase (mirrors .wordmark).
   wordmark: {
-    fontFamily: fonts.displayBold,
-    fontSize: 20,
-    letterSpacing: -0.6,
+    fontFamily: fonts.wordmark,
+    fontSize: displaySize.wordmark,
+    letterSpacing: 0,
   },
   action: {
     minWidth: TAP_TARGET,

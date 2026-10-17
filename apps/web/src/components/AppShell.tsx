@@ -43,7 +43,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </a>
       <header className="shell-header">
         <Link to={navItems[0].to} className="wordmark">
-          withme
+          golfwithme
         </Link>
       </header>
       <main id="main" className="shell-main">
