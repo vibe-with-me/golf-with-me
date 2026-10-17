@@ -2,13 +2,15 @@ import type { Db, Tables } from '../index.ts';
 import { LINK_EMBED, sortLinks, type ProfileLinkRow } from './links.ts';
 
 /** The card columns — everything a counterpart may see, nothing more. */
-export const CARD_COLUMNS = 'id, display_name, avatar_path, bio';
+export const CARD_COLUMNS = 'id, display_name, avatar_path, bio, handicap, home_course';
 
 export interface ProfileCard {
   id: string;
   display_name: string;
   avatar_path: string | null;
   bio: string | null;
+  handicap: number | null;
+  home_course: string | null;
 }
 
 export async function getOwnProfile(db: Db, userId: string): Promise<Tables<'profiles'> | null> {
@@ -21,7 +23,12 @@ export async function getOwnProfile(db: Db, userId: string): Promise<Tables<'pro
 export async function upsertOwnProfile(
   db: Db,
   userId: string,
-  patch: { display_name?: string; bio?: string | null },
+  patch: {
+    display_name?: string;
+    bio?: string | null;
+    handicap?: number | null;
+    home_course?: string | null;
+  },
 ): Promise<Tables<'profiles'>> {
   const existing = await getOwnProfile(db, userId);
   if (existing) {
@@ -43,6 +50,8 @@ export async function upsertOwnProfile(
       id: userId,
       display_name: patch.display_name,
       bio: patch.bio ?? null,
+      handicap: patch.handicap ?? null,
+      home_course: patch.home_course ?? null,
     })
     .select()
     .single();
@@ -178,6 +187,8 @@ export async function listBlocks(db: Db): Promise<BlockRow[]> {
       display_name: BLOCKED_USER_NAME,
       avatar_path: null,
       bio: null,
+      handicap: null,
+      home_course: null,
     },
   }));
 }

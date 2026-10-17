@@ -1,4 +1,4 @@
-import type { GatheringSummary, ResolveOutput } from '@withme/contract';
+import { golfLine, type GatheringSummary, type ResolveOutput } from '@withme/contract';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -101,6 +101,7 @@ export default function ResolveScreen() {
         <Card settle>
           <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
           <Title>{result.profile.display_name}</Title>
+          {golfLine(result.profile) ? <Muted>{golfLine(result.profile)}</Muted> : null}
           {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
           <Muted>{gatheringLine(result.gathering)}</Muted>
           <GatheringInvite gathering={result.gathering} ownerId={result.profile.id} />
@@ -114,6 +115,7 @@ export default function ResolveScreen() {
       <Card settle>
         <Avatar name={result.profile.display_name} path={result.profile.avatar_path} />
         <Title>{result.profile.display_name}</Title>
+        {golfLine(result.profile) ? <Muted>{golfLine(result.profile)}</Muted> : null}
         {result.profile.bio ? <Muted>{result.profile.bio}</Muted> : null}
         <ConnectAction profileId={result.profile.id} uid={result.uid} />
       </Card>

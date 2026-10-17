@@ -201,3 +201,56 @@ nothing here was fixed in the starter from inside this fork.
     harmless, which is true for the build but not for staying current.
     Suggest: commit the file in the generator's own format upstream, or
     add a formatter step to `db:types`.
+
+21. **The URL rename has no story for a fork with live users.** §1 moves
+    `/gatherings/$id` to `/rounds/$id` (and mobile's `gathering/[id]` to
+    `round/[id]`) with no redirect, so links already shared break. Fine for
+    this fork (never deployed; tags encode `/t/{UID}`), but CodeRabbit
+    flagged it twice. Suggest: one line saying a fork with users adds a
+    compatibility route or a redirect.
+
+22. **Starter bug: `gatheringHref` can throw on an emoji.** In
+    `apps/mobile/lib/gathering-link.ts` the title hint is cut with
+    `.slice(0, 60)` (UTF-16 units); an emoji across the cut leaves a lone
+    surrogate and `encodeURIComponent` throws `URIError`, so Join/Connect
+    navigation fails for that title. Found by CodeRabbit on this fork.
+    *Did instead:* `Array.from(cleaned).slice(0, 60).join('')`.
+
+## Step 4: `extend-profile`
+
+23. **The golf example's "phone, connections only" is already Links.** The
+    README's idea table and run-with-me's Variations list golf's
+    connections-tier field as `phone`, and the brief for this run came from
+    that. But extend-profile says "Check Links first", and Profile → Links
+    already ships a `phone` platform, connections-only. *Did instead:* no
+    `profile_details` table; the card-only path, with Ada's seed carrying a
+    phone Link. Suggest: change golf's connections column in both tables to
+    "phone (a Link)" or pick a non-link example.
+
+24. **§1's red count and §9's counts are stale.** §1 says four contract
+    tests fail on the new required-nullable keys; seven do now (the
+    gathering list item, the links connection card and the plain-text card
+    fixtures were added since). §9 says golf's API e2e adds seven lines; the
+    card-only surfaces it lists (update, get, resolve, pending request,
+    accept, a connection) are six.
+
+25. **The map misses the blocked-user placeholder card.** `listBlocks` in
+    `packages/db/src/queries/handshake.ts` builds a stand-in `ProfileCard`
+    (`BLOCKED_USER_NAME`) when the block hides the card, and
+    `blocks.test.ts` asserts it. Adding fields to `ProfileCard` makes both
+    fail typecheck. *Did instead:* added the fields as null in both.
+
+26. **`CardLineSchema` and the example CHECK skip the plain-text rule**, the
+    same gap as snag 17: `display_name` and `bio` refuse bidi and invisible
+    characters at both layers, the skill's card line doesn't. *Did
+    instead:* `.refine(isPlainText)` in the contract and
+    `profiles_home_course_plain` in SQL, with a test.
+
+27. **Two mobile behaviours CodeRabbit flags as Major in every fork.** The
+    mobile completion gate checks once per tabs mount (by the skill's
+    design, so an incomplete user can tab away from Profile), and the
+    starter's mobile Profile screen loads once on mount, so a value changed
+    on another client is overwritten by the next save from a screen left
+    open. Neither is new in this fork; both were declined on PR #5 with
+    that reason. Suggest: decide upstream (re-check the gate on focus;
+    reload Profile with `useFocusEffect`) so forks stop re-litigating them.

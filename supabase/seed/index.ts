@@ -67,9 +67,23 @@ console.log('Seeding demo data…');
 const ada = await createDemoUser(DEMO_USERS.ada, 'Ada', 'Walks nine before work. Always has a spare ball.');
 const lin = await createDemoUser(DEMO_USERS.lin, 'Lin', 'Twilight scrambles and a slow backswing.');
 
+// extend-profile: the card tier. Each sees the other's handicap and home
+// course on the card; Ada's phone (a Link, below) stays connections-only.
+for (const [user, handicap, home_course] of [
+  [ada, 14.2, 'Riverside Muni'],
+  [lin, -1.4, 'Cedar Hills'],
+] as const) {
+  const { error: cardError } = await user.client
+    .from('profiles')
+    .update({ handicap, home_course })
+    .eq('id', user.id);
+  if (cardError) throw cardError;
+}
+
 // Ada's links: what Lin will see once Ada accepts (Profile → Links).
 const { error: linksError } = await ada.client.rpc('set_my_links', {
   p_links: [
+    { platform: 'phone', value: '+15555550142' },
     { platform: 'instagram', value: 'ada.plays' },
     { platform: 'website', value: 'https://ada.example' },
   ],
@@ -148,7 +162,7 @@ if (linGatheringError) throw linGatheringError;
 
 console.log(`
 Seeded.
-  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a round Lin joined; two links)
+  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a round Lin joined; phone and two links, connections-only)
             ${DEMO_USERS.lin} / ${DEMO_PASSWORD}   (hosts a second round, listed to the domain)
   Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her round
             /t/${TAGS.unclaimed}  -> claim flow

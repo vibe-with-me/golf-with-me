@@ -170,7 +170,14 @@ describe('block invisibility', () => {
     expect(await listBlocks(mallory.client)).toEqual([
       {
         created_at: expect.any(String),
-        user: { id: host.id, display_name: BLOCKED_USER_NAME, avatar_path: null, bio: null },
+        user: {
+          id: host.id,
+          display_name: BLOCKED_USER_NAME,
+          avatar_path: null,
+          bio: null,
+          handicap: null,
+          home_course: null,
+        },
       },
     ]);
     await unblockUser(mallory.client, mallory.id, host.id);

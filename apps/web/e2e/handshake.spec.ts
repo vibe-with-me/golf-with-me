@@ -57,4 +57,18 @@ test('two strangers tap a tag and remain connected', async ({ browser }) => {
 
   await bob.goto('/connections');
   await expect(bob.getByText('Smoke Ada')).toBeVisible();
+
+  // --- extend-profile: the card tier rides the card a tapper sees ------------
+  await ada.goto('/profile');
+  // A handicap that does not parse is refused at the form, and nothing saves.
+  await ada.getByLabel('Handicap').fill('scratch');
+  await ada.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(ada.getByText('A handicap index from +10.0 to 54.0')).toBeVisible();
+  await ada.getByLabel('Handicap').fill('+2.4');
+  await ada.getByLabel('Home course').fill('Smoke Links');
+  // exact: a staged My tags row adds a "Save where … points" button
+  await ada.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(ada.getByText('Saved.')).toBeVisible();
+  await bob.goto(`/t/${uid}`);
+  await expect(bob.getByText('Handicap +2.4 · Smoke Links')).toBeVisible();
 });

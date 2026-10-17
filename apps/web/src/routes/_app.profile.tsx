@@ -1,4 +1,9 @@
-import type { Profile } from '@withme/contract';
+import {
+  formatHandicap,
+  isProfileComplete,
+  parseHandicap,
+  type Profile,
+} from '@withme/contract';
 import { createFileRoute, useLoaderData, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { AccountSection } from '../components/AccountSection.tsx';
@@ -55,18 +60,37 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
+  const [handicap, setHandicap] = useState(
+    profile?.handicap === null || profile?.handicap === undefined
+      ? ''
+      : formatHandicap(profile.handicap),
+  );
+  const [handicapError, setHandicapError] = useState(false);
+  const [homeCourse, setHomeCourse] = useState(profile?.home_course ?? '');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    // Parse first: an undefined key would be dropped by the input schema and
+    // the form would say "Saved." over a handicap it threw away.
+    const parsedHandicap = parseHandicap(handicap);
+    if (parsedHandicap === undefined) {
+      setHandicapError(true);
+      setStatus(null);
+      return;
+    }
+    setHandicapError(false);
     setBusy(true);
     setStatus(null);
     try {
-      await api.app.profile.update({
+      const saved = await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
+        handicap: parsedHandicap,
+        home_course: homeCourse.trim() === '' ? null : homeCourse.trim(),
       });
+      setHandicap(saved.profile.handicap === null ? '' : formatHandicap(saved.profile.handicap));
       // The layout caches the profile until invalidated; wait for the re-fetch
       // (sync) before leaving so the shell never keeps a stale "no profile".
       await router.invalidate({ sync: true });
@@ -84,7 +108,13 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
 
   return (
     <form className="card" onSubmit={save}>
-      <h1>{profile ? 'Your profile' : 'Create your profile'}</h1>
+      <h1>
+        {!profile
+          ? 'Create your profile'
+          : isProfileComplete(profile)
+            ? 'Your profile'
+            : 'Finish your profile'}
+      </h1>
       {/* The photo lives on the profile row: it needs the row to exist first. */}
       {profile ? <AvatarField profile={profile} /> : null}
       <div className="field">
@@ -105,6 +135,33 @@ function IdentityForm({ profile }: { profile: Profile | null }) {
           placeholder="A line or two about you"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="handicap">Handicap</label>
+        <input
+          id="handicap"
+          maxLength={5}
+          placeholder="e.g. 14.2, or +2.4"
+          aria-invalid={handicapError}
+          aria-describedby={handicapError ? 'handicap-error' : undefined}
+          value={handicap}
+          onChange={(e) => setHandicap(e.target.value)}
+        />
+        {handicapError ? (
+          <p className="field-error" id="handicap-error">
+            A handicap index from +10.0 to 54.0, one decimal at most.
+          </p>
+        ) : null}
+      </div>
+      <div className="field">
+        <label htmlFor="home_course">Home course</label>
+        <input
+          id="home_course"
+          maxLength={80}
+          placeholder="e.g. Riverside Muni"
+          value={homeCourse}
+          onChange={(e) => setHomeCourse(e.target.value)}
         />
       </div>
       {/* Always mounted: a live region created with its message is not announced. */}
