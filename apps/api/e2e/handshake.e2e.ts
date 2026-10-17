@@ -116,19 +116,44 @@ assert(me.profile?.display_name === 'E2E Bob', 'profile.get returns own profile'
 const updated = await bobApp.profile.update({ bio: 'taps tags' });
 assert(updated.profile.bio === 'taps tags', 'profile.update patches bio');
 
+// 8b. extend-profile: the card tier (handicap, home course) rides every card
+const golfer = await bobApp.profile.update({ handicap: -2.4, home_course: 'E2E Links' });
+assert(
+  golfer.profile.handicap === -2.4 && golfer.profile.home_course === 'E2E Links',
+  'profile.update writes the card tier',
+);
+const golferAgain = await bobApp.profile.get();
+assert(golferAgain.profile?.handicap === -2.4, 'profile.get returns the card tier');
+await aliceApp.profile.update({ home_course: 'E2E Muni' });
+const golfResolved = await anon.resolve(uid);
+assert(
+  golfResolved.status === 'claimed' && golfResolved.profile.home_course === 'E2E Muni',
+  'resolve carries the card tier',
+);
+
 // 9. consent flow: bob -> alice, alice accepts
 await bobApp.requests.send({ recipient_id: alice.id });
 const inbox = await aliceApp.requests.listPending();
 assert(inbox.requests.length === 1, 'pending request lands in inbox');
 assert(inbox.requests[0]?.requester.display_name === 'E2E Bob', 'inbox carries requester card');
+assert(
+  inbox.requests[0]?.requester.handicap === -2.4 &&
+    inbox.requests[0]?.requester.home_course === 'E2E Links',
+  'the requester card carries the card tier',
+);
 
 const accepted = await aliceApp.requests.accept({ id: inbox.requests[0]!.id });
 assert(accepted.connection.profile.display_name === 'E2E Bob', 'accept returns the connection');
+assert(accepted.connection.profile.home_course === 'E2E Links', 'accept carries the card tier');
 
 const aliceConns = await aliceApp.connections.list();
 const bobConns = await bobApp.connections.list();
 assert(aliceConns.connections.length === 1, 'alice sees the connection');
 assert(bobConns.connections[0]?.profile.display_name === 'E2E Alice', 'bob sees alice card');
+assert(
+  bobConns.connections[0]?.profile.home_course === 'E2E Muni',
+  'a connection carries the card tier',
+);
 
 // 10. block: connection vanishes, future sends silently drop, resolve goes dark
 await aliceApp.blocks.block({ user_id: bob.id });

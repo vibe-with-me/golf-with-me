@@ -169,14 +169,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_path": string | null,"bio": string | null,"created_at": string,"display_name": string,"id": string,"tenant_id": string,"updated_at": string
+                    "avatar_path": string | null,"bio": string | null,"created_at": string,"display_name": string,"handicap": number | null,"home_course": string | null,"id": string,"tenant_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_path"?: string | null,"bio"?: string | null,"created_at"?: string,"display_name": string,"id": string,"tenant_id"?: string,"updated_at"?: string
+                    "avatar_path"?: string | null,"bio"?: string | null,"created_at"?: string,"display_name": string,"handicap"?: number | null,"home_course"?: string | null,"id": string,"tenant_id"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "avatar_path"?: string | null,"bio"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"tenant_id"?: string,"updated_at"?: string
+                    "avatar_path"?: string | null,"bio"?: string | null,"created_at"?: string,"display_name"?: string,"handicap"?: number | null,"home_course"?: string | null,"id"?: string,"tenant_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     

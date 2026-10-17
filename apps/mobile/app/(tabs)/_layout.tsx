@@ -1,9 +1,12 @@
 import { Feather } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { isProfileComplete } from '@withme/contract';
+import { router, Tabs, usePathname } from 'expo-router';
+import { useEffect, useRef, type ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 import { Text } from 'react-native';
 import { Header } from '../../components/Header';
+import { api } from '../../lib/api';
+import { useSession } from '../../lib/use-session';
 import { fonts, useShadow, useTokens } from '../../lib/tokens';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -47,6 +50,32 @@ function header() {
 export default function TabsLayout() {
   const t = useTokens();
   const shadow = useShadow();
+  // The completion gate (web's is ShellRoute in routes/_app.tsx): once per
+  // signed-in account, on entering the tabs. A UX gate, never a boundary.
+  const { session } = useSession();
+  const userId = session?.user.id;
+  // Like web's `pathname !== '/profile'`: navigating to the screen you are on
+  // replaces its params and would drop `redirect`. A ref, so the async check
+  // reads the current path.
+  const pathname = usePathname();
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
+  // A failed check never locks anyone out: the screens' own states handle errors.
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    api.app.profile
+      .get()
+      .then(({ profile }) => {
+        if (live && !isProfileComplete(profile) && pathRef.current !== '/profile') {
+          router.navigate('/profile');
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [userId]);
   return (
     <Tabs
       screenOptions={{

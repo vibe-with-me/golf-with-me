@@ -6,6 +6,11 @@ import {
   avatarPublicUrl,
   ConnectionSchema,
   ConnectRequestSchema,
+  formatHandicap,
+  golfLine,
+  HANDICAP_MAX,
+  HANDICAP_MIN,
+  HandicapSchema,
   CreateGatheringInputSchema,
   DestinationSchema,
   GatheringListItemSchema,
@@ -14,11 +19,14 @@ import {
   GatheringsPageSchema,
   ListGatheringsInputSchema,
   isPlainText,
+  isProfileComplete,
   LINK_PLATFORM_IDS,
   LINK_PLATFORMS,
   linkHref,
   linkLabel,
   normalizeLinkValue,
+  parseHandicap,
+  type Profile,
   ProfileLinkSchema,
   ProfileLinksInputSchema,
   ProfileSchema,
@@ -101,6 +109,8 @@ describe('ResolveOutputSchema', () => {
         display_name: 'Sam',
         avatar_path: null,
         bio: null,
+        handicap: null,
+        home_course: null,
       },
     });
     expect(result.status).toBe('claimed');
@@ -123,6 +133,8 @@ describe('ResolveOutputSchema', () => {
         display_name: 'Sam',
         avatar_path: null,
         bio: null,
+        handicap: null,
+        home_course: null,
       },
     });
     expect(result.status === 'claimed' && result.gathering?.title).toBe(
@@ -141,6 +153,8 @@ describe('ResolveOutputSchema', () => {
           display_name: 'Sam',
           avatar_path: null,
           bio: null,
+          handicap: null,
+          home_course: null,
         },
       }).success,
     ).toBe(false);
@@ -166,7 +180,7 @@ describe('ResolveOutputSchema', () => {
 describe('PublicProfileSchema', () => {
   it('exposes only card-safe fields', () => {
     const keys = Object.keys(PublicProfileSchema.shape).toSorted();
-    expect(keys).toEqual(['avatar_path', 'bio', 'display_name', 'id']);
+    expect(keys).toEqual(['avatar_path', 'bio', 'display_name', 'handicap', 'home_course', 'id']);
   });
 });
 
@@ -179,6 +193,8 @@ describe('ConnectRequestSchema', () => {
         display_name: 'Alex',
         avatar_path: null,
         bio: 'hi',
+        handicap: null,
+        home_course: null,
       },
       status: 'pending',
       created_at: '2026-06-10T00:00:00Z',
@@ -196,6 +212,8 @@ describe('ConnectRequestSchema', () => {
           display_name: 'Alex',
           avatar_path: null,
           bio: null,
+          handicap: null,
+          home_course: null,
         },
         status: 'ghosted',
         created_at: '2026-06-10T00:00:00Z',
@@ -244,6 +262,8 @@ describe('gathering schemas', () => {
             display_name: 'Ada',
             avatar_path: null,
             bio: null,
+            handicap: null,
+            home_course: null,
           },
         },
       ],
@@ -446,6 +466,8 @@ describe('profile links', () => {
     display_name: 'Ada',
     avatar_path: null,
     bio: null,
+    handicap: null,
+    home_course: null,
   };
 
   it('normalizes what was typed into the stored form, per kind', () => {
@@ -612,10 +634,81 @@ describe('plain text', () => {
       display_name: 'Ada',
       avatar_path: null,
       bio: null,
+      handicap: null,
+      home_course: null,
       created_at: '2026-10-01T00:00:00Z',
       updated_at: '2026-10-01T00:00:00Z',
     };
     expect(ProfileSchema.safeParse(card).success).toBe(true);
     expect(ProfileSchema.safeParse({ ...card, display_name: 'Ad\u202Ea' }).success).toBe(false);
+  });
+});
+
+describe('profile tiers (card only: handicap and home course)', () => {
+  it('the card carries the card tier', () => {
+    const keys = Object.keys(PublicProfileSchema.shape);
+    expect(keys).toContain('handicap');
+    expect(keys).toContain('home_course');
+  });
+
+  it('rejects an empty, oversized or spoofed home course', () => {
+    expect(UpdateProfileInputSchema.safeParse({ home_course: '' }).success).toBe(false);
+    expect(UpdateProfileInputSchema.safeParse({ home_course: 'x'.repeat(81) }).success).toBe(false);
+    expect(UpdateProfileInputSchema.safeParse({ home_course: 'River\u202Eside' }).success).toBe(false);
+    expect(UpdateProfileInputSchema.safeParse({ home_course: 'x'.repeat(80) }).success).toBe(true);
+    expect(UpdateProfileInputSchema.safeParse({ home_course: null }).success).toBe(true);
+  });
+
+  it('a handicap is -10.0 to 54.0 in tenths', () => {
+    for (const ok of [HANDICAP_MIN, -2.4, 0, 14.2, HANDICAP_MAX]) {
+      expect(HandicapSchema.safeParse(ok).success).toBe(true);
+    }
+    for (const bad of [-10.1, 54.1, 14.25, Number.NaN]) {
+      expect(HandicapSchema.safeParse(bad).success).toBe(false);
+    }
+    expect(UpdateProfileInputSchema.safeParse({ handicap: null }).success).toBe(true);
+  });
+
+  it('parses a typed handicap: blank clears, a plus is negative, anything else is refused', () => {
+    expect(parseHandicap('')).toBeNull();
+    expect(parseHandicap('   ')).toBeNull();
+    expect(parseHandicap('14.2')).toBe(14.2);
+    expect(parseHandicap(' 9 ')).toBe(9);
+    expect(parseHandicap('+2.4')).toBe(-2.4);
+    expect(parseHandicap('+0')).toBe(0);
+    for (const bad of ['-2.4', '54.1', '+10.1', '14.25', 'scratch', '1e1', '14.']) {
+      expect(parseHandicap(bad)).toBeUndefined();
+    }
+  });
+
+  it('formats a handicap with one decimal and a plus for a plus handicap', () => {
+    expect(formatHandicap(14.2)).toBe('14.2');
+    expect(formatHandicap(9)).toBe('9.0');
+    expect(formatHandicap(0)).toBe('0.0');
+    expect(formatHandicap(-2.4)).toBe('+2.4');
+  });
+
+  it('round-trips every stored handicap: format, parse, schema', () => {
+    for (let tenths = HANDICAP_MIN * 10; tenths <= HANDICAP_MAX * 10; tenths++) {
+      const value = tenths / 10;
+      const parsed = parseHandicap(formatHandicap(value));
+      expect(parsed).toBe(value === 0 ? 0 : value);
+      expect(HandicapSchema.safeParse(parsed).success).toBe(true);
+    }
+  });
+
+  it('the golf line prints what is set and nothing else', () => {
+    expect(golfLine({ handicap: -2.4, home_course: 'Riverside Muni' })).toBe(
+      'Handicap +2.4 · Riverside Muni',
+    );
+    expect(golfLine({ handicap: 0, home_course: null })).toBe('Handicap 0.0');
+    expect(golfLine({ handicap: null, home_course: 'Cedar Hills' })).toBe('Cedar Hills');
+    expect(golfLine({ handicap: null, home_course: null })).toBeNull();
+  });
+
+  it('a name alone completes a profile; a blank one does not', () => {
+    expect(isProfileComplete(null)).toBe(false);
+    expect(isProfileComplete({ display_name: 'Ada', handicap: null } as Profile)).toBe(true);
+    expect(isProfileComplete({ display_name: '  ' } as Profile)).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { createFileRoute, Navigate, useLocation, useRouterState } from '@tanstack/react-router';
+import { isProfileComplete } from '@withme/contract';
 import { AppShell, ShellError, ShellPending } from '../components/AppShell.tsx';
 import { NotFoundBody } from '../components/CalmStates.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
@@ -33,7 +34,8 @@ export const Route = createFileRoute('/_app')({
 });
 
 /**
- * A session without a profile is sent to create one, carrying the intended
+ * A session without a complete profile (`isProfileComplete`) is sent to
+ * create or finish one, carrying the intended
  * destination. Not a `throw redirect` from the loader above: its target,
  * /profile, sits under this same layout, so the router would reuse the
  * redirected `/_app` match for it, and with the pending shell already on
@@ -55,7 +57,7 @@ function ShellRoute() {
   const { profile } = Route.useLoaderData();
   const { pathname, href } = useLocation();
   const navigating = useRouterState({ select: (s) => s.isLoading });
-  if (!profile && pathname !== '/profile') {
+  if (!isProfileComplete(profile) && pathname !== '/profile') {
     if (navigating) return <ShellPending />;
     return (
       <>

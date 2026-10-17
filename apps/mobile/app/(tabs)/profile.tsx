@@ -6,7 +6,7 @@ import { AvatarPicker } from '../../components/AvatarPicker';
 import { Links } from '../../components/Links';
 import { MyTags } from '../../components/MyTags';
 import { Button, Card, ErrorText, Field, Title } from '../../components/ui';
-import type { Profile } from '@withme/contract';
+import { formatHandicap, isProfileComplete, parseHandicap, type Profile } from '@withme/contract';
 import { api } from '../../lib/api';
 import { safeRedirect } from '../../lib/safe-redirect';
 import { space, useTokens } from '../../lib/tokens';
@@ -19,6 +19,10 @@ export default function ProfileScreen() {
   const [exists, setExists] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [handicap, setHandicap] = useState('');
+  const [handicapError, setHandicapError] = useState(false);
+  const [homeCourse, setHomeCourse] = useState('');
+  const [current, setCurrent] = useState<Profile | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -33,7 +37,10 @@ export default function ProfileScreen() {
           setExists(true);
           setDisplayName(profile.display_name);
           setBio(profile.bio ?? '');
+          setHandicap(profile.handicap === null ? '' : formatHandicap(profile.handicap));
+          setHomeCourse(profile.home_course ?? '');
           setAvatarPath(profile.avatar_path);
+          setCurrent(profile);
         }
         setLoaded(true);
       })
@@ -45,14 +52,27 @@ export default function ProfileScreen() {
   useEffect(load, []);
 
   async function save() {
+    // Parse first: an undefined key would be dropped by the input schema and
+    // the screen would say "Saved." over a handicap it threw away.
+    const parsedHandicap = parseHandicap(handicap);
+    if (parsedHandicap === undefined) {
+      setHandicapError(true);
+      setStatus(null);
+      return;
+    }
+    setHandicapError(false);
     setBusy(true);
     setStatus(null);
     setError(null);
     try {
-      await api.app.profile.update({
+      const saved = await api.app.profile.update({
         display_name: displayName.trim(),
         bio: bio.trim() === '' ? null : bio.trim(),
+        handicap: parsedHandicap,
+        home_course: homeCourse.trim() === '' ? null : homeCourse.trim(),
       });
+      setCurrent(saved.profile);
+      setHandicap(saved.profile.handicap === null ? '' : formatHandicap(saved.profile.handicap));
       const redirect = safeRedirect(params.redirect);
       if (redirect) {
         router.setParams({ redirect: undefined });
@@ -94,7 +114,13 @@ export default function ProfileScreen() {
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Card>
-          <Title>{exists ? 'Your profile' : 'Create your profile'}</Title>
+          <Title>
+            {!current
+              ? 'Create your profile'
+              : isProfileComplete(current)
+                ? 'Your profile'
+                : 'Finish your profile'}
+          </Title>
           {/* The photo lives on the profile row: it needs the row to exist first. */}
           {exists ? (
             <AvatarPicker
@@ -111,6 +137,25 @@ export default function ProfileScreen() {
             maxLength={280}
             multiline
             placeholder="A line or two about you"
+          />
+          <Field
+            label="Handicap"
+            value={handicap}
+            onChangeText={setHandicap}
+            maxLength={5}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            placeholder="e.g. 14.2, or +2.4"
+          />
+          {handicapError ? (
+            <ErrorText>A handicap index from +10.0 to 54.0, one decimal at most.</ErrorText>
+          ) : null}
+          <Field
+            label="Home course"
+            value={homeCourse}
+            onChangeText={setHomeCourse}
+            maxLength={80}
+            placeholder="e.g. Riverside Muni"
           />
           {status ? (
             <Text accessibilityRole="text" style={{ color: t.inkMuted }}>

@@ -30,6 +30,9 @@ export interface PublicProfileCard {
    */
   avatar_path: string | null;
   bio: string | null;
+  /** Handicap index; a plus handicap is negative (format it as "+2.4"). */
+  handicap: number | null;
+  home_course: string | null;
 }
 
 export type TagStatus = 'unclaimed' | 'claimed' | 'disabled';
