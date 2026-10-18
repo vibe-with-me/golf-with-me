@@ -173,10 +173,20 @@ Not "Squash and merge", even if every other PR in your repo is squashed
 starter's commits ancestors of your `main`; a squash drops it, so the
 next sync starts from the old merge base and asks you to resolve every
 conflict you already resolved. If the repository allows only squash
-merges, turn on **Settings → General → Allow merge commits** (you can
-leave it for sync PRs only), or merge the branch locally with
+merges, turn on **Settings → General → Allow merge commits**. The
+setting covers every pull request in the repository, and GitHub can't
+limit it to sync PRs, so keep squashing ordinary PRs by habit. A branch ruleset or protection rule on
+`main` can still refuse it: remove **Require linear history**, and add
+**Merge** to the pull-request rule's allowed merge methods (Settings →
+Rules → Rulesets). Keep the rest (no deletion, no force push, PRs and CI
+required). Without branch protection you can also merge locally with
 `git switch main && git merge --no-ff starter-sync` and push `main` (the
-switch matters: on `starter-sync` itself the merge has nothing to do). Afterwards, check
+switch matters: on `starter-sync` itself the merge has nothing to do); a
+protected `main` refuses that push unless your account can bypass its
+rules: on a ruleset's bypass list with the mode set to **Always** (a
+**Pull requests only** bypass still refuses a direct push), or an admin
+under a classic protection rule that doesn't include administrators.
+Afterwards, check
 (fetch `origin` only, so `upstream/main` is still the commit you merged):
 
 ```sh
