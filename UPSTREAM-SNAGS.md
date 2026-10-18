@@ -477,3 +477,15 @@ all predictable. Two notes:
     Suggest: staying-current says so, with the two working setups (no linear
     history rule, or a bypass for the sync PR), and a note that "resolve
     conversations" means resolving bot threads too.
+
+## Fifth starter sync: #93, #94
+
+The new `scripts/upstream-redefines.sh` worked as designed ("No incoming
+migration redefines anything yours defines"), and #94's row change fixed
+snag 43: the fork's mobile row now matches the starter's line for line.
+
+47. **`bun run sync:check` doesn't exist yet on the sync that brings it.**
+    staying-current step 1 says to run it before merging, but a fork gets
+    the script and the `sync:check` entry only from the merge itself.
+    *Did instead:* `bash <(git show upstream/main:scripts/upstream-redefines.sh) HEAD upstream/main`.
+    Suggest: that line in step 1 as the first-time form.

@@ -175,14 +175,19 @@ export default function GatheringsScreen() {
       >
         <View style={styles.rowBody}>
           <Text style={[styles.rowName, { color: t.ink }]}>{gathering.title}</Text>
-          {/* Two lines, as on web. The course is the Maps link and leads the
-              line (after at most a Hosting / Playing mark), so it always
-              starts on a visible line. */}
-          <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
-            {line.head}
-            {where ? (
-              <>
-                {line.head ? ' · ' : null}
+          {/* The location's link starts its own line, so a long head (a fork's
+              field joined before the date) is cut short instead of hiding it.
+              That line may wrap to two: a fork whose line helper moves the date
+              into the tail (its own field in the location slot) still shows it
+              while it fits, and an empty head takes no line at all. */}
+          {line.head ? (
+            <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
+              {line.head}
+            </Text>
+          ) : null}
+          {where || line.tail ? (
+            <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
+              {where ? (
                 <Text
                   style={[styles.rowLink, { color: t.ink }]}
                   suppressHighlighting
@@ -190,10 +195,11 @@ export default function GatheringsScreen() {
                 >
                   {where}
                 </Text>
-              </>
-            ) : null}
-            {line.tail ? `${line.head || where ? ' · ' : ''}${line.tail}` : null}
-          </Text>
+              ) : null}
+              {where && line.tail ? ' · ' : null}
+              {line.tail || null}
+            </Text>
+          ) : null}
           {names ? (
             <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
               {names}
