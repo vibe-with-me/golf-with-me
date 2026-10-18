@@ -60,7 +60,7 @@ function GatheringsPage() {
   const [location, setLocation] = useState('');
   const [course, setCourse] = useState('');
   const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
-  const [spots, setSpots] = useState('');
+  const [spots, setSpots] = useState('4'); // a foursome unless the host says fewer
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +103,7 @@ function GatheringsPage() {
       setCourse('');
       setLocation('');
       setVisibility('everyone');
-      setSpots('');
+      setSpots('4');
       setStartsAt(tomorrowEvening());
       // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
       await router.invalidate({ sync: true });

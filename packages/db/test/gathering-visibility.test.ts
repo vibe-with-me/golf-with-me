@@ -77,7 +77,8 @@ describe('a connections gathering', () => {
       inFeed: true,
     });
     const { data } = await host.client.from('gatherings').select('visibility, capacity').eq('id', id).single();
-    expect(data).toEqual({ visibility: 'connections', capacity: null });
+    // Golf With Me: no capacity given means a foursome (20261017230000_round_foursome).
+    expect(data).toEqual({ visibility: 'connections', capacity: 4 });
   });
 
   it('a stranger reads it as nonexistent and cannot join; an everyone gathering is the control', async () => {

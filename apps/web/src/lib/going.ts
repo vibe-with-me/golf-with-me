@@ -49,7 +49,7 @@ export function parseSpots(text: string): number | null | undefined {
   return spots >= GATHERING_CAPACITY_MIN && spots <= GATHERING_CAPACITY_MAX ? spots : undefined;
 }
 
-export const SPOTS_HELP = `Optional. Counts you. ${GATHERING_CAPACITY_MIN} to ${GATHERING_CAPACITY_MAX}; leave it empty for no limit.`;
+export const SPOTS_HELP = `Counts you. ${GATHERING_CAPACITY_MIN} to ${GATHERING_CAPACITY_MAX}: a round is a foursome at most.`;
 
 /**
  * "With Ada", "With Ada and Lin", "With Ada, Lin, and 2 more": the viewer's

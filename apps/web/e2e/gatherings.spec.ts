@@ -55,7 +55,7 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   const adaHappening = ada.getByRole('region', { name: 'Tee sheet' });
   const adaYours = ada.getByRole('region', { name: 'Yours' });
   await revealInFeed(adaHappening, title);
-  await expect(adaHappening.getByText(/Hosting · .* · 1 playing/)).toBeVisible();
+  await expect(adaHappening.getByText(/Hosting · .* · 1 of 4 playing/)).toBeVisible();
   await expect(adaYours.getByText(title)).toBeVisible();
 
   // --- ...and she points her tag at it from the detail ---------------------------
@@ -63,7 +63,7 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await ada.waitForURL(/\/rounds\/[0-9a-f-]{36}$/);
   const detailPath = new URL(ada.url()).pathname;
   await expect(ada.getByRole('heading', { name: title })).toBeVisible();
-  await expect(ada.getByText('1 playing')).toBeVisible();
+  await expect(ada.getByText('1 of 4 playing')).toBeVisible();
   await expect(ada.getByText('Host', { exact: true })).toBeVisible();
   // The location searches a maps app for its text, encoded, in a new tab.
   // Golf With Me: the course is the place; the meeting point is plain text.
@@ -94,10 +94,10 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   // A stranger reads the detail: the headcount, no member rows, and Join.
   await bob.waitForURL(`**${detailPath}**`);
   await expect(bob.getByRole('heading', { name: title })).toBeVisible();
-  await expect(bob.getByText('1 playing')).toBeVisible();
+  await expect(bob.getByText('1 of 4 playing')).toBeVisible();
   await expect(bob.getByText('Smoke Ada')).toHaveCount(0);
   await bob.getByRole('button', { name: 'Join', exact: true }).click();
-  await expect(bob.getByText('2 playing')).toBeVisible();
+  await expect(bob.getByText('2 of 4 playing')).toBeVisible();
   await expect(bob.getByRole('button', { name: 'Leave round' })).toBeVisible();
   // Joining revealed Bob's own row and nothing else: the host is not a connection yet.
   await expect(bob.getByText('Smoke Bob')).toBeVisible();
@@ -111,9 +111,9 @@ test("tap a host's tag, join from the feed, and who's going shows only connectio
   await bob.goto('/rounds');
   const bobHappening = bob.getByRole('region', { name: 'Tee sheet' });
   await revealInFeed(bobHappening, title);
-  await expect(bobHappening.getByText(/Playing · .* · 2 playing/)).toBeVisible();
+  await expect(bobHappening.getByText(/Playing · .* · 2 of 4 playing/)).toBeVisible();
   await ada.reload();
-  await expect(ada.getByText('2 playing')).toBeVisible();
+  await expect(ada.getByText('2 of 4 playing')).toBeVisible();
   await expect(ada.getByText('Smoke Bob')).toHaveCount(0);
 
   // --- Connecting is what reveals who's going -------------------------------------

@@ -12,11 +12,14 @@ describe('goingLine', () => {
 });
 
 describe('parseSpots', () => {
-  it('empty is no limit; 2 to 500 is a capacity; anything else is not one', () => {
+  // Golf With Me: empty leaves it to the database, which makes it a foursome.
+  it('empty is the default foursome; 2 to 4 is a capacity; anything else is not one', () => {
     expect(parseSpots('')).toBeNull();
     expect(parseSpots('   ')).toBeNull();
     expect(parseSpots('4')).toBe(4);
-    expect(parseSpots(' 500 ')).toBe(500);
+    expect(parseSpots(' 2 ')).toBe(2);
+    expect(parseSpots('5')).toBeUndefined();
+    expect(parseSpots('500')).toBeUndefined();
     expect(parseSpots('2')).toBe(2);
     for (const bad of ['1', '0', '501', '3.5', '-4', '4 people', 'four', '1e2']) {
       expect(parseSpots(bad)).toBeUndefined();
