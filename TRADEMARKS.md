@@ -30,7 +30,7 @@ styling. A fork may use any of them in a look of its own; it may not copy
 the combination above so closely that people would take it for Golf With
 Me.
 
-They sit alongside the marks Vibe With Me LLC reserves across every
+Golf With Me's marks sit alongside the ones Vibe With Me LLC reserves across every
 project built on withme-starter: Vibe With Me, VWM, Vibe Tags, and their
 logos and brand assets (see the starter's
 [TRADEMARKS.md](https://github.com/vibe-with-me/withme-starter/blob/main/TRADEMARKS.md)).

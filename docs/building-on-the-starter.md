@@ -12,10 +12,11 @@ Below is every place the starter fell short along the way: a step that was
 missing, out of order, or unclear, or a starter change that fought a fork's
 own. Each entry says what the docs said, what happened, and what this fork
 did instead. Every item is fixed upstream: snags 1–46 in starter PRs
-[#69](https://github.com/vibe-with-me/withme-starter/pull/69)–[#94](https://github.com/vibe-with-me/withme-starter/pull/94), and 47–48 in [#95](https://github.com/vibe-with-me/withme-starter/pull/95)
-(in review as of this writing). PR numbers
-below without a link are this repository's own. They are kept here as a record of what building
-on the starter is actually like, and of the fork that tested it.
+[#69](https://github.com/vibe-with-me/withme-starter/pull/69)–[#94](https://github.com/vibe-with-me/withme-starter/pull/94), and 47–48 in [#95](https://github.com/vibe-with-me/withme-starter/pull/95) (in review as of this
+writing). PR numbers below without a link are this repository's own.
+
+They are kept here as a record of what building on the starter is actually
+like, and of the fork that tested it.
 
 ## Step 0: fork and run the demo
 
