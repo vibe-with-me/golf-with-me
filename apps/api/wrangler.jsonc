@@ -1,6 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "golfwithme-api",
+  // Pinned: wrangler sees several accounts, and an unpinned deploy can land
+  // on the wrong one (go-live section 2).
+  "account_id": "37a370f48fdc8e9f0d279409d6fbf23d",
+  "workers_dev": true,
+  "preview_urls": false,
   "main": "src/index.ts",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": ["nodejs_compat"],
