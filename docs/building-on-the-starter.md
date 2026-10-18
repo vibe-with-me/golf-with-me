@@ -1,10 +1,20 @@
-# Upstream snags
+# Building on the starter
 
-Places where the starter's README, docs, or skills were missing a step, had
-steps out of order, or were unclear, found while building Golf With Me by
-following them literally. Each entry says what the docs said, what happened,
-and what this fork did instead. This list goes upstream to withme-starter;
-nothing here was fixed in the starter from inside this fork.
+Golf With Me was rebuilt from scratch by following
+[withme-starter](https://github.com/vibe-with-me/withme-starter)'s README
+literally: run the demo, then the skills in `.agents/skills/` in the order
+[`docs/run-with-me.md`](run-with-me.md) uses (design-direction,
+make-it-yours, customize-gathering, extend-profile), then taking the
+starter's later changes with an ordinary `git merge`, as
+[`docs/staying-current.md`](staying-current.md) describes.
+
+Below is every place the starter fell short along the way: a step that was
+missing, out of order, or unclear, or a starter change that fought a fork's
+own. Each entry says what the docs said, what happened, and what this fork
+did instead. Every item is fixed upstream: snags 1–46 in starter PRs
+[#69](https://github.com/vibe-with-me/withme-starter/pull/69)–[#94](https://github.com/vibe-with-me/withme-starter/pull/94), and 47–48 in [#95](https://github.com/vibe-with-me/withme-starter/pull/95). PR numbers
+below without a link are this repository's own. They are kept here as a record of what building
+on the starter is actually like, and of the fork that tested it.
 
 ## Step 0: fork and run the demo
 
@@ -131,8 +141,8 @@ nothing here was fixed in the starter from inside this fork.
     neither of which the skill mentions. *Did instead:* set `expo.owner` to
     the org, deleted only `extra.eas.projectId` and `updates.url`, re-ran
     `eas init` (it created `@vibe-with-me/golfwithme`), removed the
-    duplicated permissions, and kept the channels. The stray
-    `@expovibes/golfwithme` project is left for the owner to delete.
+    duplicated permissions, and kept the channels. The stray project on the
+    personal account was deleted by hand.
     Suggest: step 5 sets `owner` to the fork's Expo account instead of
     deleting it.
 
@@ -220,7 +230,7 @@ nothing here was fixed in the starter from inside this fork.
 
 23. **The golf example's "phone, connections only" is already Links.** The
     README's idea table and run-with-me's Variations list golf's
-    connections-tier field as `phone`, and the brief for this run came from
+    connections-tier field as `phone`, and Golf With Me's plan came from
     that. But extend-profile says "Check Links first", and Profile → Links
     already ships a `phone` platform, connections-only. *Did instead:* no
     `profile_details` table; the card-only path, with Ada's seed carrying a
@@ -284,8 +294,8 @@ left `supabase.ts` differing from upstream only by the fork's columns.
     starter itself does) loses the merge commit's upstream parent: the
     starter's commits never become ancestors of `main`, so the next sync
     finds the old merge base and re-raises every conflict already resolved.
-    *Did instead:* asked the owner to merge the sync PR with a merge commit
-    (enable "Allow merge commits" for it, or merge locally and push).
+    *Did instead:* every sync PR here is merged with a merge commit (merge
+    commits are allowed on this repository for exactly that).
     Suggest: a line in step 6 ("merge, don't squash, the sync PR; check
     with `git merge-base --is-ancestor upstream/main main` afterwards").
 
@@ -473,7 +483,9 @@ all predictable. Two notes:
     checks, resolved conversations). staying-current's sync must land as a
     merge commit (snag 30), and the ruleset refuses any merge commit on
     `main`, so a sync can only be squashed, which re-raises every resolved
-    conflict on the next one. *Did instead:* stopped and asked the owner.
+    conflict on the next one. *Did instead:* the ruleset now allows merge
+    commits and no longer requires linear history; deletion and force-push
+    protection, required PRs, resolved conversations and the CI check stay.
     Suggest: staying-current says so, with the two working setups (no linear
     history rule, or a bypass for the sync PR), and a note that "resolve
     conversations" means resolving bot threads too.
