@@ -489,3 +489,10 @@ snag 43: the fork's mobile row now matches the starter's line for line.
     the script and the `sync:check` entry only from the merge itself.
     *Did instead:* `bash <(git show upstream/main:scripts/upstream-redefines.sh) HEAD upstream/main`.
     Suggest: that line in step 1 as the first-time form.
+
+48. **Two CodeRabbit findings on starter files in sync PR #14** (not fixed
+    in the fork): `deploy.yml` ~L44 (keep non-main runs out of the
+    production concurrency group), and `docs/moderation.md` ~L54 (its
+    snapshot field list should mention that a fork's own fields join it, as
+    this fork's `course_name` does, snag 44). The third, staying-current
+    ~L101, is snag 47.
