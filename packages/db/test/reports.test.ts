@@ -203,7 +203,8 @@ describe('report_gathering', () => {
 
     expect((await reportGathering(alice, gathering, { p_details: 'Asks for money' })).error).toBeNull();
 
-    // A later edit cannot change what was reported.
+    // A later edit cannot change what was reported. Assert the edit landed,
+    // or the snapshot check below passes without testing anything.
     const { data: edited, error: editError } = await host.client
       .from('gatherings')
       .update({ title: 'Picnic', course_name: 'Cedar Hills' })
