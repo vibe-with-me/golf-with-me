@@ -16,9 +16,19 @@ their official home:
 - Golf With Me
 - golfwithme (the wordmark, in any setting)
 - The Golf With Me brand assets in this repository: the pencilled "g" in
-  a birdie circle (`docs/brand/` and every icon rendered from it), the
-  wordmark's treatment, and the "Pencilled in" look described in
-  [`docs/brand-direction.md`](docs/brand-direction.md)
+  a birdie circle (`docs/brand/` and every icon rendered from it), and the
+  wordmark "golfwithme" set in handwriting
+- The overall Golf With Me look as a whole: that mark and wordmark together
+  with the "Pencilled in" combination of graphite-on-scorecard neutrals and
+  a single birdie-red accent, described in
+  [`docs/brand-direction.md`](docs/brand-direction.md), used so that a
+  product could be mistaken for Golf With Me
+
+What is not reserved: the fonts themselves (Caveat and IBM Plex Sans are
+open-licensed), individual colors, and general scorecard, pencil or golf
+styling. A fork may use any of them in a look of its own; it may not copy
+the combination above so closely that people would take it for Golf With
+Me.
 
 They sit alongside the marks Vibe With Me LLC reserves across every
 project built on withme-starter: Vibe With Me, VWM, Vibe Tags, and their
