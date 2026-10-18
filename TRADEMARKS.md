@@ -3,112 +3,84 @@
 The code in this repository is licensed under the MIT License (see
 [`LICENSE`](LICENSE)). That license covers copyright in the code. It does
 not grant any rights to the trademarks, names, logos, or brand assets
-described below. This document explains what you can and cannot do with
-them.
+described below.
 
-**The short version:** fork the code freely, build whatever you want with
-it, and give it your own name.
+**The short version:** Golf With Me is Vibe With Me LLC's own product.
+Fork the code freely, but give your fork its own name and look.
 
-## 1. Reserved marks: no use
+## 1. Golf With Me's marks
 
-The following are trademarks of Vibe With Me LLC. Forks, derivative works,
-and third-party products may not use them in any way that identifies a
-product, service, or organization, or that suggests affiliation,
-sponsorship, or endorsement:
+The following are trademarks of Vibe With Me LLC, and this repository is
+their official home:
 
-- Vibe With Me
-- VWM
-- Vibe Tags
-- The Vibe With Me logos, wordmarks, icons, and brand assets
-- Any confusingly similar name, mark, or visual treatment
+- Golf With Me
+- golfwithme (the wordmark, in any setting)
+- The Golf With Me brand assets in this repository: the pencilled "g" in
+  a birdie circle (`docs/brand/` and every icon rendered from it), and the
+  wordmark "golfwithme" set in handwriting
+- The overall Golf With Me look as a whole: that mark and wordmark together
+  with the "Pencilled in" combination of graphite-on-scorecard neutrals and
+  a single birdie-red accent, described in
+  [`docs/brand-direction.md`](docs/brand-direction.md), used so that a
+  product could be mistaken for Golf With Me
 
-No Vibe With Me brand assets are included in this repository. If you find
-one, it is a mistake: please open an issue so we can remove it, and do not
-redistribute it.
+What is not reserved: the fonts themselves (Caveat and IBM Plex Sans are
+open-licensed), individual colors, and general scorecard, pencil or golf
+styling. A fork may use any of them in a look of its own; it may not copy
+the combination above so closely that people would take it for Golf With
+Me.
 
-The starter's own app icon (two dots joined by signal arcs, in
-`docs/brand/` and the files rendered from it) is not one of these marks.
-It is placeholder artwork, MIT licensed with the code: keep it, change it,
-or replace it. Section 4 still asks each fork to brand itself, so plan to
-swap it before you ship.
+Golf With Me's marks sit alongside the ones Vibe With Me LLC reserves
+across every project built on withme-starter: Vibe With Me, VWM, Vibe
+Tags, and their logos and brand assets (see the starter's
+[TRADEMARKS.md](https://github.com/vibe-with-me/withme-starter/blob/main/TRADEMARKS.md)).
 
 The platform icons on profile links (Instagram, TikTok, WhatsApp and the
 rest, in `packages/contract/src/schemas/link-icons.ts`) are those
 platforms' trademarks, drawn only to say where a link goes. They are not
 Vibe With Me marks, and the MIT license does not cover them.
 
-## 2. The "[Something] With Me" naming pattern: allowed, with a disclaimer
+## 2. Forking Golf With Me
 
-You may name your project using the `[activity] With Me` /
-`[activity]-withme` pattern: `run-withme`, `Climb With Me`, `Church With
-Me`, and so on. That is the point of this project: take the handshake and
-build it for your own community.
+You may fork this code and build on it. A fork is an independent project,
+and it must:
 
-Two conditions:
+- **Rename.** Use its own name, wordmark, icon and brand. It may not be
+  called Golf With Me, golfwithme, or anything confusingly similar, and
+  may not reuse the brand assets in section 1.
+- **Not present itself as Golf With Me** or as affiliated with, sponsored
+  by, or endorsed by Vibe With Me LLC, in app store listings, domains,
+  social handles, marketing, or the product itself.
 
-- **Non-affiliation disclaimer.** Any product, site, app store listing, or
-  repository using the pattern must state clearly that it is not
-  affiliated with, sponsored by, or endorsed by Vibe With Me. Suggested
-  wording:
+A fork may use the "[Something] With Me" naming pattern for its own
+vertical, under the conditions in the starter's
+[TRADEMARKS.md](https://github.com/vibe-with-me/withme-starter/blob/main/TRADEMARKS.md),
+including its non-affiliation disclaimer. That disclaimer is for
+independent projects; it does not describe Golf With Me, which is Vibe
+With Me LLC's own.
 
-  > [Name] is an independent project built on withme-starter. It is not
-  > affiliated with or endorsed by Vibe With Me.
-
-- **No reserved marks.** The pattern does not extend to "Vibe With Me,"
-  "VWM," "Vibe Tags," or anything confusingly similar to them (section 1).
-  "Vibes With Me," "Vibe-With-Me 2," and the like are not available.
-
-**On an official program.** Vibe With Me may in the future run a program
-of affiliated or official "With Me" verticals, with its own name,
-criteria, and terms. Using the naming pattern under this policy does not
-make a project part of that program, does not reserve a name within it,
-and does not confer any right to join it. If such a program is created,
-it will be announced separately.
+If you want to build your own app from scratch rather than from a golf
+app, start from [withme-starter](https://github.com/vibe-with-me/withme-starter)
+instead: it is the generic version, with the skills that rebrand it.
 
 ## 3. Permitted uses
 
 You may:
 
-- Refer to this project by its repository name, withme-starter, to
-  accurately describe where your code came from, for example "built on
-  withme-starter" or "forked from withme-starter," in documentation,
-  commit history, changelogs, and attribution notices.
+- Refer to this project by name to accurately describe where your code
+  came from, for example "forked from Golf With Me" or "built on
+  withme-starter," in documentation, commit history, changelogs, and
+  attribution notices.
 - Link to this repository.
 - Retain the MIT copyright notice, as the license requires.
 
-You may not use "withme-starter" as the name of your own product, app,
-package, domain, or organization, or in a way that implies your fork is
-the official project.
+Attribution is welcome; it is not a license to use the brand.
 
-## 4. Forks and derivative products
+## 4. Questions and permission requests
 
-A fork is an independent project. It must:
-
-- Use its own name and branding. A "[Something] With Me" name is fine
-  under section 2; the reserved marks in section 1 are not.
-- Not present itself as Vibe With Me, as affiliated with Vibe With Me, or
-  as an official or endorsed distribution of this project. If it uses the
-  "With Me" pattern, it must carry the non-affiliation disclaimer.
-- Not use the reserved marks in app store listings, domains, social
-  handles, marketing, or user-facing product surfaces.
-
-Attribution to withme-starter is welcome and appreciated; it is not a
-license to use the brand.
-
-## 5. Why this policy exists
-
-This project is open source so that the code is free to use. The brand is
-not, because a brand is a promise to users about who is behind a product
-and how it treats them. We can stand behind that promise only for
-products we actually run. Keeping the marks separate protects users of
-every fork, including yours, from confusion about who is responsible for
-what.
-
-## 6. Questions and permission requests
-
-If you want to do something this policy does not clearly allow, or want
-to tell us about the With Me you built, open an issue on this repository.
-Permission is granted only in writing; silence is not permission.
+If you want to do something this policy does not clearly allow, open an
+issue on this repository. Permission is granted only in writing; silence
+is not permission.
 
 Vibe With Me LLC may update this policy. Changes apply going forward and
 will be published in this file.

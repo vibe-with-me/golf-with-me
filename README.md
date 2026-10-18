@@ -64,8 +64,9 @@ in the order [docs/run-with-me.md](docs/run-with-me.md) uses:
 4. `extend-profile`: handicap and home course on the card; phone for
    connections only.
 
-[UPSTREAM-SNAGS.md](UPSTREAM-SNAGS.md) lists every place the starter's docs
-fell short on the way, for fixing upstream.
+[Building on the starter](docs/building-on-the-starter.md) lists every
+place the starter's docs fell short on the way, and how each was fixed
+upstream.
 
 ## License
 
