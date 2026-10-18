@@ -15,9 +15,26 @@ const env = process.env;
 const email = 'ada@demo.withme.local';
 const password = env.SEED_DEMO_PASSWORD ?? '';
 const apiUrl = env.VITE_API_URL ?? '';
-if (!password || /localhost|127\.0\.0\.1/.test(apiUrl + env.VITE_SUPABASE_URL)) {
-  throw new Error('needs apps/web/.env.production (production URLs) and the keys file');
+// Parse both origins: the demo password goes to the Supabase URL and the
+// session token to the API, so neither may be local or plain http.
+const remote = (url: string | undefined) => {
+  try {
+    const u = new URL(url ?? '');
+    // Loopback, private (10/8, 172.16/12, 192.168/16), link-local, any IPv6
+    // literal, and *.local / *.localhost names.
+    const local = /^(localhost|0\.|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[)|\.(local|localhost)$/;
+    // A trailing dot (`localhost.`) names the same host.
+    return u.protocol === 'https:' && !local.test(u.hostname.replace(/\.$/, '')) ? u.origin : null;
+  } catch {
+    return null;
+  }
+};
+const apiOrigin = remote(apiUrl);
+const supabaseOrigin = remote(env.VITE_SUPABASE_URL);
+if (!password || !apiOrigin || !supabaseOrigin) {
+  throw new Error('needs apps/web/.env.production (production https URLs) and the keys file');
 }
+console.log(`signing in at ${supabaseOrigin}, calling ${apiOrigin}`);
 const supabase = createClient(env.VITE_SUPABASE_URL!, env.VITE_SUPABASE_PUBLISHABLE_KEY!, {
   auth: { persistSession: false },
 });

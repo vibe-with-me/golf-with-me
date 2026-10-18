@@ -412,3 +412,68 @@ all predictable. Two notes:
     checkpoint for Redeploys) and ~L358 (the Expo Go restriction is
     Android-only), CONTRIBUTING.md ~L138, local-development.md ~L99, and
     staying-current.md ~L136 (split the step 4b sweep, the same as 39).
+
+## Fourth starter sync: #84, #88–#92
+
+41. **A starter migration silently undid three of the fork's changes.**
+    `20261017203000_gathering_visibility_and_capacity.sql` redefines
+    `create_gathering` and `resolve_tag` from the starter's newest bodies and
+    re-issues the host's column grant. On this fork that would drop the
+    required course, the course on the tap card, handicap and home course on
+    the card, and `course_name` from the host's edit grant, with no git
+    conflict. Its `drop function if exists create_gathering(text, timestamptz, text)`
+    names the starter's old signature, so the fork's four-argument version
+    survived as a second overload, without visibility or capacity. This is
+    the case staying-current's Migrations section describes, but nothing
+    pointed at it during the merge. *Did instead:*
+    `20261017220000_golf_after_visibility_capacity.sql` reapplies the fork's
+    lines on the newest bodies, drops both old signatures, and leaves one
+    `create_gathering`. Suggest: staying-current step 1 gives the command
+    (for each incoming migration, list the `function public.…` it redefines
+    and grep your own migrations for them), and starter PRs that redefine a
+    skill-touched function (`create_gathering`, `resolve_tag`,
+    `accept_connect_request`) say so in their title.
+
+42. **New starter specs and tests still arrive in the starter's words.**
+    `gathering-controls.spec.ts` uses `/gatherings`, "Create gathering",
+    "Happening", "N of M going" and "Join this gathering"; the capacity and
+    visibility db tests and the contract tests create gatherings without
+    the fork's required field; `going.test.ts` expects "going". Step 4b's
+    sweep found the paths but not "Happening" or "going", and the required
+    field showed up only as typecheck and test failures. Suggest: the 4b
+    sweep includes the fork's renamed section titles and counters (or keeps
+    such copy in one place a fork edits once).
+
+43. **#90's two-line mobile row assumes the date is in the head.** It
+    splits the row into a head line and a link-plus-tail line. A fork whose
+    line helper puts its own field in the location slot (this fork's course,
+    snag 38) has only a Hosting / Playing mark in the head, so the split
+    leaves a near-empty first line and truncates the tail. *Did instead:*
+    kept the fork's single two-line `Text` with the starter's new tail items
+    (capacity count, Full, Connections only).
+
+44. **A new starter snapshot doesn't know the fork's fields.** #84's
+    `report_gathering` snapshots the title and location so a moderator reads
+    what the reporter saw; this fork's course is host-typed text every
+    tapper sees, and it wasn't in the snapshot. Found by CodeRabbit on PR #12.
+    *Did instead:* `20261017220100_golf_report_gathering_course.sql` adds it
+    (from the newest body), with the snapshot test asserting it survives an
+    edit. Suggest: customize-gathering §2 lists `report_gathering`'s snapshot
+    beside `resolve_tag` as a place a new user-facing field goes.
+
+45. **Five CodeRabbit findings on starter files in sync PR #12**, not fixed
+    in the fork: go-live SKILL.md ~L572 (make the checkpoint conditional on
+    the mobile option); `deploy.yml` ~L42 (queue pending runs instead of
+    cancelling) and ~L129 (Major: require the API URL before deploying);
+    `docs/moderation.md` ~L58 (a visibility claim); `docs/staying-current.md`
+    ~L141 (include the known labels in the copy sweep, the same as 42).
+
+46. **"Require linear history" and the sync routine can't both hold.** This
+    repository gained a "Protect main" ruleset (linear history, PRs, status
+    checks, resolved conversations). staying-current's sync must land as a
+    merge commit (snag 30), and the ruleset refuses any merge commit on
+    `main`, so a sync can only be squashed, which re-raises every resolved
+    conflict on the next one. *Did instead:* stopped and asked the owner.
+    Suggest: staying-current says so, with the two working setups (no linear
+    history rule, or a bypass for the sync PR), and a note that "resolve
+    conversations" means resolving bot threads too.
