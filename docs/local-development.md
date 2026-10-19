@@ -67,6 +67,11 @@ restart the stack.
 Re-running the seed is safe. `bun run db:reset` rebuilds the database
 from the migrations; run `db:seed` again after it.
 
+The demo rounds start two and five days out. A hosted demo that has to
+stay current for weeks (a public link, a launch post) seeds them further
+out: `SEED_ROUNDS_IN_DAYS=21` puts Ada's round three weeks away and
+Lin's three days after it. Reseed before it passes.
+
 ## The mobile app
 
 Needs the stack and the API Worker running.

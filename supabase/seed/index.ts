@@ -126,8 +126,15 @@ if (requestError) throw requestError;
 
 // Ada hosts a round, Lin has joined, and Ada's live tag points at it:
 // a tap on 04BBBBBBBBBBBB shows her card as the invitation.
+// Two days out by default. A public demo sets SEED_ROUNDS_IN_DAYS (say 21)
+// so the round on the demo tag is still upcoming weeks after a reseed.
+const roundsInDays = Number(process.env.SEED_ROUNDS_IN_DAYS ?? '2');
+if (!Number.isInteger(roundsInDays) || roundsInDays < 1 || roundsInDays > 365) {
+  console.error('SEED_ROUNDS_IN_DAYS must be a whole number of days, 1 to 365.');
+  process.exit(1);
+}
 const startsAt = new Date();
-startsAt.setDate(startsAt.getDate() + 2);
+startsAt.setDate(startsAt.getDate() + roundsInDays);
 startsAt.setHours(6, 40, 0, 0);
 const { data: gathering, error: gatheringError } = await ada.client.rpc('create_gathering', {
   p_title: 'Dawn nine',
@@ -151,7 +158,7 @@ if (pointError) throw pointError;
 // Lin hosts one too, which Ada has not joined: her Rounds tab shows the
 // domain's feed working, not just her own calendar.
 const linStartsAt = new Date();
-linStartsAt.setDate(linStartsAt.getDate() + 5);
+linStartsAt.setDate(linStartsAt.getDate() + roundsInDays + 3);
 linStartsAt.setHours(17, 10, 0, 0);
 const { error: linGatheringError } = await lin.client.rpc('create_gathering', {
   p_title: 'Twilight scramble',
