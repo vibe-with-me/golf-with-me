@@ -50,7 +50,8 @@ Two things the slice doc says that are worth repeating:
   through the contract and the API, which runs as the signed-in user, never
   as an admin.
 
-Two rules for migrations, because several PRs are often open at once:
+Three rules for migrations, because several PRs are often open at once
+and forks merge every one of them:
 
 - **A new migration sorts last.** Name it with a timestamp later than both
   now and the newest file in `supabase/migrations` on `main`, and recheck
@@ -64,6 +65,21 @@ Two rules for migrations, because several PRs are often open at once:
   with `grep -l 'function public.<name>' supabase/migrations/* | sort |
   tail -1`, and add your lines to it. Starting from an older one silently
   drops whatever landed since.
+- **Say when you redefine something forks change.** The skills tell forks
+  to change these, so a starter migration that redefines one replaces the
+  fork's version on its next sync with no git conflict:
+  - functions `create_gathering` (customize-gathering), `resolve_tag`,
+    `report_gathering` (customize-gathering, extend-profile),
+    `accept_connect_request` and `report_user` (extend-profile);
+  - the host's column grant on `public.gatherings` (customize-gathering);
+  - the `tags_destination_shape` constraint (add-destination-type).
+
+  A PR that redefines one says so in its title ("redefines
+  `create_gathering`") and in its description, which also says what a
+  fork re-applies. When it changes a signature, it drops the old one with
+  `drop function if exists`, and the description notes that a fork may
+  have a different signature of its own to drop (docs/staying-current.md,
+  Migrations). `bun run sync:check` is the fork's side of this.
 
 ## The verification gate
 
@@ -134,8 +150,9 @@ starter (or a throwaway fork), the way Golf With Me's rebuild did. Where
 the skill is missing a step, has steps out of order, or says something
 the code contradicts, the agent writes it down in an `UPSTREAM-SNAGS.md`
 kept outside the PR: what the skill said, what happened, and what it did
-instead. Fix each snag in the skill, then run it again until the run is
-clean. Mention the run and its snag count in the PR description.
+instead. Fix each snag in the skill, then run the changed skill again on
+a fresh clone; repeat until a run is clean, and merge only after that
+clean run. Mention the runs and the snag count in the PR description.
 
 [docs/skills-roadmap.md](docs/skills-roadmap.md) records which skills
 exist, which were deliberately skipped, and the decisions behind both.

@@ -90,6 +90,34 @@ The starter squash-merges, so each line is one PR with a title that says
 what changed. Read the ones that touch migrations, the contract, or a
 skill you ran; the PR description says why.
 
+Then find the migrations that will undo yours. A starter migration that
+redefines a function you changed (`create_gathering` after
+customize-gathering, `resolve_tag` after extend-profile), re-issues a
+column grant you widened, or re-adds a constraint you replaced merges
+with no conflict, and when it runs, the starter's version replaces yours:
+your field silently stops being written. This lists each one:
+
+```sh
+bun run sync:check
+```
+
+The first sync that brings the script in has neither the script nor the
+`sync:check` entry yet (both arrive with that merge), so that once, run
+the starter's copy straight from `upstream/main`:
+
+```sh
+bash <(git show upstream/main:scripts/upstream-redefines.sh) HEAD upstream/main
+```
+
+It prints `<incoming migration> redefines <name>; yours: <your
+migrations>` per hit, or that there are none. It matches names, not
+bodies, so read each hit: the incoming file against yours. One that
+changes what you changed (a body you extended, a grant you widened) is a
+follow-up migration to write after the merge (see
+[Migrations](#migrations), "Objects you both changed"); one that leaves
+it alone needs nothing. A starter PR that does this says so in its
+title ("redefines create_gathering"), so the step 1 log shows it too.
+
 **2. Merge.**
 
 ```sh
@@ -128,19 +156,35 @@ the starter's nouns, paths and brand, with no conflict to warn you: a page
 title that says "— withme", a `navigate` to `/gatherings`, a spec that
 clicks "Events", a test that calls `create_gathering` without your
 field's argument. Typecheck and the tests catch some; nothing catches the
-copy. Sweep what the merge brought in (on the merge commit, `HEAD^1` is
+copy. Sweep what the merge brought in, in two passes, so the real hits
+are not buried under internal names (on the merge commit, `HEAD^1` is
 your `main` before it):
 
 ```sh
-git diff --name-only HEAD^1 HEAD -- apps packages supabase/seed \
-  | xargs grep -nE "withme|/gatherings?\b|'Events'|[Gg]athering|create_gathering|gatherings\.create" \
-  | grep -v '@withme/'
+git diff --name-only --diff-filter=d HEAD^1 HEAD -- apps packages supabase/seed > /tmp/sync-files
+
+# 1. Copy: string literals and JSX text that read as words (a space, or a
+#    capital first letter), so `gathering_id` and `feed.gatherings` stay out.
+xargs perl -ne 'while (/(["\x27`])((?:\\.|(?!\1).)*?)\1|>([^<>{}]+)</g) { my $s = $2 // $3;
+  print "$ARGV:$.: $s\n" if $s =~ /\b(withme|[Gg]atherings?|Events?|Happening|Yours|Hosting|[Gg]oing)\b/ && $s =~ /\s|^[A-Z]/ }
+  close ARGV if eof' < /tmp/sync-files
+
+# 2. Paths and calls: a URL a person visits, and callers of create_gathering.
+xargs grep -nE "['\"\`]/gatherings?\b|create_gathering|gatherings\.create" < /tmp/sync-files
 ```
+
+Every line of pass 1 is something a person reads, a spec clicks, or a
+test names; change the ones in the starter's words. Its word list is the
+starter's own labels that `customize-gathering` §1 renames: the nouns,
+the tab ("Events"), the section titles ("Happening", "Yours"), the marks
+("Hosting", "Going") and the counter ("N going", "N of M going"). If you
+renamed more, add your starter originals to the list. Pass 2's paths take
+your route names; its callers take your fields' arguments.
 
 Internal identifiers stay as they are (`gathering` in code, `@withme/*`),
 as everywhere else. What a person reads or a URL they visit takes your
 words: the same rules as `make-it-yours` step 3 and `customize-gathering`
-§1. A new caller of `create_gathering` takes your fields' arguments.
+§1.
 
 **5. Run the gate, then the e2e suites.**
 
@@ -161,10 +205,20 @@ Not "Squash and merge", even if every other PR in your repo is squashed
 starter's commits ancestors of your `main`; a squash drops it, so the
 next sync starts from the old merge base and asks you to resolve every
 conflict you already resolved. If the repository allows only squash
-merges, turn on **Settings → General → Allow merge commits** (you can
-leave it for sync PRs only), or merge the branch locally with
+merges, turn on **Settings → General → Allow merge commits**. The
+setting covers every pull request in the repository, and GitHub can't
+limit it to sync PRs, so keep squashing ordinary PRs by habit. A branch ruleset or protection rule on
+`main` can still refuse it: remove **Require linear history**, and add
+**Merge** to the pull-request rule's allowed merge methods (Settings →
+Rules → Rulesets). Keep the rest (no deletion, no force push, PRs and CI
+required). Without branch protection you can also merge locally with
 `git switch main && git merge --no-ff starter-sync` and push `main` (the
-switch matters: on `starter-sync` itself the merge has nothing to do). Afterwards, check
+switch matters: on `starter-sync` itself the merge has nothing to do); a
+protected `main` refuses that push unless your account can bypass its
+rules: on a ruleset's bypass list with the mode set to **Always** (a
+**Pull requests only** bypass still refuses a direct push), or an admin
+under a classic protection rule that doesn't include administrators.
+Afterwards, check
 (fetch `origin` only, so `upstream/main` is still the commit you merged):
 
 ```sh
@@ -205,10 +259,19 @@ does not know SQL.
   `supabase db push --include-all`.
 - **Objects you both changed.** A starter migration that recreates a
   function, policy, or view you altered replaces your version, or fails
-  because your version changed its signature. For each incoming
-  migration, search your own migrations for the objects it names. If you
-  find one, write a new migration of yours, dated after the starter's,
-  that reapplies your change on top.
+  because your version changed its signature. `bun run sync:check` (step
+  1) lists the functions, column grants and constraints; policies and
+  views you check by hand. For each hit that changes what you changed
+  (it matches names, so read it first), write a new migration of yours,
+  dated after the starter's, that starts from the starter's new body
+  (that incoming file) and reapplies your lines on it.
+- **Signatures you changed.** A fork that added an argument has a
+  function the starter's `drop function if exists …(<old signature>)`
+  does not name, so after the merge both versions exist: yours as a second
+  overload that misses the starter's new behaviour, and PostgREST picks
+  between them by argument names. In that follow-up migration, drop your
+  signature too, so one version is left (`select oid::regprocedure from
+  pg_proc where proname = '<name>'` lists them).
 - **Never edit a migration that has run.** That goes for the starter's and
   yours. Fix forward with a new file; editing one that has already run
   makes the merge and production disagree.

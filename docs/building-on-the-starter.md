@@ -1,10 +1,22 @@
-# Upstream snags
+# Building on the starter
 
-Places where the starter's README, docs, or skills were missing a step, had
-steps out of order, or were unclear, found while building Golf With Me by
-following them literally. Each entry says what the docs said, what happened,
-and what this fork did instead. This list goes upstream to withme-starter;
-nothing here was fixed in the starter from inside this fork.
+Golf With Me was rebuilt from scratch by following
+[withme-starter](https://github.com/vibe-with-me/withme-starter)'s README
+literally: run the demo, then the skills in `.agents/skills/` in the order
+[`docs/run-with-me.md`](run-with-me.md) uses (design-direction,
+make-it-yours, customize-gathering, extend-profile), then taking the
+starter's later changes with an ordinary `git merge`, as
+[`docs/staying-current.md`](staying-current.md) describes.
+
+Below is every place the starter fell short along the way: a step that was
+missing, out of order, or unclear, or a starter change that fought a fork's
+own. Each entry says what the docs said, what happened, and what this fork
+did instead. Every item is fixed upstream, in starter PRs
+[#69](https://github.com/vibe-with-me/withme-starter/pull/69)–[#95](https://github.com/vibe-with-me/withme-starter/pull/95). PR numbers below without a link are this
+repository's own.
+
+They are kept here as a record of what building on the starter is actually
+like, and of the fork that tested it.
 
 ## Step 0: fork and run the demo
 
@@ -131,8 +143,8 @@ nothing here was fixed in the starter from inside this fork.
     neither of which the skill mentions. *Did instead:* set `expo.owner` to
     the org, deleted only `extra.eas.projectId` and `updates.url`, re-ran
     `eas init` (it created `@vibe-with-me/golfwithme`), removed the
-    duplicated permissions, and kept the channels. The stray
-    `@expovibes/golfwithme` project is left for the owner to delete.
+    duplicated permissions, and kept the channels. The stray project on the
+    personal account was deleted by hand.
     Suggest: step 5 sets `owner` to the fork's Expo account instead of
     deleting it.
 
@@ -220,7 +232,7 @@ nothing here was fixed in the starter from inside this fork.
 
 23. **The golf example's "phone, connections only" is already Links.** The
     README's idea table and run-with-me's Variations list golf's
-    connections-tier field as `phone`, and the brief for this run came from
+    connections-tier field as `phone`, and Golf With Me's plan came from
     that. But extend-profile says "Check Links first", and Profile → Links
     already ships a `phone` platform, connections-only. *Did instead:* no
     `profile_details` table; the card-only path, with Ada's seed carrying a
@@ -284,8 +296,8 @@ left `supabase.ts` differing from upstream only by the fork's columns.
     starter itself does) loses the merge commit's upstream parent: the
     starter's commits never become ancestors of `main`, so the next sync
     finds the old merge base and re-raises every conflict already resolved.
-    *Did instead:* asked the owner to merge the sync PR with a merge commit
-    (enable "Allow merge commits" for it, or merge locally and push).
+    *Did instead:* every sync PR here is merged with a merge commit (merge
+    commits are allowed on this repository for exactly that).
     Suggest: a line in step 6 ("merge, don't squash, the sync PR; check
     with `git merge-base --is-ancestor upstream/main main` afterwards").
 
@@ -385,8 +397,10 @@ all predictable. Two notes:
     `location` is "Meet at" ("The first tee"), and the place is
     `course_name` ("Riverside Muni"), so the link searches Maps for "The
     first tee". customize-gathering doesn't say which field a fork's Maps
-    link should use. *Did instead:* left the starter's behavior and raised
-    it with the owner. Suggest: a line in customize-gathering §2 ("if your
+    link should use. *Did instead:* the owner chose the course:
+    `courseWhenAndWhere` puts `course_name` in the MetaLine's `location`
+    slot (the Maps link) and "Meet at" in the plain tail; the course now
+    leads the row, so the link always starts on a visible line. Suggest: a line in customize-gathering §2 ("if your
     new field is the place, point `mapsSearchUrl` at it, or at both").
     Related (CodeRabbit on PR #10): the mobile row's comment assumes "the
     status and date never fill both lines", but a fork that adds a field to
@@ -410,3 +424,89 @@ all predictable. Two notes:
     checkpoint for Redeploys) and ~L358 (the Expo Go restriction is
     Android-only), CONTRIBUTING.md ~L138, local-development.md ~L99, and
     staying-current.md ~L136 (split the step 4b sweep, the same as 39).
+
+## Fourth starter sync: #84, #88–#92
+
+41. **A starter migration silently undid three of the fork's changes.**
+    `20261017203000_gathering_visibility_and_capacity.sql` redefines
+    `create_gathering` and `resolve_tag` from the starter's newest bodies and
+    re-issues the host's column grant. On this fork that would drop the
+    required course, the course on the tap card, handicap and home course on
+    the card, and `course_name` from the host's edit grant, with no git
+    conflict. Its `drop function if exists create_gathering(text, timestamptz, text)`
+    names the starter's old signature, so the fork's four-argument version
+    survived as a second overload, without visibility or capacity. This is
+    the case staying-current's Migrations section describes, but nothing
+    pointed at it during the merge. *Did instead:*
+    `20261017220000_golf_after_visibility_capacity.sql` reapplies the fork's
+    lines on the newest bodies, drops both old signatures, and leaves one
+    `create_gathering`. Suggest: staying-current step 1 gives the command
+    (for each incoming migration, list the `function public.…` it redefines
+    and grep your own migrations for them), and starter PRs that redefine a
+    skill-touched function (`create_gathering`, `resolve_tag`,
+    `accept_connect_request`) say so in their title.
+
+42. **New starter specs and tests still arrive in the starter's words.**
+    `gathering-controls.spec.ts` uses `/gatherings`, "Create gathering",
+    "Happening", "N of M going" and "Join this gathering"; the capacity and
+    visibility db tests and the contract tests create gatherings without
+    the fork's required field; `going.test.ts` expects "going". Step 4b's
+    sweep found the paths but not "Happening" or "going", and the required
+    field showed up only as typecheck and test failures. Suggest: the 4b
+    sweep includes the fork's renamed section titles and counters (or keeps
+    such copy in one place a fork edits once).
+
+43. **#90's two-line mobile row assumes the date is in the head.** It
+    splits the row into a head line and a link-plus-tail line. A fork whose
+    line helper puts its own field in the location slot (this fork's course,
+    snag 38) has only a Hosting / Playing mark in the head, so the split
+    leaves a near-empty first line and truncates the tail. *Did instead:*
+    kept the fork's single two-line `Text` with the starter's new tail items
+    (capacity count, Full, Connections only).
+
+44. **A new starter snapshot doesn't know the fork's fields.** #84's
+    `report_gathering` snapshots the title and location so a moderator reads
+    what the reporter saw; this fork's course is host-typed text every
+    tapper sees, and it wasn't in the snapshot. Found by CodeRabbit on PR #12.
+    *Did instead:* `20261017220100_golf_report_gathering_course.sql` adds it
+    (from the newest body), with the snapshot test asserting it survives an
+    edit. Suggest: customize-gathering §2 lists `report_gathering`'s snapshot
+    beside `resolve_tag` as a place a new user-facing field goes.
+
+45. **Five CodeRabbit findings on starter files in sync PR #12**, not fixed
+    in the fork: go-live SKILL.md ~L572 (make the checkpoint conditional on
+    the mobile option); `deploy.yml` ~L42 (queue pending runs instead of
+    cancelling) and ~L129 (Major: require the API URL before deploying);
+    `docs/moderation.md` ~L58 (a visibility claim); `docs/staying-current.md`
+    ~L141 (include the known labels in the copy sweep, the same as 42).
+
+46. **"Require linear history" and the sync routine can't both hold.** This
+    repository gained a "Protect main" ruleset (linear history, PRs, status
+    checks, resolved conversations). staying-current's sync must land as a
+    merge commit (snag 30), and the ruleset refuses any merge commit on
+    `main`, so a sync can only be squashed, which re-raises every resolved
+    conflict on the next one. *Did instead:* the ruleset now allows merge
+    commits and no longer requires linear history; deletion and force-push
+    protection, required PRs, resolved conversations and the CI check stay.
+    Suggest: staying-current says so, with the two working setups (no linear
+    history rule, or a bypass for the sync PR), and a note that "resolve
+    conversations" means resolving bot threads too.
+
+## Fifth starter sync: #93, #94
+
+The new `scripts/upstream-redefines.sh` worked as designed ("No incoming
+migration redefines anything yours defines"), and #94's row change fixed
+snag 43: the fork's mobile row now matches the starter's line for line.
+
+47. **`bun run sync:check` doesn't exist yet on the sync that brings it.**
+    staying-current step 1 says to run it before merging, but a fork gets
+    the script and the `sync:check` entry only from the merge itself.
+    *Did instead:* `bash <(git show upstream/main:scripts/upstream-redefines.sh) HEAD upstream/main`.
+    Suggest: that line in step 1 as the first-time form.
+
+48. **Two CodeRabbit findings on starter files in sync PR #14** (not fixed
+    in the fork): `deploy.yml` ~L44 (keep non-main runs out of the
+    production concurrency group), and `docs/moderation.md` ~L54 (its
+    snapshot field list should mention that a fork's own fields join it, as
+    this fork's `course_name` does, snag 44). The third, staying-current
+    ~L101, is snag 47.

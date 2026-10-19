@@ -1,4 +1,4 @@
-import type { GatheringListItem } from '@withme/contract';
+import { isGatheringFull, type GatheringListItem, type GatheringVisibility } from '@withme/contract';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -11,11 +11,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { GatheringControls } from '../../components/GatheringControls';
 import { mapsLinkLabel, openInMaps } from '../../components/GatheringMeta';
 import { Button, Card, ErrorText, Field, Muted, Title } from '../../components/ui';
 import { api } from '../../lib/api';
 import { courseWhenAndWhere, parseLocalDateTime, tomorrowEvening } from '../../lib/format-time';
-import { goingLine, withLine } from '../../lib/going';
+import { FULL_LABEL, audienceMark, goingLine, parseSpots, withLine } from '../../lib/going';
 import { supabase } from '../../lib/supabase';
 import { displaySize, fonts, space, useTokens } from '../../lib/tokens';
 
@@ -44,6 +45,8 @@ export default function GatheringsScreen() {
   const [when, setWhen] = useState(tomorrowEvening);
   const [location, setLocation] = useState('');
   const [course, setCourse] = useState('');
+  const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
+  const [spots, setSpots] = useState('4'); // a foursome unless the host says fewer
   const [busy, setBusy] = useState(false);
   // The form's error (create/validation) and the list's are separate: a
   // failed load must not read as an empty list, nor show up inside the form.
@@ -112,10 +115,14 @@ export default function GatheringsScreen() {
         starts_at: startsAt,
         course_name: course.trim(),
         location: location.trim() === '' ? null : location.trim(),
+        visibility,
+        capacity: parseSpots(spots) ?? null,
       });
       setTitle('');
       setCourse('');
       setLocation('');
+      setVisibility('everyone');
+      setSpots('4');
       setWhen(tomorrowEvening());
       await load();
     } catch {
@@ -137,7 +144,17 @@ export default function GatheringsScreen() {
         : gathering.is_member
           ? 'Playing'
           : null;
-    const line = courseWhenAndWhere(gathering, [mark], [goingLine(gathering.member_count)]);
+    // Full only matters to someone who could still join.
+    const full = !gathering.is_member && isGatheringFull(gathering, gathering.member_count);
+    const line = courseWhenAndWhere(
+      gathering,
+      [mark],
+      [
+        goingLine(gathering.member_count, gathering.capacity),
+        full ? FULL_LABEL : null,
+        audienceMark(gathering.visibility),
+      ],
+    );
     const where = line.location;
     const names = withLine(gathering.members, viewerId);
     return (
@@ -158,13 +175,19 @@ export default function GatheringsScreen() {
       >
         <View style={styles.rowBody}>
           <Text style={[styles.rowName, { color: t.ink }]}>{gathering.title}</Text>
-          {/* Two lines, as on web: the status and date never fill both, so the
-              location's link always starts on a visible line. */}
-          <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
-            {line.head}
-            {where ? (
-              <>
-                {' · '}
+          {/* The location's link starts its own line, so a long head (a fork's
+              field joined before the date) is cut short instead of hiding it.
+              That line may wrap to two: a fork whose line helper moves the date
+              into the tail (its own field in the location slot) still shows it
+              while it fits, and an empty head takes no line at all. */}
+          {line.head ? (
+            <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
+              {line.head}
+            </Text>
+          ) : null}
+          {where || line.tail ? (
+            <Text numberOfLines={2} style={[styles.rowSub, { color: t.inkMuted }]}>
+              {where ? (
                 <Text
                   style={[styles.rowLink, { color: t.ink }]}
                   suppressHighlighting
@@ -172,10 +195,11 @@ export default function GatheringsScreen() {
                 >
                   {where}
                 </Text>
-              </>
-            ) : null}
-            {line.tail ? ` · ${line.tail}` : null}
-          </Text>
+              ) : null}
+              {where && line.tail ? ' · ' : null}
+              {line.tail || null}
+            </Text>
+          ) : null}
           {names ? (
             <Text numberOfLines={1} style={[styles.rowSub, { color: t.inkMuted }]}>
               {names}
@@ -244,12 +268,23 @@ export default function GatheringsScreen() {
             maxLength={160}
             placeholder="e.g. the first tee"
           />
+          <GatheringControls
+            visibility={visibility}
+            onVisibility={setVisibility}
+            spots={spots}
+            onSpots={setSpots}
+          />
           {error ? <ErrorText>{error}</ErrorText> : null}
           <Button
             label={busy ? 'Creating…' : 'Create round'}
             onPress={create}
             disabled={
-              busy || !title.trim() || !course.trim() || !when.date.trim() || !when.time.trim()
+              busy ||
+              !title.trim() ||
+              !course.trim() ||
+              !when.date.trim() ||
+              !when.time.trim() ||
+              parseSpots(spots) === undefined
             }
           />
         </Card>

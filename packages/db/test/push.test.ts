@@ -360,11 +360,11 @@ describe('a gathering join', () => {
     const host = await createTestUser('Host');
     const hostPhone = await register(host);
     const id = await createGathering(host, 'Busy night');
-    const joiners = await Promise.all(['A', 'B', 'C'].map((n) => createTestUser(n)));
+    // Golf With Me: a round is a foursome, so the burst is two (host + A, B, D = 4).
+    const joiners = await Promise.all(['A', 'B'].map((n) => createTestUser(n)));
 
     await join(joiners[0]!, id);
     await join(joiners[1]!, id);
-    await join(joiners[2]!, id);
     expect((await nextPush(hostPhone)).body).toBe('1 person joined.');
 
     // The window passes (moved back rather than waited out).
@@ -372,7 +372,7 @@ describe('a gathering join', () => {
       update private.push_throttle set last_sent_at = now() - interval '16 minutes'
        where recipient_id = ${host.id} and subject_id = ${id}`;
     await join(await createTestUser('D'), id);
-    expect((await nextPush(hostPhone, 1)).body).toBe('3 people joined.');
+    expect((await nextPush(hostPhone, 1)).body).toBe('2 people joined.');
     expect(pushesTo(hostPhone)).toHaveLength(2);
   });
 });
