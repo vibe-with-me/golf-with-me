@@ -16,6 +16,39 @@ open-source starter for apps where people meet in person. Most of what's
 here is the starter's, so its README and docs cover the shared building
 blocks; this page covers what's golf.
 
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/golf/1-card-dark.png">
+        <img src="docs/images/readme/golf/1-card-light.png" alt="Ada's card with her handicap and home course and her links locked, which is what a stranger sees after a tap or scan" width="200">
+      </picture>
+      <br><sub>A tap or scan opens their card</sub>
+    </td>
+    <td align="center" width="25%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/golf/2-request-dark.png">
+        <img src="docs/images/readme/golf/2-request-light.png" alt="Ada's Requests tab showing Lin's request, with Lin's handicap and home course and an Accept button" width="200">
+      </picture>
+      <br><sub>They accept your request</sub>
+    </td>
+    <td align="center" width="25%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/golf/3-connected-dark.png">
+        <img src="docs/images/readme/golf/3-connected-light.png" alt="Lin's Connections list showing Ada's phone, Instagram, TikTok, X, YouTube, email and website" width="200">
+      </picture>
+      <br><sub>Connected: their links unlock</sub>
+    </td>
+    <td align="center" width="25%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/golf/4-rounds-dark.png">
+        <img src="docs/images/readme/golf/4-rounds-light.png" alt="The Rounds tab's Tee sheet listing Dawn nine and Twilight scramble with their courses, tee times and who's playing" width="200">
+      </picture>
+      <br><sub>Rounds: the tee sheet, or yours</sub>
+    </td>
+  </tr>
+</table>
+
 **See it:** [Ada's card on the staging demo](https://staging.golfwithme.co/t/04BBBBBBBBBBBB),
 which is what a tap or scan of her tag opens.
 
