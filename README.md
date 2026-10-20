@@ -140,6 +140,7 @@ it to an agent in one go.
 8. **`add-marketing-site`**: a front door, with the privacy pages app stores ask for.
 
 None of these moves a privacy boundary, and the tests stay green after each.
+What the tests cover and how to add your own: [Testing](docs/testing.md).
 
 For a feature no skill covers, run [`feature-dev`](.agents/skills/feature-dev/SKILL.md):
 it gates design, plan, tests per layer and a look at the running app

@@ -2,23 +2,9 @@
 // host; connect, and the host appears in who's going. The feed lists it to
 // the whole domain.
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Locator } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { whenWindow } from '@withme/contract';
-import { admin, agreeToTerms, freshUid, signUp, signUpWithProfile } from './helpers.ts';
-
-/** The feed comes a page at a time, and other runs fill the first page:
- * press Load more until the row shows, as a person would. */
-async function revealInFeed(feed: Locator, title: string): Promise<void> {
-  const row = feed.getByText(title);
-  const more = feed.getByRole('button', { name: 'Load more' });
-  for (let page = 0; page < 50; page++) {
-    await expect(row.or(more).first()).toBeVisible();
-    if (await row.isVisible()) return;
-    await more.click();
-    await expect(feed.getByRole('button', { name: 'Loading…' })).toHaveCount(0);
-  }
-  await expect(row).toBeVisible();
-}
+import { admin, agreeToTerms, freshUid, revealInFeed, signUp, signUpWithProfile } from './helpers.ts';
 
 test('Discover narrows to this weekend or later, and the URL keeps the window', async ({ page }) => {
   const stamp = Date.now();
