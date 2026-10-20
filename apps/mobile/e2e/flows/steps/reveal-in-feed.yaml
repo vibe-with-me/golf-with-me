@@ -1,0 +1,34 @@
+# On Discover: scroll the feed, a page at a time, until the row titled
+# ${TITLE} is on screen. The feed is shared by every run, so the row may be
+# pages down. A row reads as one element: title, when, who's going.
+# Maestro counts an element behind the tab bar as visible, and a tap there
+# lands on the bar (or its raised share button): each find ends with a
+# short push up, so the row (or Load more) is clear of it before a tap.
+# Not scrollUntilVisible's centerElement: it cannot center the last row.
+appId: ${APP_ID}
+---
+- repeat:
+    times: 20
+    while:
+      notVisible: '${TITLE}, .*'
+    commands:
+      - scrollUntilVisible:
+          element: '${TITLE}, .*|Load more'
+          direction: DOWN
+          timeout: 20000
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 45%
+          duration: 400
+      # Only while the row is still missing.
+      - runFlow:
+          when:
+            notVisible: '${TITLE}, .*'
+          commands:
+            - tapOn: Load more
+# Found on the first screen, the loop never ran: push up here too.
+- swipe:
+    start: 50%, 60%
+    end: 50%, 45%
+    duration: 400
+- assertVisible: '${TITLE}, .*'
