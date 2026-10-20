@@ -47,18 +47,20 @@ test('a connections-only gathering with three spots: hidden from a stranger, ful
   // --- the host claims a tag, then creates the gathering ------------------------
   const host = await newPage(browser);
   const uid = await claimFreshTag(host, `cap-host-${stamp}@rls.test`, hostName);
-  await host.goto('/rounds');
+  await host.goto('/rounds/new');
   await host.getByLabel('Title').fill(title);
   await host.getByLabel('Course', { exact: true }).fill('Riverside Muni');
   await host.getByRole('radio', { name: /My connections/ }).check();
   await host.getByLabel('Spots').fill('3');
   await host.getByRole('button', { name: 'Create round' }).click();
+  await host.waitForURL(/\/rounds\/[0-9a-f-]{36}$/);
+  const detailPath = new URL(host.url()).pathname;
+  await host.goto('/rounds?view=yours');
   const yours = host.getByRole('region', { name: 'Yours' });
   await expect(yours.getByText(title)).toBeVisible();
   await expect(yours.getByText(/Hosting · .* · 1 of 3 playing · Connections only/)).toBeVisible();
   await yours.getByRole('link', { name: 'Open', exact: true }).click();
-  await host.waitForURL(/\/rounds\/[0-9a-f-]{36}$/);
-  const detailPath = new URL(host.url()).pathname;
+  await host.waitForURL(`**${detailPath}`);
   // The list can still be on screen for a moment after the URL changes:
   // wait for the detail, and match its line exactly (a row's line contains it).
   await expect(host.getByRole('heading', { name: title })).toBeVisible();

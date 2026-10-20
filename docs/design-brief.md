@@ -79,7 +79,7 @@ What it looks like in practice is grey boxes. Specifically:
 4. Lists are dense: a 44px avatar, two lines of text, actions on the right,
    each row boxed. Events lists and member lists look like settings screens.
 5. The avatar placeholder is one initial on the page background: flat and
-   anonymous, and it is the first thing a stranger sees after a tap.
+   anonymous, and it is the first thing a stranger sees after a tap or a scan.
 6. Empty, loading and error states are a single muted line of text.
 7. There is no artwork. The wordmark is the display face set in bold. The
    mobile app icon is Expo's default blue chevron; the favicon likewise.
@@ -164,7 +164,7 @@ B. Components, both modes, every state. Card. Button: default, accent, quiet,
    confirmation (delete account).
 
 C. Screens at 390×844 in light and dark: the resolver card (profile tag and
-   gathering tag), login, Events (create form plus the three lists), gathering
+   gathering tag), login, Events (the Discover and Yours segments), the create page, gathering
    detail with "Who's going", Connections on the Requests segment with a
    pending row, Profile (photo, form, links editor, My tags, Account). Plus the
    Events tab at 1280 wide to show the desktop shell.

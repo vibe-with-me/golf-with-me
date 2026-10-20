@@ -81,11 +81,16 @@ for (const [user, handicap, home_course] of [
   if (cardError) throw cardError;
 }
 
-// Ada's links: what Lin will see once Ada accepts (Profile → Links).
+// Ada's links: what Lin will see once Ada accepts (Profile → Links). Her
+// tag's card lists the platforms, locked.
 const { error: linksError } = await ada.client.rpc('set_my_links', {
   p_links: [
     { platform: 'phone', value: '+15555550142' },
     { platform: 'instagram', value: 'ada.plays' },
+    { platform: 'tiktok', value: 'ada.plays' },
+    { platform: 'x', value: 'ada_plays' },
+    { platform: 'youtube', value: 'adaplays' },
+    { platform: 'email', value: 'ada@demo.golfwithme.local' },
     { platform: 'website', value: 'https://ada.example' },
   ],
 });
@@ -124,8 +129,9 @@ const { error: requestError } = await lin.client.rpc('send_connect_request', {
 });
 if (requestError) throw requestError;
 
-// Ada hosts a round, Lin has joined, and Ada's live tag points at it:
-// a tap on 04BBBBBBBBBBBB shows her card as the invitation.
+// Ada hosts a round and Lin has joined. Ada's live tag keeps the profile
+// destination claim_tag gave it: a tap on 04BBBBBBBBBBBB shows her card
+// with Connect.
 const startsAt = new Date();
 startsAt.setDate(startsAt.getDate() + 2);
 startsAt.setHours(6, 40, 0, 0);
@@ -141,12 +147,6 @@ const { error: joinError } = await lin.client.rpc('join_gathering', {
   p_gathering_id: gatheringId,
 });
 if (joinError) throw joinError;
-// The owner's column-granted update — the same path app.tags.update takes.
-const { error: pointError } = await ada.client
-  .from('tags')
-  .update({ destination: { type: 'gathering', gathering_id: gatheringId } })
-  .eq('uid', TAGS.claimed);
-if (pointError) throw pointError;
 
 // Lin hosts one too, which Ada has not joined: her Rounds tab shows the
 // domain's feed working, not just her own calendar.
@@ -165,9 +165,9 @@ if (linGatheringError) throw linGatheringError;
 
 console.log(`
 Seeded.
-  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a round Lin joined; phone and two links, connections-only)
+  Users     ${DEMO_USERS.ada} / ${DEMO_PASSWORD}   (has 1 pending request from Lin; hosts a round Lin joined; phone and six links, connections-only)
             ${DEMO_USERS.lin} / ${DEMO_PASSWORD}   (hosts a second round, listed to the domain)
-  Tags      /t/${TAGS.claimed}  -> Ada's card, inviting you to her round
+  Tags      /t/${TAGS.claimed}  -> Ada's card, her links locked behind Connect
             /t/${TAGS.unclaimed}  -> claim flow
             /t/${TAGS.disabled}  -> inactive
 `);
