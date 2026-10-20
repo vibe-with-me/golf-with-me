@@ -1,34 +1,46 @@
-import { isGatheringFull, type GatheringListItem, type GatheringVisibility } from '@withme/contract';
+import {
+  isGatheringFull,
+  WHEN_FILTER_EMPTY,
+  WHEN_FILTER_LABELS,
+  WHEN_FILTERS,
+  whenWindow,
+  type GatheringListItem,
+  type WhenFilter,
+} from '@withme/contract';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { GatheringControls } from '../../components/GatheringControls';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mapsLinkLabel, openInMaps } from '../../components/GatheringMeta';
-import { Button, Card, ErrorText, Field, Muted, Title } from '../../components/ui';
+import { Button, ErrorText, Muted, SegmentedTabs } from '../../components/ui';
 import { api } from '../../lib/api';
-import { courseWhenAndWhere, parseLocalDateTime, tomorrowEvening } from '../../lib/format-time';
-import { FULL_LABEL, audienceMark, goingLine, parseSpots, withLine } from '../../lib/going';
+import { courseWhenAndWhere } from '../../lib/format-time';
+import { FULL_LABEL, audienceMark, goingLine, withLine } from '../../lib/going';
 import { supabase } from '../../lib/supabase';
-import { displaySize, fonts, space, useTokens } from '../../lib/tokens';
+import { displaySize, fonts, radius, space, TAP_TARGET, useTokens } from '../../lib/tokens';
+
+type Segment = 'discover' | 'yours';
 
 /**
- * The Events tab: what is happening in the domain, and your own calendar.
- * "Happening" is every upcoming gathering the viewer may see — a bulletin
- * board, not a directory: a row carries the headcount and names only the
- * viewer's connections among the members. The tap is still how people
- * meet; the list is how they find out where.
+ * The Rounds tab: what is happening in the domain, and your own calendar,
+ * behind two in-page segments (mirroring the web tab). "Tee sheet" is every
+ * upcoming round the viewer may see — a bulletin board, not a
+ * directory: a row carries the headcount and names only the viewer's
+ * connections among the members. "Yours" is what you host or are going to,
+ * then what is past. The tap is still how people meet; the list is how they
+ * find out where. Creating one is its own screen (app/round/new.tsx).
+ * The tee sheet narrows to a "when" window worked out on the device, in its time
+ * zone (`whenWindow`); the window resets with the tab, unlike web's URL.
  */
 export default function GatheringsScreen() {
   const t = useTokens();
+  const [segment, setSegment] = useState<Segment>('discover');
+  const [when, setWhen] = useState<WhenFilter>('all');
+  // The window the rows on screen belong to. Until a new window's first page
+  // is in, the old rows stay dimmed and cannot page.
+  const [feedWhen, setFeedWhen] = useState<WhenFilter>('all');
+  const switching = feedWhen !== when;
+  // The window the first page was asked for: Load more pages through the same one.
+  const feedBounds = useRef<{ from?: string; to?: string }>({});
   const [happening, setHappening] = useState<GatheringListItem[]>([]);
   // The feed comes a page at a time; null once the last page is in.
   const [cursor, setCursor] = useState<string | null>(null);
@@ -37,30 +49,30 @@ export default function GatheringsScreen() {
   // Bumped by every full load: a Load more answer from before it is dropped,
   // or it would append an old page (and an old cursor) to the new feed.
   const feedGeneration = useRef(0);
+  // While a full load is out, Load more waits: its cursor belongs to the feed
+  // that load is about to replace.
+  const fullLoadPending = useRef(false);
   const [gatherings, setGatherings] = useState<GatheringListItem[]>([]);
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [title, setTitle] = useState('');
-  const [when, setWhen] = useState(tomorrowEvening);
-  const [location, setLocation] = useState('');
-  const [course, setCourse] = useState('');
-  const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
-  const [spots, setSpots] = useState('4'); // a foursome unless the host says fewer
-  const [busy, setBusy] = useState(false);
-  // The form's error (create/validation) and the list's are separate: a
-  // failed load must not read as an empty list, nor show up inside the form.
-  const [error, setError] = useState<string | null>(null);
+  // A failed load must not read as an empty list.
   const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    feedGeneration.current += 1;
+    const generation = ++feedGeneration.current;
+    fullLoadPending.current = true;
+    const bounds = whenWindow(when);
     try {
       const [feed, { gatherings: mine }, { data }] = await Promise.all([
-        api.app.gatherings.list(),
+        api.app.gatherings.list(bounds),
         api.app.gatherings.listMine(),
         supabase.auth.getSession(),
       ]);
+      // A quick change of window: only the latest load lands.
+      if (generation !== feedGeneration.current) return;
+      feedBounds.current = bounds;
+      setFeedWhen(when);
       // A re-load starts the feed over from its first page.
       setHappening(feed.gatherings);
       setCursor(feed.next_cursor);
@@ -69,14 +81,16 @@ export default function GatheringsScreen() {
       setViewerId(data.session?.user.id ?? null);
       setLoadError(false);
     } catch {
-      setLoadError(true);
+      if (generation === feedGeneration.current) setLoadError(true);
     } finally {
+      if (generation === feedGeneration.current) fullLoadPending.current = false;
       setLoaded(true);
     }
-  }, []);
+  }, [when]);
 
   // Re-load whenever the tab regains focus: a detail screen may have left,
-  // edited, or deleted a gathering underneath this list.
+  // edited, or deleted a gathering underneath this list, and the create
+  // screen may have added one.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -84,12 +98,12 @@ export default function GatheringsScreen() {
   );
 
   async function loadMore() {
-    if (cursor === null || loadingMore) return;
+    if (cursor === null || loadingMore || switching || fullLoadPending.current) return;
     const generation = feedGeneration.current;
     setLoadingMore(true);
     setMoreError(false);
     try {
-      const page = await api.app.gatherings.list({ cursor });
+      const page = await api.app.gatherings.list({ ...feedBounds.current, cursor });
       if (generation !== feedGeneration.current) return;
       setHappening((rows) => [...rows, ...page.gatherings]);
       setCursor(page.next_cursor);
@@ -97,38 +111,6 @@ export default function GatheringsScreen() {
       if (generation === feedGeneration.current) setMoreError(true);
     } finally {
       setLoadingMore(false);
-    }
-  }
-
-  async function create() {
-    if (busy) return;
-    const startsAt = parseLocalDateTime(when.date, when.time);
-    if (!startsAt) {
-      setError('Enter the date as YYYY-MM-DD and the time as HH:MM.');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await api.app.gatherings.create({
-        title: title.trim(),
-        starts_at: startsAt,
-        course_name: course.trim(),
-        location: location.trim() === '' ? null : location.trim(),
-        visibility,
-        capacity: parseSpots(spots) ?? null,
-      });
-      setTitle('');
-      setCourse('');
-      setLocation('');
-      setVisibility('everyone');
-      setSpots('4');
-      setWhen(tomorrowEvening());
-      await load();
-    } catch {
-      setError('Could not create the round. Check the fields and try again.');
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -211,120 +193,100 @@ export default function GatheringsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: t.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ScrollView
+      style={{ backgroundColor: t.bg }}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={async () => {
+            setRefreshing(true);
+            await load();
+            setRefreshing(false);
+          }}
+        />
+      }
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await load();
-              setRefreshing(false);
-            }}
-          />
-        }
-      >
-        <Card>
-          <Title>Create a round</Title>
-          <Field
-            label="Title"
-            value={title}
-            onChangeText={setTitle}
-            maxLength={120}
-            placeholder="e.g. Saturday dawn nine"
-          />
-          <Field
-            label="Course"
-            value={course}
-            onChangeText={setCourse}
-            maxLength={80}
-            placeholder="e.g. Riverside Muni"
-          />
-          <Field
-            label="Date"
-            value={when.date}
-            onChangeText={(date) => setWhen((w) => ({ ...w, date }))}
-            autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
-            placeholder="2026-10-09"
-          />
-          <Field
-            label="Tee time"
-            value={when.time}
-            onChangeText={(time) => setWhen((w) => ({ ...w, time }))}
-            autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
-            placeholder="18:00"
-          />
-          <Field
-            label="Meet at (optional)"
-            value={location}
-            onChangeText={setLocation}
-            maxLength={160}
-            placeholder="e.g. the first tee"
-          />
-          <GatheringControls
-            visibility={visibility}
-            onVisibility={setVisibility}
-            spots={spots}
-            onSpots={setSpots}
-          />
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <Button
-            label={busy ? 'Creating…' : 'Create round'}
-            onPress={create}
-            disabled={
-              busy ||
-              !title.trim() ||
-              !course.trim() ||
-              !when.date.trim() ||
-              !when.time.trim() ||
-              parseSpots(spots) === undefined
-            }
-          />
-        </Card>
+      <Button label="New round" onPress={() => router.push('/round/new')} />
+      <SegmentedTabs
+        items={[
+          { key: 'discover', label: 'Tee sheet' },
+          { key: 'yours', label: 'Yours' },
+        ]}
+        active={segment}
+        onChange={setSegment}
+      />
 
-        <Text style={[styles.sectionTitle, { color: t.ink }]}>Tee sheet</Text>
-        {!loaded ? null : loadError ? (
-          <ErrorText>Could not load rounds. Pull to retry.</ErrorText>
-        ) : happening.length === 0 ? (
-          <Muted>No rounds on the tee sheet yet. Create the first one.</Muted>
-        ) : (
-          happening.map(row)
-        )}
-        {loaded && !loadError && moreError ? (
-          <ErrorText>Could not load more. Try again.</ErrorText>
-        ) : null}
-        {loaded && !loadError && cursor !== null ? (
-          <Button
-            kind="quiet"
-            label={loadingMore ? 'Loading…' : 'Load more'}
-            onPress={loadMore}
-            disabled={loadingMore}
-          />
-        ) : null}
-
-        <Text style={[styles.sectionTitle, { color: t.ink }]}>Yours</Text>
-        {!loaded || loadError ? null : gatherings.length === 0 ? (
-          <Muted>Join one above, or create your own.</Muted>
-        ) : upcoming.length === 0 ? (
-          <Muted>Nothing coming up.</Muted>
-        ) : (
-          upcoming.map(row)
-        )}
-        {!loadError && past.length > 0 ? (
-          <>
-            <Text style={[styles.sectionTitle, { color: t.ink }]}>Past</Text>
-            {past.map(row)}
-          </>
-        ) : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {!loaded ? null : loadError ? (
+        <ErrorText>Could not load rounds. Pull to retry.</ErrorText>
+      ) : segment === 'yours' ? (
+        <>
+          {gatherings.length === 0 ? (
+            <Muted>Join one from the tee sheet, or create your own.</Muted>
+          ) : upcoming.length === 0 ? (
+            <Muted>Nothing coming up.</Muted>
+          ) : (
+            upcoming.map(row)
+          )}
+          {past.length > 0 ? (
+            <>
+              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: t.ink }]}>
+                Past
+              </Text>
+              {past.map(row)}
+            </>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <View style={styles.when}>
+            {WHEN_FILTERS.map((filter) => {
+              const selected = filter === when;
+              return (
+                <Pressable
+                  key={filter}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setWhen(filter)}
+                  style={({ pressed }) => [
+                    styles.whenItem,
+                    {
+                      backgroundColor: t.bg,
+                      borderColor: selected || pressed ? t.ink : t.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.whenLabel, { color: t.ink }]}>
+                    {WHEN_FILTER_LABELS[filter]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {happening.length === 0 ? (
+            switching ? null : (
+              <Muted>{WHEN_FILTER_EMPTY[feedWhen]}</Muted>
+            )
+          ) : (
+            <View
+              accessibilityState={{ busy: switching }}
+              style={[styles.feed, switching && styles.stale]}
+            >
+              {happening.map(row)}
+            </View>
+          )}
+          {moreError ? <ErrorText>Could not load more. Try again.</ErrorText> : null}
+          {cursor !== null && !switching ? (
+            <Button
+              kind="quiet"
+              label={loadingMore ? 'Loading…' : 'Load more'}
+              onPress={loadMore}
+              disabled={loadingMore}
+            />
+          ) : null}
+        </>
+      )}
+    </ScrollView>
   );
 }
 
@@ -334,6 +296,28 @@ const styles = StyleSheet.create({
     paddingTop: space.s5,
     gap: space.s3,
   },
+  // The tee sheet's "when" filter: quiet pills, the current one ringed in ink
+  // (mirrors web's .when), never the accent.
+  when: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.s2,
+  },
+  whenItem: {
+    justifyContent: 'center',
+    minHeight: TAP_TARGET,
+    paddingHorizontal: space.s3,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+  },
+  whenLabel: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+  },
+  // The rows keep the screen's spacing inside their wrapper.
+  feed: { gap: space.s3 },
+  // The previous window's rows, while the new one loads (mirrors web).
+  stale: { opacity: 0.5 },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: displaySize.section,

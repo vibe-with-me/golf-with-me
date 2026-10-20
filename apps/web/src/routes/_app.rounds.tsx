@@ -1,37 +1,70 @@
-import { isGatheringFull, type GatheringListItem, type GatheringVisibility } from '@withme/contract';
-import { createFileRoute, Link, useLoaderData, useRouter } from '@tanstack/react-router';
+import {
+  isGatheringFull,
+  WHEN_FILTER_EMPTY,
+  WHEN_FILTER_LABELS,
+  WHEN_FILTERS,
+  whenWindow,
+  type GatheringListItem,
+  type WhenFilter,
+} from '@withme/contract';
+import { createFileRoute, Link, useLoaderData, useRouterState } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { shellStates } from '../components/CalmStates.tsx';
-import { GatheringControls } from '../components/GatheringControls.tsx';
 import { GatheringMeta } from '../components/GatheringMeta.tsx';
 import { asSignedInAccount } from '../lib/account-scope.ts';
 import { api } from '../lib/api.ts';
-import { courseWhenAndWhere, tomorrowEvening } from '../lib/format-time.ts';
-import { FULL_LABEL, audienceMark, goingLine, parseSpots, withLine } from '../lib/going.ts';
+import { courseWhenAndWhere } from '../lib/format-time.ts';
+import { FULL_LABEL, audienceMark, goingLine, withLine } from '../lib/going.ts';
+
+type View = 'yours';
+/** The tee sheet's window; `all` is the bare URL. */
+type When = Exclude<WhenFilter, 'all'>;
 
 /**
- * The Events tab: what is happening in the domain, and your own calendar.
- * "Happening" is every upcoming gathering the viewer may see — a bulletin
- * board, not a directory: a row carries the headcount and names only the
- * viewer's connections among the members (docs/the-slice.md). The tap is
- * still how people meet; the list is how they find out where.
+ * The Rounds tab: what is happening in the domain, and your own calendar,
+ * behind two in-page segments. "Tee sheet" is every upcoming round the
+ * viewer may see — a bulletin board, not a directory: a row carries the
+ * headcount and names only the viewer's connections among the members
+ * (docs/the-slice.md). "Yours" is what you host or are going to, then what
+ * is past. The tap is still how people meet; the list is how they find out
+ * where. Creating one is its own page (_app.rounds_.new.tsx).
+ *
+ * The segment is a search param, as on Connections: each list is a URL that
+ * a reload or a link keeps, and switching replaces the history entry.
+ * The tee sheet's "when" filter is one more (`?when=weekend`), turned into a
+ * window of start times on this device, in its time zone (`whenWindow`).
  */
 export const Route = createFileRoute('/_app/rounds')({
   ...shellStates,
   head: () => ({ meta: [{ title: 'Rounds — golfwithme' }] }),
-  loader: async () => {
+  // Always returns the key: a route's search is the parent's spread under
+  // this result, so leaving `view` out would let a raw ?view=foo through.
+  validateSearch: (search): { view?: View; when?: When } => ({
+    view: search.view === 'yours' ? search.view : undefined,
+    when: search.when !== 'all' && WHEN_FILTERS.includes(search.when as When)
+      ? (search.when as When)
+      : undefined,
+  }),
+  loaderDeps: ({ search }): { when: WhenFilter } => ({ when: search.when ?? 'all' }),
+  // ssr: false (the _app layout), so the window is the viewer's own week.
+  loader: async ({ deps }) => {
+    const bounds = whenWindow(deps.when);
     const [feed, { gatherings: mine }] = await asSignedInAccount(() =>
-      Promise.all([api.app.gatherings.list(), api.app.gatherings.listMine()]),
+      Promise.all([api.app.gatherings.list(bounds), api.app.gatherings.listMine()]),
     );
-    return { happening: feed.gatherings, nextCursor: feed.next_cursor, mine };
+    return { happening: feed.gatherings, nextCursor: feed.next_cursor, bounds, mine };
   },
   component: GatheringsPage,
 });
 
 function GatheringsPage() {
-  const { happening: firstPage, nextCursor: firstCursor, mine } = Route.useLoaderData();
-  // Later feed pages, appended under the loader's first one. A re-load (a
-  // create, an account switch) starts the feed over from its first page.
+  const { happening: firstPage, nextCursor: firstCursor, bounds, mine } = Route.useLoaderData();
+  const { view, when = 'all' } = Route.useSearch();
+  // A new window keeps the old rows up until its first page is in: busy, dimmed.
+  const reloading = useRouterState({ select: (state) => state.isLoading });
+  // Later feed pages, appended under the loader's first one. A re-load (an
+  // account switch, a return from a gathering) starts the feed over from its
+  // first page.
   const [laterPages, setLaterPages] = useState<GatheringListItem[]>([]);
   const [cursor, setCursor] = useState(firstCursor);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -54,15 +87,6 @@ function GatheringsPage() {
   // The layout fetched the viewer's profile once; every _app child may read it.
   const { profile } = useLoaderData({ from: '/_app' });
   const viewerId = profile?.id ?? null;
-  const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [startsAt, setStartsAt] = useState(tomorrowEvening);
-  const [location, setLocation] = useState('');
-  const [course, setCourse] = useState('');
-  const [visibility, setVisibility] = useState<GatheringVisibility>('everyone');
-  const [spots, setSpots] = useState('4'); // a foursome unless the host says fewer
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const now = Date.now();
   const upcoming = mine.filter((g) => Date.parse(g.starts_at) >= now);
@@ -75,7 +99,8 @@ function GatheringsPage() {
     setLoadingMore(true);
     setMoreError(false);
     try {
-      const page = await api.app.gatherings.list({ cursor });
+      // The first page's window, not a fresh one: the feed pages through one window.
+      const page = await api.app.gatherings.list({ ...bounds, cursor });
       if (firstPageRef.current !== askedFor) return;
       setLaterPages((pages) => [...pages, ...page.gatherings]);
       setCursor(page.next_cursor);
@@ -86,147 +111,117 @@ function GatheringsPage() {
     }
   }
 
-  async function create(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await api.app.gatherings.create({
-        title: title.trim(),
-        starts_at: new Date(startsAt).toISOString(),
-        course_name: course.trim(),
-        location: location.trim() === '' ? null : location.trim(),
-        visibility,
-        capacity: parseSpots(spots) ?? null,
-      });
-      setTitle('');
-      setCourse('');
-      setLocation('');
-      setVisibility('everyone');
-      setSpots('4');
-      setStartsAt(tomorrowEvening());
-      // Wait for the re-fetch (sync) so the list never shows a stale set of gatherings.
-      await router.invalidate({ sync: true });
-    } catch {
-      setError('Could not create the round. Check the fields and try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="stack">
-      <form className="card" onSubmit={create}>
-        <h1>Create a round</h1>
-        <div className="field">
-          <label htmlFor="title">Title</label>
-          <input
-            id="title"
-            required
-            maxLength={120}
-            placeholder="e.g. Saturday dawn nine"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="course_name">Course</label>
-          <input
-            id="course_name"
-            required
-            maxLength={80}
-            placeholder="e.g. Riverside Muni"
-            value={course}
-            onChange={(e) => setCourse(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="starts_at">Tee time</label>
-          <input
-            id="starts_at"
-            type="datetime-local"
-            required
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="location">Meet at (optional)</label>
-          <input
-            id="location"
-            maxLength={160}
-            placeholder="e.g. the first tee"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
-        </div>
-        <GatheringControls
-          visibility={visibility}
-          onVisibility={setVisibility}
-          spots={spots}
-          onSpots={setSpots}
-        />
-        {error ? (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <button
-          className="btn"
-          type="submit"
-          disabled={busy || !title.trim() || !course.trim() || !startsAt || parseSpots(spots) === undefined}
-        >
-          {busy ? 'Creating…' : 'Create round'}
-        </button>
-      </form>
+      <h1 className="section-title">Rounds</h1>
+      <Link className="btn" to="/rounds/new">
+        New round
+      </Link>
+      <nav className="segments" aria-label="Rounds lists">
+        <SegmentLink current={view} label="Tee sheet" />
+        <SegmentLink current={view} view="yours" label="Yours" />
+      </nav>
 
-      <section aria-labelledby="happening">
-        <h2 className="section-title" id="happening">
-          Tee sheet
-        </h2>
-        {happening.length === 0 ? (
-          <p className="empty">No rounds on the tee sheet yet. Create the first one.</p>
-        ) : (
-          happening.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
-        )}
-        {moreError ? (
-          <p className="form-error" role="alert">
-            Could not load more. Try again.
-          </p>
-        ) : null}
-        {cursor !== null ? (
-          <button
-            className="btn btn--quiet"
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-          >
-            {loadingMore ? 'Loading…' : 'Load more'}
-          </button>
-        ) : null}
-      </section>
-
-      <section aria-labelledby="yours">
-        <h2 className="section-title" id="yours">
-          Yours
-        </h2>
-        {mine.length === 0 ? (
-          <p className="empty">Join one above, or create your own.</p>
-        ) : upcoming.length === 0 ? (
-          <p className="empty">Nothing coming up.</p>
-        ) : (
-          upcoming.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
-        )}
-        {past.length > 0 ? (
-          <>
-            <h2 className="section-title">Past</h2>
-            {past.map((g) => (
-              <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />
+      {view === 'yours' ? (
+        <section aria-label="Yours">
+          {mine.length === 0 ? (
+            <p className="empty">Join one from the tee sheet, or create your own.</p>
+          ) : upcoming.length === 0 ? (
+            <p className="empty">Nothing coming up.</p>
+          ) : (
+            upcoming.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
+          )}
+          {past.length > 0 ? (
+            <>
+              <h2 className="section-title">Past</h2>
+              {past.map((g) => (
+                <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />
+              ))}
+            </>
+          ) : null}
+        </section>
+      ) : (
+        <section className="discover" aria-label="Tee sheet" aria-busy={reloading || undefined}>
+          <nav className="when" aria-label="When">
+            {WHEN_FILTERS.map((filter) => (
+              <WhenLink key={filter} current={when} filter={filter} />
             ))}
-          </>
-        ) : null}
-      </section>
+          </nav>
+          {happening.length === 0 ? (
+            <p className="empty">{WHEN_FILTER_EMPTY[when]}</p>
+          ) : (
+            happening.map((g) => <GatheringRow key={g.id} gathering={g} viewerId={viewerId} />)
+          )}
+          {moreError ? (
+            <p className="form-error" role="alert">
+              Could not load more. Try again.
+            </p>
+          ) : null}
+          {cursor !== null ? (
+            <button
+              className="btn btn--quiet"
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          ) : null}
+        </section>
+      )}
     </div>
+  );
+}
+
+/**
+ * One segment (mirrors Connections' SegmentLink). Active = ink and a 2px ink
+ * underline, never the accent; it follows the validated view, so a stale
+ * ?view=foo still shows the tee sheet as current.
+ */
+function SegmentLink({
+  current,
+  view,
+  label,
+}: {
+  current: View | undefined;
+  view?: View;
+  label: string;
+}) {
+  const active = view === current;
+  return (
+    <Link
+      to="/rounds"
+      search={view ? { view } : {}}
+      replace
+      className={active ? 'segments__item segments__item--active' : 'segments__item'}
+      aria-current={active ? 'page' : undefined}
+      // exact keeps the router's own active marking from disagreeing:
+      // without it, "Tee sheet" would partially match ?view=yours too.
+      activeOptions={{ exact: true }}
+      activeProps={{}}
+    >
+      {label}
+    </Link>
+  );
+}
+
+/** One "when" window: a quiet pill, the current one ringed in ink. Each is
+ * its own URL, so the current one is aria-current="page", as the segments;
+ * switching replaces the history entry. */
+function WhenLink({ current, filter }: { current: WhenFilter; filter: WhenFilter }) {
+  const active = filter === current;
+  return (
+    <Link
+      to="/rounds"
+      search={filter === 'all' ? {} : { when: filter }}
+      replace
+      className={active ? 'link when__item when__item--active' : 'link when__item'}
+      aria-current={active ? 'page' : undefined}
+      activeOptions={{ exact: true }}
+      activeProps={{}}
+    >
+      {WHEN_FILTER_LABELS[filter]}
+    </Link>
   );
 }
 

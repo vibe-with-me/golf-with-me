@@ -23,6 +23,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ClaimUidRouteImport } from './routes/claim.$uid'
 import { Route as TUidRouteImport } from './routes/t.$uid'
 import { Route as AppRoundsIdRouteImport } from './routes/_app.rounds_.$id'
+import { Route as AppRoundsNewRouteImport } from './routes/_app.rounds_.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +94,11 @@ const AppRoundsIdRoute = AppRoundsIdRouteImport.update({
   path: '/rounds/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoundsNewRoute = AppRoundsNewRouteImport.update({
+  id: '/rounds_/new',
+  path: '/rounds/new',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
   '/rounds/$id': typeof AppRoundsIdRoute
+  '/rounds/new': typeof AppRoundsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
   '/rounds/$id': typeof AppRoundsIdRoute
+  '/rounds/new': typeof AppRoundsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/claim/$uid': typeof ClaimUidRoute
   '/t/$uid': typeof TUidRoute
   '/_app/rounds_/$id': typeof AppRoundsIdRoute
+  '/_app/rounds_/new': typeof AppRoundsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/claim/$uid'
     | '/t/$uid'
     | '/rounds/$id'
+    | '/rounds/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/claim/$uid'
     | '/t/$uid'
     | '/rounds/$id'
+    | '/rounds/new'
   id:
     | '__root__'
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/claim/$uid'
     | '/t/$uid'
     | '/_app/rounds_/$id'
+    | '/_app/rounds_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -300,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRoundsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rounds_/new': {
+      id: '/_app/rounds_/new'
+      path: '/rounds/new'
+      fullPath: '/rounds/new'
+      preLoaderRoute: typeof AppRoundsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -311,6 +330,7 @@ interface AppRouteChildren {
   AppShareRoute: typeof AppShareRoute
   AppTermsRoute: typeof AppTermsRoute
   AppRoundsIdRoute: typeof AppRoundsIdRoute
+  AppRoundsNewRoute: typeof AppRoundsNewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -321,6 +341,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppShareRoute: AppShareRoute,
   AppTermsRoute: AppTermsRoute,
   AppRoundsIdRoute: AppRoundsIdRoute,
+  AppRoundsNewRoute: AppRoundsNewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

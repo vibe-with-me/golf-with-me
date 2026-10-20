@@ -230,9 +230,12 @@ test('signing in without a destination lands on Rounds, the first tab', async ({
   const nav = page.getByRole('navigation', { name: 'Primary' });
   await expect(nav.getByRole('link').first()).toHaveText('Rounds');
   await expect(nav.getByRole('link', { name: 'Rounds' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: 'Create a round' })).toBeVisible();
-  // A new account has nothing of its own; Happening may already list the domain's gatherings.
+  await expect(page.getByRole('link', { name: 'New round' })).toBeVisible();
+  // A new account has nothing of its own; the tee sheet may already list the domain's rounds.
+  const segments = page.getByRole('navigation', { name: 'Rounds lists' });
+  await expect(segments.getByRole('link', { name: 'Tee sheet' })).toHaveAttribute('aria-current', 'page');
+  await segments.getByRole('link', { name: 'Yours' }).click();
   await expect(
-    page.getByRole('region', { name: 'Yours' }).getByText('Join one above, or create your own.'),
+    page.getByRole('region', { name: 'Yours' }).getByText('Join one from the tee sheet, or create your own.'),
   ).toBeVisible();
 });

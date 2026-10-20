@@ -79,12 +79,12 @@ test('My tags: a claimed tag turns off and on, and re-points at a round', async 
   await stranger.reload();
   await expect(stranger.getByRole('heading', { name: 'Smoke Tags' })).toBeVisible();
 
-  await owner.goto('/rounds');
+  await owner.goto('/rounds/new');
   await owner.getByLabel('Title').fill('Smoke Tag Night');
   await owner.getByLabel('Course', { exact: true }).fill('Smoke Links');
   await owner.getByRole('button', { name: 'Create round' }).click();
-  // Listed under Happening and under Yours: the first is enough.
-  await expect(owner.getByText('Smoke Tag Night').first()).toBeVisible();
+  // A created round opens on its own page.
+  await expect(owner.getByRole('heading', { name: 'Smoke Tag Night' })).toBeVisible();
   await owner.goto('/profile');
   // exact: the Save button's name ("Save where … points") contains the label.
   const destination = owner.getByLabel(`Where ${uid} points`, { exact: true });

@@ -68,6 +68,7 @@ export default function RootLayout() {
         {/* Signed in and agreed to the current terms: the app. */}
         <Stack.Protected guard={!!session && !needsTerms}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="round/new" />
           <Stack.Screen name="round/[id]" />
           <Stack.Screen name="claim/[uid]" />
           <Stack.Screen name="share" />
