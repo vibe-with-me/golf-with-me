@@ -15,6 +15,7 @@
     "typecheck": "turbo run typecheck",
     "build": "turbo run build",
     "test": "turbo run test",
+    "coverage": "bun scripts/coverage.ts",
     "deploy": "turbo run deploy",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
@@ -26,15 +27,21 @@
     "sync:check": "bash scripts/upstream-redefines.sh"
   },
   "devDependencies": {
-    "oxlint": "^1.87.0",
+    "oxlint": "^1.89.0",
     "prettier": "3.9.10",
-    "turbo": "^2.11.7"
+    "turbo": "^2.11.10"
   },
   "overrides": {
-    "expo": "56.0.9",
+    "expo": "57.0.30",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "baseline-browser-mapping": "^2.11.0",
+    "browserslist": "^4.28.7",
+    "js-yaml": "^4.3.2",
+    "nanoid": "^3.3.18",
+    "postcss": "^8.5.23",
     "seroval": "^1.6.9",
-    "seroval-plugins": "^1.6.9"
+    "seroval-plugins": "^1.6.9",
+    "source-map-js": "^1.2.2"
   }
 }

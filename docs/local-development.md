@@ -76,12 +76,31 @@ cp apps/mobile/.env.example apps/mobile/.env
 bun run --filter @withme/mobile dev     # Metro; press i for iOS, a for Android
 ```
 
-The iOS simulator reaches the host's API and Supabase at `localhost`. On
-a physical device set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL`
-to your machine's LAN IP. NFC reading needs a development build
-(`npx expo run:ios`); in Expo Go the scan screen falls back to typing a
-UID or following a deep link. [`apps/mobile/README.md`](../apps/mobile/README.md)
-has the rest.
+The iOS simulator reaches the host's API and Supabase at `localhost`.
+The Android emulator reaches the host at `10.0.2.2`, so set
+`EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL` and
+`EXPO_PUBLIC_WEB_URL` (what your share code and QR scanner use) to that
+there, and on a physical device to your machine's LAN IP. `10.0.2.2`
+works only inside the emulator: for a share code another phone will
+scan, set `EXPO_PUBLIC_WEB_URL` to the LAN IP even there. Expo Go from
+the App Store or Play Store runs one Expo SDK, and the starter tracks
+that SDK (57 today), not the newest release, so the app opens on a real
+phone. If Expo Go on a phone says the project is incompatible, the
+stores have moved to a newer SDK. On Android, install the Expo Go that
+matches the project from [expo.dev/go](https://expo.dev/go); on an
+iPhone, build your own with `bunx eas-cli go` (an EAS build sent to
+TestFlight; needs an Apple Developer Program membership) or use a
+development build. Or upgrade the SDK when you are ready (see the
+upgrade note in the mobile README). On an iPhone, Expo Go also opens a
+project from your machine only when it and Expo CLI are signed in to the
+same Expo account: run `bunx expo login`, then sign in from the account
+icon in Expo Go ([Expo's
+note](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/)).
+Simulators and emulators need no Expo Go install: Expo CLI installs the
+matching one. NFC reading needs a development build (`npx expo
+run:ios`); in Expo Go the scan screen falls back to typing a UID or
+following a deep link.
+[`apps/mobile/README.md`](../apps/mobile/README.md) has the rest.
 
 ### Push notifications
 
@@ -128,7 +147,8 @@ Background the app first, then tap the banner.
 | `bun run lint` | `oxlint --deny-warnings` | — |
 | `bun run typecheck` | Every workspace, including the e2e folders | — |
 | `bun run --cwd apps/api e2e` | The SDK through the API Worker into Supabase | The stack, the SDK built once (`bunx turbo run build --filter=@vibewithme/nfc`; the e2e imports its `dist/`), and `cd apps/api && bun run dev` in another shell |
-| `bun run --cwd apps/web test:e2e` | Playwright smoke against the production build: resolve → claim → connect, the shell, gatherings, connections, profile | The stack and the service-role key (below). Playwright starts the API Worker and the built web Worker itself. |
+| `bun run --cwd apps/web test:e2e` | Playwright e2e against the production build: every page and safety flow ([Testing](testing.md#the-map) has the map) | The stack and the service-role key (below). Playwright starts the API Worker and the built web Worker itself. |
+| `bun run --cwd apps/mobile e2e` | Maestro flows for the Expo app: every core flow (handshake, where you met, gatherings, blocks, reports, terms, signed-out taps). Local and opt-in. | The stack, the API Worker, Metro, a booted simulator and the Maestro CLI ([Testing](testing.md#mobile-e2e-local-and-opt-in)) |
 
 ### The service-role key
 
@@ -149,8 +169,10 @@ variable is unset and the target is the local stack. CI exports it the
 same way after `supabase start`.
 
 `bun run lint && bun run typecheck && bun run test` is the verification
-gate every skill ends with. CI runs the same plus the build, the SDK
-publish checks, and the Playwright smoke.
+gate every skill ends with. CI runs the same plus the build and the SDK
+publish checks in its `ci` job, and the Playwright suite in a separate
+`e2e` job. [Testing](testing.md) covers what each suite proves, how to
+read a red check, and how to add a spec.
 
 The RLS tests act through real per-user clients against the live stack,
 so they are slower than unit tests and cannot run without Docker. They

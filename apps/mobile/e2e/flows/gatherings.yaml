@@ -1,0 +1,77 @@
+# Gatherings: a host creates one on its own page and finds it under Yours;
+# a connection finds it in the tee sheet, sees who they know there, joins, and
+# finds it under Yours too.
+appId: ${APP_ID}
+name: A host creates a round, a connection finds it on the tee sheet and joins
+---
+- runFlow: steps/open-signed-out.yaml
+
+# --- Hal creates it ----------------------------------------------------------
+- runFlow:
+    file: steps/sign-in.yaml
+    env:
+      EMAIL: ${GA_HOST_EMAIL}
+      THEN: New round
+- tapOn: New round
+- extendedWaitUntil:
+    visible: Create a round
+    timeout: 15000
+# The input, not its label: both carry the name. The date and time keep
+# their default, tomorrow evening.
+- tapOn:
+    text: Title
+    below: Title
+- inputText: ${GA_TITLE}
+# Golf With Me: every round has a course.
+- tapOn:
+    text: Course
+    below: Course
+- inputText: Riverside Muni
+# A tap on the heading closes the keyboard, which covers the button.
+- tapOn: Create a round
+- scrollUntilVisible:
+    element: Create round
+    direction: DOWN
+- tapOn: Create round
+- extendedWaitUntil:
+    visible: ${GA_TITLE}
+    timeout: 15000
+- assertVisible: 1 of 4 playing
+- tapOn: Back
+- runFlow: steps/show-yours.yaml
+# A row reads as one element: title, when, who's going.
+- extendedWaitUntil:
+    visible: '${GA_TITLE}, Hosting.*1 of 4 playing'
+    timeout: 15000
+- runFlow: steps/sign-out.yaml
+
+# --- Gus, Hal's connection, finds it in the tee sheet and joins ------------------
+- runFlow:
+    file: steps/sign-in.yaml
+    env:
+      EMAIL: ${GA_GUEST_EMAIL}
+      THEN: New round
+- runFlow:
+    file: steps/reveal-in-feed.yaml
+    env:
+      TITLE: ${GA_TITLE}
+# A row names only the viewer's connections among who's going.
+- assertVisible: '${GA_TITLE}, .*, 1 of 4 playing, With ${GA_HOST_NAME}'
+- tapOn: '${GA_TITLE}, .*'
+- extendedWaitUntil:
+    visible: 1 of 4 playing
+    timeout: 15000
+- tapOn: Join
+- extendedWaitUntil:
+    visible: 2 of 4 playing
+    timeout: 15000
+- assertVisible: Leave round
+# Who's going: Hal, marked as the host.
+- assertVisible: ${GA_HOST_NAME}
+- assertVisible: Host
+- tapOn: Back
+- runFlow: steps/show-yours.yaml
+- extendedWaitUntil:
+    visible: '${GA_TITLE}, Playing.*2 of 4 playing, With ${GA_HOST_NAME}'
+    timeout: 15000
+- runFlow: steps/sign-out.yaml
