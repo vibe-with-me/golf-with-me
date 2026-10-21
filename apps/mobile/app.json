@@ -7,7 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "golfwithme",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "co.golfwithme.app"
@@ -64,7 +63,9 @@
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-status-bar"
     ],
     "runtimeVersion": {
       "policy": "sdkVersion"
