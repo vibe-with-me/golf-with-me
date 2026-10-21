@@ -1,6 +1,7 @@
 # withme-starter
 
 [![CI](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/vibe-with-me/withme-starter/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvibe-with-me%2Fwithme-starter%2Fbadges%2Fbadge.json)](docs/testing.md#coverage)
 [![License: MIT](https://img.shields.io/github/license/vibe-with-me/withme-starter)](LICENSE)
 [![npm: @vibewithme/nfc](https://img.shields.io/npm/v/@vibewithme/nfc?label=%40vibewithme%2Fnfc)](https://www.npmjs.com/package/@vibewithme/nfc)
 [![Live demo](https://img.shields.io/badge/live_demo-starter--demo.vibewithme.co-1c1916)](https://starter-demo.vibewithme.co/t/04BBBBBBBBBBBB)
