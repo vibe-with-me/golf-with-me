@@ -4,6 +4,8 @@ import type { Db } from '@withme/db';
 export const DEMO_USERS = {
   ada: 'ada@demo.golfwithme.local',
   lin: 'lin@demo.golfwithme.local',
+  // Local stacks only: the seed never makes it on a hosted project.
+  operator: 'operator@demo.golfwithme.local',
 } as const;
 
 export const DEMO_TAGS = {
