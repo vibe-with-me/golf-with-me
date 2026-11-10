@@ -36,7 +36,7 @@ test.describe('Admin area', () => {
     await signUpWithProfile(page, email, `Ops ${stamp}`);
     makeOperator(email);
 
-    for (const path of ['/gatherings', '/connections', '/profile', '/share']) {
+    for (const path of ['/rounds', '/connections', '/profile', '/share']) {
       await page.goto(path);
       await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
       await expect(page.locator('a[href^="/admin"]')).toHaveCount(0);
