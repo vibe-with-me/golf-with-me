@@ -41,7 +41,7 @@
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Read Golf With Me tags to connect with golfers.",
+          "nfcPermission": "Read and write Golf With Me tags to connect with golfers.",
           "includeNdefEntitlement": false
         }
       ],

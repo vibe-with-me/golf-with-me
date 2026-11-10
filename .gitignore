@@ -8,8 +8,9 @@ build
 # Test coverage
 coverage
 
-# Verification screenshots (the feature-dev skill)
+# Verification screenshots and working plans (the feature-dev skill)
 .verify-screenshots/
+.plans/
 
 # Environment files
 .env
@@ -48,8 +49,9 @@ credentials.json
 google-services.json
 GoogleService-Info.plist
 
-# Claude Code: per-machine settings and worktrees.
-.claude/
+# Claude Code: per-machine settings and worktrees. The skill links are shared.
+.claude/*
+!.claude/skills/
 
 # OS
 .DS_Store
