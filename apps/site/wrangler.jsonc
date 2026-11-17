@@ -1,0 +1,16 @@
+{
+  "$schema": "../web/node_modules/wrangler/config-schema.json",
+  // The placeholder marketing site at the apex. Static assets only, no code.
+  "name": "golfwithme-site",
+  // Pinned: wrangler sees several accounts (go-live section 2).
+  "account_id": "37a370f48fdc8e9f0d279409d6fbf23d",
+  "workers_dev": false,
+  "preview_urls": false,
+  "compatibility_date": "2026-05-01",
+  // Custom domains are attached at deploy time with --domain, like staging,
+  // so endpoints stay out of git. See apps/site/README.md.
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  }
+}
