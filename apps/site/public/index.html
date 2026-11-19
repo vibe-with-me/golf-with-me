@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Golf With Me</title>
+  <meta name="description" content="Strangers on the first tee. Friends after the eighteenth. The best part of golf isn't on the scorecard. It's who you played with.">
+  <meta name="theme-color" content="#eeebe1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131314" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://golfwithme.co/">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://golfwithme.co/">
+  <meta property="og:title" content="Golf With Me">
+  <meta property="og:description" content="Strangers on the first tee. Friends after the eighteenth.">
+  <meta property="og:image" content="https://golfwithme.co/social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eeebe1; --surface: #fdfcf7; --border: rgba(38, 38, 42, 0.1);
+      --ink: #26262a; --ink-muted: #63625d;
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #131314; --surface: #222224; --border: rgba(236, 234, 226, 0.1);
+        --ink: #eceae2; --ink-muted: #a3a199;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column;
+      background: var(--bg); color: var(--ink);
+      font: 400 1.0625rem/1.6 "IBM Plex Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      flex: 1; width: 100%; max-width: 40rem; margin: 0 auto;
+      padding: 12vh 1.25rem 3rem;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .mark { width: 96px; height: 96px; }
+    .wordmark {
+      margin: 0.75rem 0 0;
+      font: 700 clamp(3.5rem, 13vw, 5.5rem)/1 Caveat, cursive; letter-spacing: 0;
+    }
+    .promise {
+      margin: 2.5rem 0 0; font-weight: 500; text-wrap: balance;
+      font-size: clamp(1.375rem, 5vw, 1.875rem); line-height: 1.3;
+    }
+    .sub {
+      margin: 1rem 0 0; max-width: 28rem; color: var(--ink-muted); text-wrap: balance;
+      font-size: clamp(1.0625rem, 3.4vw, 1.1875rem);
+    }
+    .soon {
+      margin-top: 3rem; font: 700 1.875rem/1.2 Caveat, cursive;
+    }
+    .soon em {
+      font-style: normal; padding: 0 0.35em;
+      border: 2.5px solid var(--ink-muted); border-radius: 50% 46% 52% 44%;
+    }
+    footer {
+      padding: 1.5rem 1.25rem 2rem; text-align: center;
+      color: var(--ink-muted); font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="mark" src="/favicon.svg" alt="" width="96" height="96">
+    <h1 class="wordmark">golfwithme</h1>
+    <p class="promise">Strangers on the first tee.<br>Friends after the eighteenth.</p>
+    <p class="sub">The best part of golf isn't on the scorecard. It's who you played with.</p>
+
+    <p class="soon">Teeing off <em>soon</em></p>
+  </main>
+  <footer>© 2026 Golf With Me</footer>
+</body>
+</html>
